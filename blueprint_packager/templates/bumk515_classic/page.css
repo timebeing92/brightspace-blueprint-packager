@@ -1,0 +1,140 @@
+/* Template: bumk515-classic
+   Source: BUMK-515-TEMPLATE export of 2026-10-01 (org unit 102529).
+   Block 1 is the <style> element of "Week 1 Overview and Learning Materials.html", verbatim.
+   Block 2 is the timeline rules of "Assignment Roadmap.html", verbatim.
+   Block 3 is the only addition: rules the old pages never needed (h4, tables, stage titles). */
+
+/* ===== Block 1: weekly overview page (verbatim) ===== */
+/* ---------- Base typography ---------- */
+:root{
+  --brand: #134f5c;
+  --text:  #202122;
+  --link:  #026f94;
+  --bg-light:#f9f9f9;
+  --border:#d8d8d8;
+  font-size: 19px;          
+}
+
+body{
+  margin:0;
+  font-family:'Lato','Helvetica Neue',Arial,sans-serif;
+  color:var(--text);
+  line-height:1.65;
+  background:#fff;
+}
+
+/* ---------- Headings ---------- */
+h1,h2,h3{
+  color:var(--brand);
+  margin:0 0 .5rem;
+  font-weight:500;
+}
+h1{font-size:2rem;text-align:left;}
+h2{font-size:1.5rem;margin-top:1.5rem;}
+h3{font-size:1.25rem;margin-top:1rem;}
+
+/* Mobile—stack headings slightly smaller */
+@media(max-width:48em){
+  h1{font-size:1.6rem;}
+  h2{font-size:1.35rem;}
+  h3{font-size:1.1rem;}
+}
+
+/* ---------- Layout ---------- */
+.wrapper{max-width:48rem;margin:0 auto;padding:0 1rem;}
+section{margin-bottom:2.5rem;}
+hr{border:0;border-top:1px solid var(--border);margin:1rem 0;}
+
+/* ---------- Lists ---------- */
+ul{margin:.6rem 0 1rem 1.25rem;padding:0;}
+li{margin-bottom:.45rem;}
+
+/* ---------- Video ---------- */
+.video-wrap{
+  position:relative;
+  padding-top:56.25%;  /* 16:9 */
+  margin-bottom:1rem;
+}
+.video-wrap iframe{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0;
+}
+.transcript{font-size:.95rem;}
+
+/* ---------- Details / summary dropdown ---------- */
+details{
+  margin:1rem 0;
+  background:var(--bg-light);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:1rem;
+}
+summary{
+  cursor:pointer;
+  font-weight:700;
+  color:var(--brand);
+  list-style:none;
+  outline:none;
+}
+summary::-webkit-details-marker{display:none;}  /* hide default arrow */
+summary::before{          /* custom arrow */
+  content:"\25B6";        /* ▶ */
+  display:inline-block;
+  margin-right:.5rem;
+  transition:transform .2s;
+}
+details[open] summary::before{
+  content:"\25BC";        /* ▼ */
+}
+.callout {
+  background: #f5fafa;
+  border-left: 4px solid var(--brand);
+  padding: 1rem 1.25rem;
+  margin: 1rem 0 2rem;
+  border-radius: 4px;
+}
+/* ---------- Back to top ---------- */
+.back-top{
+  text-align:right;
+  margin-top:2rem;
+}
+.back-top a{
+  font-size:.9rem;
+  text-decoration:none;
+  color:var(--link);
+}
+.back-top a:hover,
+a:focus{ text-decoration:underline;}
+
+/* ---------- Link styling ---------- */
+a{color:var(--link);}
+a:visited{color:#045d7b;}
+a:hover{opacity:.85;}
+a[target="_blank"]::after {
+  content: "↗";
+  display: inline-block;
+  font-size: 1.12em;
+  margin-left: 0.25em;
+  vertical-align: super;
+  color: var(--link);
+  opacity: 0.75;
+}
+
+/* ===== Block 2: assignment roadmap timeline (verbatim) ===== */
+.timeline{position:relative;margin:1.5rem 0 2.5rem;padding-left:1.75rem;}
+.timeline::before{content:"";position:absolute;left:.6rem;top:0;bottom:0;width:2px;background:linear-gradient(to bottom, var(--brand), var(--border));opacity:.85;}
+.stage{position:relative;background:var(--bg-light);border:1px solid var(--border);border-radius:6px;padding:1rem 1.25rem;margin:0 0 1rem;}
+.stage::before{content:"";position:absolute;left:-1.15rem;top:1.4rem;width:.9rem;height:.9rem;background:#fff;border:3px solid var(--brand);border-radius:50%;box-shadow:0 0 0 2px #fff;}
+.label{font-weight:700;}
+.purpose{background:#f5fafa;border:1px solid var(--border);padding:.6rem .8rem;border-radius:4px;margin-top:.6rem;}
+.small{font-size:.9rem;color:#4a4b4c;}
+
+/* ===== Block 3: additions for content the old pages did not contain ===== */
+h4{color:var(--brand);font-weight:500;font-size:1.1rem;margin:1rem 0 .5rem;}
+.stage h2{font-size:1.25rem;margin:0 0 .5rem;}
+table.bp-table{border-collapse:collapse;width:100%;margin:1rem 0;}
+table.bp-table td,table.bp-table th{border:1px solid var(--border);padding:.5rem;vertical-align:top;text-align:left;}
+.styled-box{background:#f5fafa;border-left:4px solid var(--brand);padding:1rem 1.25rem;margin:1rem 0 1.5rem;border-radius:4px;}

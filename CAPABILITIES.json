@@ -1,0 +1,222 @@
+{
+  "schema": "blueprint_packager.capabilities/0.1",
+  "note": "What this tool can put into a package, and how well each shape is proven. Levels follow docs/IMPORT_TEST_LOG.md: L1 local read-back, L2 shape matches a real export, L3 imports, L4 survives import and re-export. A level names the best evidence that exists anywhere for the shape, and who holds it. Nothing built by this tool has been imported yet.",
+  "this_tool_evidence": "L1",
+  "capabilities": [
+    {
+      "shape": "module with HTML topics",
+      "status": "builds",
+      "built_with": "local manifest writer modelled on d2l_package_lib",
+      "best_evidence": "L4",
+      "evidence_holder": "Workbench component library",
+      "receipt_refs": [
+        "docs/IMPORT_TEST_LOG.md Receipt 3"
+      ]
+    },
+    {
+      "shape": "grade items",
+      "status": "builds",
+      "built_with": "d2l_package_lib.build_grades_xml",
+      "best_evidence": "L4",
+      "evidence_holder": "Workbench component library",
+      "receipt_refs": [
+        "docs/IMPORT_TEST_LOG.md Receipt 3"
+      ]
+    },
+    {
+      "shape": "assignment folder joined to a grade item",
+      "status": "builds",
+      "built_with": "d2l_package_lib.build_dropbox_xml",
+      "best_evidence": "L4",
+      "evidence_holder": "Workbench component library",
+      "receipt_refs": [
+        "docs/IMPORT_TEST_LOG.md Receipt 3"
+      ]
+    },
+    {
+      "shape": "discussion forum with graded topics",
+      "status": "builds",
+      "built_with": "d2l_package_lib.build_discussion_xml",
+      "best_evidence": "L4",
+      "evidence_holder": "Workbench component library",
+      "receipt_refs": [
+        "docs/IMPORT_TEST_LOG.md Receipt 3"
+      ]
+    },
+    {
+      "shape": "checklist with a module link",
+      "status": "builds",
+      "built_with": "d2l_package_lib.build_checklists_xml",
+      "best_evidence": "L4",
+      "evidence_holder": "Workbench component library",
+      "receipt_refs": [
+        "docs/IMPORT_TEST_LOG.md Receipt 3"
+      ]
+    },
+    {
+      "shape": "analytic rubric with named levels and weighted criteria",
+      "status": "builds",
+      "built_with": "rubric_package_lib.build_rubrics_xml",
+      "best_evidence": "L4 as a rubric-only package",
+      "evidence_holder": "Workbench rubric library",
+      "receipt_refs": [
+        "docs/IMPORT_TEST_LOG.md Receipt 5"
+      ]
+    },
+    {
+      "shape": "analytic rubric attached to an assignment folder",
+      "status": "builds",
+      "built_with": "d2l_package_lib association element with rubric_package_lib ids",
+      "best_evidence": "L3 downstream",
+      "evidence_holder": "MBA 630 course build, imported 2026-08-25",
+      "receipt_refs": [
+        "MBA_630 plans/2026-08-25-integrated-creatorplus-course-package.md"
+      ],
+      "caution": "Receipt 5 records analytic rubric attachment as a manual step for the Workbench itself."
+    },
+    {
+      "shape": "rubric attached to a discussion topic",
+      "status": "builds",
+      "built_with": "local extension",
+      "best_evidence": "L3 downstream",
+      "evidence_holder": "MBA 630 course build",
+      "receipt_refs": [
+        "MBA_630 scripts/build_mba630_fall_a_2026_package.py attach_discussion_rubrics"
+      ],
+      "shape_source": "template export discussion_d2l_3.xml"
+    },
+    {
+      "shape": "more than one discussion forum in one package",
+      "status": "builds",
+      "built_with": "local extension",
+      "best_evidence": "L2",
+      "evidence_holder": "template export has three forum files",
+      "receipt_refs": []
+    },
+    {
+      "shape": "hidden module and hidden topic",
+      "status": "builds",
+      "built_with": "local extension",
+      "best_evidence": "L2",
+      "evidence_holder": "template export manifest isvisible=False",
+      "receipt_refs": []
+    },
+    {
+      "shape": "external link topic",
+      "status": "builds",
+      "built_with": "local extension",
+      "best_evidence": "L2",
+      "evidence_holder": "template export contentlink resources",
+      "receipt_refs": []
+    },
+    {
+      "shape": "one page file placed in two modules",
+      "status": "builds",
+      "built_with": "local extension",
+      "best_evidence": "L2",
+      "evidence_holder": "template export places Assignment Roadmap.html twice",
+      "receipt_refs": []
+    },
+    {
+      "shape": "relative link from one HTML topic to another",
+      "status": "builds",
+      "built_with": "html renderer",
+      "best_evidence": "L1",
+      "evidence_holder": "this tool",
+      "receipt_refs": [],
+      "caution": "MBA 630 found that quicklinks with an org-unit placeholder inside static HTML do not resolve after import; a relative file link avoids the placeholder but is untested in the tenant."
+    },
+    {
+      "shape": "quiz carried forward unchanged from a source export",
+      "status": "carries",
+      "built_with": "local extension: copy payload, rewrite resource code, grade join, and due date",
+      "best_evidence": "L2",
+      "evidence_holder": "payload is a real export file",
+      "receipt_refs": []
+    },
+    {
+      "shape": "quiz authored from a blueprint",
+      "status": "refuses",
+      "reason": "quiz authoring belongs to the quiz lane"
+    },
+    {
+      "shape": "dates and calendar",
+      "status": "not built",
+      "reason": "the blueprint states due days in prose only"
+    },
+    {
+      "shape": "release conditions, intelligent agents, groups, surveys, LTI links, Creator+ practices",
+      "status": "refuses",
+      "reason": "no blueprint grammar and no evidence path yet"
+    }
+  ],
+  "authoring_rules": [
+    {
+      "rule": "activity title",
+      "source": "the activity's own heading in the body, with its week in front when the heading lacks it",
+      "fallback": "the points table row, when the map gives no heading",
+      "decided": "owner, 2026-10-06"
+    },
+    {
+      "rule": "activity points",
+      "source": "the activity body",
+      "fallback": "the points table, when the body states none",
+      "on_disagreement": "the tool stops at normalization and at build until a determination is recorded",
+      "decided": "owner, 2026-10-06"
+    },
+    {
+      "rule": "grade item name",
+      "source": "the activity it grades",
+      "alternative": "the points table row (build setting grade_item_names)",
+      "decided": "owner, 2026-10-06"
+    },
+    {
+      "rule": "checklist items",
+      "source": "listed in the blueprint, or built from the week's activities when the checklist says so",
+      "decided": "owner, 2026-10-06"
+    },
+    {
+      "rule": "dates",
+      "source": "term calendar and due-day rules in the build settings; an activity may override its rule",
+      "decided": "owner, 2026-10-06"
+    },
+    {
+      "rule": "wording changes",
+      "source": "only entries in the course map (addition, edit, rubric clone), each naming authorizer and reason",
+      "note": "listed apart from authored text in the fidelity proof"
+    }
+  ],
+  "source_change_handling": {
+    "command": "rebase-map",
+    "evidence": "synthetic fixture with added and removed paragraphs; MBA 620 across two same-day exports with no position change; MBA 620 against a simulated export with eleven paragraphs removed, which rebuilt to a byte-identical package",
+    "limit": "decisions stay written against the first export until re-based by hand"
+  },
+  "date_shapes": [
+    {
+      "shape": "due date on an assignment folder and its content link",
+      "built_with": "d2l_package_lib (date_due)",
+      "best_evidence": "L4",
+      "evidence_holder": "MBA 630 course build: survived import and re-export",
+      "this_tool_evidence": "L1"
+    },
+    {
+      "shape": "end date on a checklist item",
+      "built_with": "d2l_package_lib (date_end)",
+      "best_evidence": "L4",
+      "evidence_holder": "MBA 630 course build",
+      "this_tool_evidence": "L1"
+    },
+    {
+      "shape": "due date on a carried quiz, nested timestamp form",
+      "built_with": "local rewrite of the source payload",
+      "best_evidence": "L2 (matches the form Brightspace exports)",
+      "evidence_holder": "none for import; MBA 630's flat form was lost on import",
+      "this_tool_evidence": "L1"
+    },
+    {
+      "shape": "dates on discussion topics",
+      "status": "not built",
+      "reason": "no MBA export shows native dates on topics; deadlines ride on checklist items"
+    }
+  ]
+}
