@@ -57,6 +57,7 @@ class Template:
     cleaned_links: list[dict[str, str]] = field(default_factory=list)
     # internal link targets the build knows: (kind, title) -> {"page": relative href or None, "quicklink": href or None}
     link_targets: dict[tuple[str, str], dict[str, str | None]] = field(default_factory=dict)
+    provenance: str = ""  # one line written as an HTML comment at the top of every page's source (13c)
     heading_offset: int = 0  # the model's frame offset (0 by convention; 1 for an older frame at Heading 2)
     fragment_styles: bool = False  # inline styles in editor fields; off by default
 
@@ -434,8 +435,10 @@ def _render_table(block: dict[str, Any], ctx: RenderContext) -> str:
 def _shell(template: Template, title: str, heading: str, body: str) -> str:
     page = template.manifest["surfaces"]["page"]
     links = "\n".join(f'<link rel="stylesheet" href="{html.escape(url, quote=True)}">' for url in page.get("external_stylesheets", []))
+    stamp = f"<!-- {html.escape(template.provenance, quote=False).replace('--', '- -')} -->\n" if template.provenance else ""
     return (
         "<!DOCTYPE html>\n"
+        + stamp +
         '<html lang="en"><head>\n'
         '<meta charset="utf-8">\n'
         f"<title>{html.escape(title, quote=False)}</title>\n"

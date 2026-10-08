@@ -263,7 +263,9 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
         row = back.get((activity["type"], activity["title"]), {})
         text = squash(row.get("instructions_text") or row.get("description_text") or "")
         if activity["type"] != "quiz":
-            compare(paragraphs(activity["blocks"]), text, f"{activity['type']} {activity['title']}")
+            # the title heading inside a description is left to the object's title (item 31, 2026-10-08):
+            # it is present as the title, so the haystack includes it
+            compare(paragraphs(activity["blocks"]), squash(activity["title"]) + " " + text, f"{activity['type']} {activity['title']}")
     check("every authored paragraph is present in the package as read back", not missing,
           f"{compared} paragraphs compared; {len(missing)} not found {missing[:4]}")
 

@@ -9,7 +9,9 @@ Changes on the owner's second round of answers (response sheet Part 3 and the Pa
 - Editor fields carry the composite template's modest inline style set by default (`fragment_styles: "template"`); `plain` remains available. The composite's dropdown marker is an arrow in line with the heading; the template gained a skip link, print rules, and a token set (`tokens`, plus `theme.pagekit.json` in Page Kit's theme shape); video iframes load lazily.
 - Early page checks in the reader, with paragraph ids: `HEADING_LEVEL_JUMP`, `TABLE_HEADER_MISSING` (one-cell box tables exempt), `LINK_TEXT_BARE`. Warnings, never blocking.
 - The object map lists every external link by page and activity (`external_links`).
-- Tests: 37.
+- Every built page's source opens with a provenance comment: tool version, package title, blueprint file and hash, template (13c, owner's go).
+- A description no longer starts with a heading that repeats the activity's title; the title is the object's own and the wizard writes it back as the activity line, so both directions agree (item 31, "it should split"). The verifier counts the title as present.
+- Tests: 38.
 
 - `rebase-map`: a paragraph that is new in a later export and sits between two mapped stretches joins the content stretch that ends just before it (same cell or body, never across a mapped line), and the report lists it under "Placed by inference, confirm" with `placed_by_inference` in the JSON. Only `content`, `intro`, `notes`, and `retired` lists grow. A new paragraph with no mapped content neighbour in its container still stops the run. Owner's rule (response sheet item 20). Tests: 35.
 

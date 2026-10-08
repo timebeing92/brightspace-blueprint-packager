@@ -109,6 +109,10 @@ class Builder:
         self.lib, self.rlib = load_building_blocks(scripts)
         self.template = Template.load(settings.get("template", "composite-navy"))  # owner's default since 2026-10-07
         self.rendered_html: dict[str, str] = {}
+        source = model.get("source", {})
+        self.template.provenance = (f"Blueprint Packager {__version__} · {settings.get('package', {}).get('title', '')} · "
+                                    f"blueprint {source.get('name', '?')} sha256 {str(source.get('sha256', ''))[:12]} · "
+                                    f"template {self.template.id} · built from the course model, not hand-edited")
         self.template.heading_offset = int(model.get("conventions", {}).get("heading_offset", 0))
         # owner, 2026-10-08: editor fields carry the template's modest style set by default ("plain is not acceptable")
         self.template.fragment_styles = settings.get("fragment_styles", "template") == "template"
@@ -288,7 +292,7 @@ class Builder:
             self.record(kind, key, activity["title"], week=week_number, points=points,
                         grade_item=activity.get("grade_item"), rubric=activity.get("rubric"), forum=activity.get("forum"))
             if kind == "assignment":
-                fragment, diags = render_fragment(activity["blocks"], self.template, activity["title"], self.restorations)
+                fragment, diags = render_fragment(self._description_blocks(activity), self.template, activity["title"], self.restorations)
                 self.rendered_html[f"{activity['type']}: {activity['title']}"] = fragment
                 self.notes.extend(diags)
                 folder = {"key": key, "name": activity["title"], "instructions_html": fragment,
@@ -305,7 +309,7 @@ class Builder:
                     self.check_prose_days(activity, [due])
                 self.folders.append(folder)
             elif kind == "discussion":
-                fragment, diags = render_fragment(activity["blocks"], self.template, activity["title"], self.restorations)
+                fragment, diags = render_fragment(self._description_blocks(activity), self.template, activity["title"], self.restorations)
                 self.rendered_html[f"{activity['type']}: {activity['title']}"] = fragment
                 self.notes.extend(diags)
                 topic = {"key": key, "title": activity["title"], "description_html": fragment, "_rubric": activity.get("rubric")}
@@ -783,6 +787,21 @@ class Builder:
             if row["where"] and row["where"] not in places:
                 places.append(row["where"])
         return [{"from": a, "to": b, "where": places} for (a, b), places in merged.items()]
+
+    def _description_blocks(self, activity: dict[str, Any]) -> list[dict[str, Any]]:
+        """The activity's blocks without a leading heading that repeats its title.
+
+        Owner, 2026-10-08 (item 31): the title and the description split. Brightspace shows the
+        title above the field, and the wizard drops such a heading on the way back, so the build
+        does not write it either. Recorded in the object map notes once per activity."""
+        blocks = activity.get("blocks") or []
+        if blocks and blocks[0].get("kind") == "heading":
+            first = "".join(r.get("text", "") for r in blocks[0].get("runs", [])).strip().rstrip(":").strip()
+            title = activity["title"].strip()
+            if first == title or re.sub(r"^Week\s+\d+\s+", "", title) == first:  # a title that inherited its week still matches its heading
+                self.note("info", "TITLE_HEADING_SPLIT", "The description's first heading repeats the activity title and is left to the object's title", activity["title"])
+                return blocks[1:]
+        return blocks
 
     def _external_links(self) -> list[dict[str, Any]]:
         """Every http(s) link in the rendered pages and editor fields, by object (13c, 2026-10-08)."""

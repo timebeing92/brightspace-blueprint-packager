@@ -652,7 +652,8 @@ def test_pages_render_word_levels_one_to_one(tmp_path):
         assert page.count("<h1>") == 1
         assert "<h2>Key Ideas</h2>" in page and "<h3>A finer point</h3>" in page and "<h4>Finer still</h4>" in page
     # the older frame renders the same page: levels are read one up, so nothing changes on the page
-    assert pages["new"] == pages["old"]
+    strip = lambda page: "\n".join(line for line in page.splitlines() if not line.startswith("<!-- Blueprint Packager"))  # noqa: E731
+    assert strip(pages["new"]) == strip(pages["old"])
 
 
 # ------------------------------------------------------------ editor fields, sublines, bullets, re-export forms
@@ -801,3 +802,24 @@ def test_wrap_writes_bracket_lines_around_kept_paragraphs_and_bullet_never_doubl
     callouts = [b for b in model["weeks"][0]["assignments"][0]["blocks"] if b["kind"] == "visual"]
     assert callouts and callouts[0]["attrs"] == {"tone": "gold"}
 
+
+
+# ------------------------------------------------------------ provenance comment and the title split
+@pytest.mark.skipif(not HAS_WORKBENCH, reason="Workbench building blocks not present")
+def test_pages_carry_a_provenance_comment_and_descriptions_start_after_their_title(tmp_path):
+    import html as html_mod
+    import re
+
+    from blueprint_packager.build import Builder
+
+    body = [("Week 1 Assignment: Report", "Heading 2"), ("The Situation", "Heading 3"), "Write it."]
+    model = model_with_joins(synth.canonical(tmp_path / "split.docx", assignment_body=body))
+    Builder(model, SETTINGS, REPO_ROOT).run(tmp_path / "out", force=True)
+    page = (tmp_path / "out" / "package" / "course_pages" / "week-1-overview.html").read_text(encoding="utf-8")
+    assert page.startswith("<!DOCTYPE html>\n<!-- Blueprint Packager ")
+    assert "sha256" in page.splitlines()[1] and "template bumk515-classic" in page.splitlines()[1]
+    xml = (tmp_path / "out" / "package" / "dropbox_d2l.xml").read_text(encoding="utf-8")
+    text = html_mod.unescape(re.search(r"<instructions[^>]*>(.*?)</instructions>", xml, re.S).group(1))
+    assert "<h2" not in text and "<h3" in text and "The Situation" in text  # the title heading is left to the folder's own title
+    notes = json.loads((tmp_path / "out" / "object_map.json").read_text(encoding="utf-8"))["notes"]
+    assert any(n["code"] == "TITLE_HEADING_SPLIT" for n in notes)

@@ -128,6 +128,12 @@ Rubric: SailGP STP Strategy & Positioning Analysis Rubric
 - Due days belong in the prose as weekdays ("due Friday by 11:59 p.m."). Dates
   come from the build's term calendar, never from the blueprint.
 
+A note on the activity's title. Write it once, on the `Assignment:` or
+`Discussion:` line, or as the activity's own heading that the course map
+copies into that line. The build does not repeat it inside the description;
+Brightspace shows the title above the field, and the wizard writes it back as
+the activity line, so the two directions agree.
+
 ## 6. Checklists
 
 ```
