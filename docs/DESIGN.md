@@ -273,7 +273,10 @@ content. So:
   upload through Manage Files at the same paths (tried the same day: every
   page updated in place, no new objects; Receipt 12);
 - the same-codes rule stays, for provenance and for reading a re-export back
-  against the build, not because Brightspace uses it.
+  against the build, not because Brightspace uses it. In a course that has
+  held the codes before, even after the objects are deleted, Brightspace mints
+  fresh codes on import (round 3, Receipt 13); nothing the tool does depends
+  on the codes coming back.
 
 Owner's decision, 2026-10-07 (superseded in part by the evidence above): give
 the person importing the package the choice at import time, with a note that

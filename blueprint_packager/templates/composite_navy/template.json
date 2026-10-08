@@ -52,9 +52,10 @@
         "table": "border-collapse: collapse; width: 100%; margin: 1rem 0;",
         "td": "border: 1px solid #d9e4e6; padding: .55rem .7rem; vertical-align: top; text-align: left;",
         "a": "color: #075f7a; font-weight: 600;",
-        "callout_gold": "border: 1px solid #e9d9b8; border-left: .3rem solid #b7791f; background: #fbf5e8; padding: .9rem 1.1rem; border-radius: 4px; margin: 1rem 0 1.5rem;",
+        "callout_gold": "border: 1px solid #ead1c1; border-left: .35rem solid #8b4a27; background: #fbf1e9; color: #103945; padding: .9rem 1rem; border-radius: 0 .65rem .65rem 0; margin: 1.2rem 0 1.35rem;",
         "callout_grey": "border: 1px solid #d9e4e6; border-left: .3rem solid #4b626b; background: #f7fafb; padding: .9rem 1.1rem; border-radius: 4px; margin: 1rem 0 1.5rem;",
-        "small": "font-size: .9rem; color: #4b626b; font-weight: 500;"
+        "small": "font-size: .9rem; color: #4b626b; font-weight: 500;",
+        "callout_warm": "border: 1px solid #ead1c1; border-left: .35rem solid #8b4a27; background: #fbf1e9; color: #103945; padding: .9rem 1rem; border-radius: 0 .65rem .65rem 0; margin: 1.2rem 0 1.35rem;"
       },
       "note": "Applied in editor fields when the build's fragment_styles is \"template\" (the default since 2026-10-08; owner: plain is not acceptable). Derived from the composite page palette."
     }
@@ -75,22 +76,23 @@
   "open_design_note": "Selected by build setting template: composite-navy. Not the default until the owner says so. Page Kit borrowings 13a to 13e are not in this template; see docs/TEMPLATE_COMPOSITE_NAVY.md.",
   "callout_tones": {
     "default": "navy tint, the brand left border",
-    "gold": "muted orange-gold for 'keep this in mind' snippets and highlighted information",
+    "gold": "MBA 630's warm aside (#8b4a27 edge on #fbf1e9) for 'keep this in mind' snippets and highlighted information; 'warm' is the same tone",
+    "warm": "same as gold",
     "grey": "neutral, for asides"
   },
   "tokens": {
     "brand": "#174b5c",
     "brand_dark": "#103945",
     "link": "#075f7a",
-    "accent": "#b7791f",
+    "accent": "#8b4a27",
     "text": "#1d2935",
     "muted": "#4b626b",
     "border": "#c7d8dc",
     "surface": "#edf4f6",
     "focus": "#a55b16",
     "row_alt": "#f7fafb",
-    "gold_soft": "#fbf5e8",
-    "gold_border": "#e9d9b8"
+    "gold_soft": "#fbf1e9",
+    "gold_border": "#ead1c1"
   },
   "dropdown_marker": "arrow in line with the heading (owner, 2026-10-08)"
 }

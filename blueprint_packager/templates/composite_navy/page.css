@@ -29,9 +29,9 @@
   --muted:        #4b626b;
   --focus:        #a55b16;   /* MBA 630 focus ring */
   --row-alt:      #f7fafb;
-  --gold:         #b7791f;   /* muted orange-gold: "keep this in mind" callouts (owner, 2026-10-08) */
-  --gold-soft:    #fbf5e8;
-  --gold-border:  #e9d9b8;
+  --gold:         #8b4a27;   /* MBA 630's warm aside: border (owner, 2026-10-08, replacing the yellow) */
+  --gold-soft:    #fbf1e9;   /* its background */
+  --gold-border:  #ead1c1;   /* its edge */
   font-size: 18.5px;   /* a hair under MBA 630's 19px (owner, 2026-10-08) */
 }
 
@@ -187,7 +187,8 @@ details[open] summary::before{transform:rotate(90deg);}
 }
 .styled-box{background:#fff;}
 /* Tones: named in template.json "callout_tones"; chosen in the blueprint as [callout tone=gold] */
-.callout--gold{border-left-color:var(--gold);background:var(--gold-soft);border-color:var(--gold-border);}
+.callout--gold,.callout--warm{border-left:.35rem solid var(--gold);background:var(--gold-soft);border-color:var(--gold-border);border-left-color:var(--gold);border-radius:0 .65rem .65rem 0;color:var(--brand-dark);}
+.callout--gold h2,.callout--gold h3,.callout--gold h4,.callout--warm h2,.callout--warm h3,.callout--warm h4{color:var(--brand-dark);}
 .callout--grey{border-left-color:var(--muted);background:var(--row-alt);}
 .callout > :first-child,.styled-box > :first-child{margin-top:0;}
 .callout h2,.callout h3,.callout h4,.styled-box h2,.styled-box h3,.styled-box h4{border-bottom:0;padding-bottom:0;margin-top:0;}

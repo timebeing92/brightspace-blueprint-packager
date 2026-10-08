@@ -117,3 +117,4 @@ Preview: `workspace/review/mba_620/sandbox_2026-10/style_pass_2_preview/` in the
   the summary.
 - "Back to top" is not bold, in this template and the classic one.
 - Lists inside a panel are indented from the panel's text (owner's last note; approved: "we can go with this").
+- The gold tone takes MBA 630's warm aside palette (edge #8b4a27 on #fbf1e9, border #ead1c1, rounded on the right), replacing the first yellow; `warm` is an alias.
