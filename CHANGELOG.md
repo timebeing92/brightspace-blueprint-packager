@@ -11,6 +11,7 @@ Changes on the owner's second round of answers (response sheet Part 3 and the Pa
 - The object map lists every external link by page and activity (`external_links`).
 - Every built page's source opens with a provenance comment: tool version, package title, blueprint file and hash, template (13c, owner's go).
 - A description no longer starts with a heading that repeats the activity's title; the title is the object's own and the wizard writes it back as the activity line, so both directions agree (item 31, "it should split"). The verifier counts the title as present.
+- Composite template pass 2 on the owner's notes: course label above the title (`package.course_label`), air under the header rule, root 18.5px with line-height 1.6, dropdown summaries tinted and a touch larger with the arrow marker in line.
 - Tests: 38.
 
 - `rebase-map`: a paragraph that is new in a later export and sits between two mapped stretches joins the content stretch that ends just before it (same cell or body, never across a mapped line), and the report lists it under "Placed by inference, confirm" with `placed_by_inference` in the JSON. Only `content`, `intro`, `notes`, and `retired` lists grow. A new paragraph with no mapped content neighbour in its container still stops the run. Owner's rule (response sheet item 20). Tests: 35.

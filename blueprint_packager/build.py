@@ -110,6 +110,7 @@ class Builder:
         self.template = Template.load(settings.get("template", "composite-navy"))  # owner's default since 2026-10-07
         self.rendered_html: dict[str, str] = {}
         source = model.get("source", {})
+        self.template.course_label = str(settings.get("package", {}).get("course_label", "")).strip()
         self.template.provenance = (f"Blueprint Packager {__version__} · {settings.get('package', {}).get('title', '')} · "
                                     f"blueprint {source.get('name', '?')} sha256 {str(source.get('sha256', ''))[:12]} · "
                                     f"template {self.template.id} · built from the course model, not hand-edited")

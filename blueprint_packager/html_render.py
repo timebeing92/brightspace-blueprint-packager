@@ -58,6 +58,7 @@ class Template:
     # internal link targets the build knows: (kind, title) -> {"page": relative href or None, "quicklink": href or None}
     link_targets: dict[tuple[str, str], dict[str, str | None]] = field(default_factory=dict)
     provenance: str = ""  # one line written as an HTML comment at the top of every page's source (13c)
+    course_label: str = ""  # small line above the page title, e.g. "MBA 620 · Marketing" (owner, 2026-10-08)
     heading_offset: int = 0  # the model's frame offset (0 by convention; 1 for an older frame at Heading 2)
     fragment_styles: bool = False  # inline styles in editor fields; off by default
 
@@ -445,7 +446,8 @@ def _shell(template: Template, title: str, heading: str, body: str) -> str:
         '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
         f"{links}\n<style>\n{template.css}\n</style>\n"
         '</head><body id="top"><a class="skip" href="#main">Skip to content</a><header class="wrapper">\n'
-        f"<h1>{html.escape(heading, quote=False)}</h1>\n"
+        + (f'<p class="kicker">{html.escape(template.course_label, quote=False)}</p>\n' if template.course_label else "")
+        + f"<h1>{html.escape(heading, quote=False)}</h1>\n"
         '</header><main id="main" class="wrapper" role="main" tabindex="-1">\n'
         f"{body}\n"
         "</main></body></html>\n"

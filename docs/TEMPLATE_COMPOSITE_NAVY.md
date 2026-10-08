@@ -91,3 +91,18 @@ this template, and how:
 | 13c Per-page external links in the receipt, provenance comment in each page | The shell's `<head>` would gain an HTML comment; the receipt gains a list | No CSS change |
 | 13d Classic template's colours as a Page Kit theme token set | The `:root` block here would be expressed in Page Kit's token names, or generated from a token file | Palette unchanged; naming only |
 | 13e The compiler itself | Would replace this template's shell with a Page Kit kit reproducing the same look | Deferred to the template decision |
+
+## Pass 2, 2026-10-08, on the owner's notes after seeing round 1
+
+- A course label above the page title (`package.course_label` in the build
+  settings, e.g. "MBA 620 · Marketing"), set in the manner of MBA 630's kicker:
+  small capitals, brand colour, letter-spaced. The bar is no longer alone.
+- Air under the header rule: the main column starts 1.4rem below it (MBA 630
+  uses 1.75rem; a hair less, as asked).
+- Type: root 18.5px and line-height 1.6 (MBA 630: 19px and 1.65; a hair under).
+  Paragraph spacing 1.1rem.
+- Dropdowns: a summary row tinted with the soft brand colour, darker on hover,
+  a touch larger (1.06rem, more padding), the arrow marker in line with the
+  heading, and the open panel's content indented to the summary's text.
+Preview: `workspace/review/mba_620/sandbox_2026-10/style_pass_2_preview/` in the MBA 620 repository.
+

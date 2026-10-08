@@ -32,7 +32,7 @@
   --gold:         #b7791f;   /* muted orange-gold: "keep this in mind" callouts (owner, 2026-10-08) */
   --gold-soft:    #fbf5e8;
   --gold-border:  #e9d9b8;
-  font-size: 18px;
+  font-size: 18.5px;   /* a hair under MBA 630's 19px (owner, 2026-10-08) */
 }
 
 /* ---------- Skip link (13b, agreed 2026-10-08) ---------- */
@@ -45,7 +45,7 @@ body{
   margin:0;
   font-family:'Lato','Helvetica Neue',Arial,sans-serif;
   font-size:1rem;
-  line-height:1.5;
+  line-height:1.6;
   color:var(--text);
   background:#fff;
   overflow-wrap:anywhere;
@@ -55,12 +55,22 @@ body{
 .wrapper{max-width:50rem;margin:0 auto;padding:0 1rem;}
 header.wrapper{
   margin-top:0;
-  padding-top:.35rem;
-  padding-bottom:.9rem;
-  border-top:.4rem solid var(--brand);
+  padding-top:.3rem;
+  padding-bottom:1.15rem;
+  border-top:.45rem solid var(--brand);
   border-bottom:1px solid var(--border-soft);
 }
-main.wrapper{padding-bottom:3rem;}
+/* course label above the title, in the manner of MBA 630's kicker (owner, 2026-10-08) */
+.kicker{
+  margin:.85rem 0 .2rem;
+  color:var(--brand);
+  font-size:.86rem;
+  font-weight:700;
+  letter-spacing:.055em;
+  text-transform:uppercase;
+}
+main.wrapper{padding-top:1.4rem;padding-bottom:3rem;}  /* breathing room under the header rule */
+main.wrapper > :first-child > :first-child{margin-top:0;}
 section{margin-bottom:2.25rem;}
 section#overview > hr:first-child{display:none;}   /* the header already draws the rule */
 hr{border:0;border-top:1px solid var(--border-soft);margin:1.25rem 0;}
@@ -87,7 +97,7 @@ h1 small,h2 small,h3 small,h4 small,h5 small,h6 small{
 }
 
 /* ---------- Text ---------- */
-p{margin:0 0 1rem;}
+p{margin:0 0 1.1rem;}
 p:last-child{margin-bottom:0;}
 strong{font-weight:700;}
 small,.small{font-size:.9rem;color:var(--muted);}
@@ -125,35 +135,42 @@ img{max-width:100%;height:auto;}
 
 /* ---------- Dropdown (details/summary; arrow marker in line with the heading, flat panel) ---------- */
 details{
-  margin:1rem 0;
-  padding:.8rem 1rem;
+  margin:1.1rem 0;
   border:1px solid var(--border);
-  border-left:.3rem solid var(--brand);
-  border-radius:4px;
+  border-left:.35rem solid var(--brand);
+  border-radius:5px;
   background:#fff;
+  overflow:hidden;
 }
 summary{
   cursor:pointer;
   font-weight:700;
+  font-size:1.06rem;
   color:var(--brand-dark);
   list-style:none;
   display:flex;
   align-items:center;
-  gap:.55rem;
+  gap:.6rem;
+  padding:.85rem 1.05rem;
+  background:var(--soft);
+  transition:background .15s ease;
 }
+summary:hover{background:var(--soft-strong);}
+details[open] summary{border-bottom:1px solid var(--border-soft);}
+details > :not(summary){margin-left:1.05rem;margin-right:1.05rem;}
+details > summary + *{margin-top:.9rem;}
+details > :last-child{margin-bottom:.95rem;}
 summary::-webkit-details-marker{display:none;}
 summary::before{
   content:"";
   flex:0 0 auto;
   width:0;height:0;
-  border-top:.42em solid transparent;
-  border-bottom:.42em solid transparent;
-  border-left:.62em solid var(--brand);
+  border-top:.44em solid transparent;
+  border-bottom:.44em solid transparent;
+  border-left:.66em solid var(--brand);
   transition:transform .15s ease;
 }
 details[open] summary::before{transform:rotate(90deg);}
-details[open] summary{margin-bottom:.6rem;}
-details > :nth-child(2){margin-top:.25rem;}
 
 /* ---------- Callout and styled box (restrained: left border + light tint) ---------- */
 .callout,.styled-box{
