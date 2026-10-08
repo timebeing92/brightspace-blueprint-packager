@@ -37,8 +37,10 @@ passing. See [Evidence and provenance](#evidence-and-provenance).
 8. [Writing a blueprint](#writing-a-blueprint)
 9. [Page styling](#page-styling)
 10. [Evidence and provenance](#evidence-and-provenance)
-11. [Repository map](#repository-map)
-12. [Questions and changes](#questions-and-changes)
+11. [The vendored engine](#the-vendored-engine)
+12. [Forking, syncing, and contributing](#forking-syncing-and-contributing)
+13. [Repository map](#repository-map)
+14. [Questions and changes](#questions-and-changes)
 
 ---
 
@@ -52,9 +54,9 @@ passing. See [Evidence and provenance](#evidence-and-provenance).
 - **Anyone checking a build** before import. Every run leaves a readable
   report of what it did and what it found.
 
-You do not need access to any other repository to use this one. Everything
-the packager runs on is included and pinned (see
-[Evidence and provenance](#evidence-and-provenance)).
+You do not need access to any other repository to use this one. The engine
+scripts the packager builds with are included here, pinned to a named
+version (see [The vendored engine](#the-vendored-engine)).
 
 ## The idea in one picture
 
@@ -219,15 +221,13 @@ and the outputs. The object map ties every built object to the blueprint
 paragraphs that fed it. Verification reports name the readers that were used.
 Nothing is edited by hand after a build; a change means a rebuild.
 
-**The engine, pinned.** The packager writes packages with, and verifies
-against, scripts and schemas from the team's internal engineering repository,
-the CourseCraft Workbench. You do not need access to it: the files the
-packager needs are copied under `vendor/coursecraft_workbench/` at one named
-commit, and `vendor/coursecraft_workbench/MANIFEST.json` records that commit
-and every file's hash. Those copies are never edited here. When the Workbench
-changes, `scripts/check_vendor_drift.py` reports the difference and can
-re-pin; the pinned commit is written into every receipt and verification
-report, so a build can always be tied to the exact engine that made it.
+**The engine, pinned.** The package-writing and read-back scripts come from
+CourseCraft Workbench, a separate repository maintained by this tool's
+author. The files the packager needs are copied here at one named commit,
+with every file's hash recorded, and that commit is written into every
+receipt and verification report, so a build can always be tied to the exact
+engine that made it. How that works, and how to update it, is in
+[The vendored engine](#the-vendored-engine).
 
 **Wording.** The tool never changes authored text on its own. A course map
 may carry authorized edits, each with who authorized it and why, and the
@@ -238,6 +238,61 @@ text.
 tool was designed from, including the notes on how Brightspace behaves on
 import. They are kept so decisions can be checked later, not for reading
 first.
+
+## The vendored engine
+
+The packager does not write Brightspace XML from scratch. It builds with, and
+verifies against, scripts and schema files from **CourseCraft Workbench**, a
+separate, private engineering repository kept by this tool's author. Those
+files are *vendored*: copied into this repository so that it runs on its own.
+
+| Where | What |
+|---|---|
+| `vendor/coursecraft_workbench/scripts/` | The engine scripts: package writing (`d2l_package_lib.py`, `rubric_package_lib.py`), the independent readers the verify step runs, and the page gate. |
+| `vendor/coursecraft_workbench/workspace/reference/schemas/` | The schema files those scripts load. |
+| `vendor/coursecraft_workbench/MANIFEST.json` | The Workbench commit the copies came from, and each file's SHA-256. |
+
+**Using them.** Nothing to do. `bpk.py` finds the vendored copies on its own
+and records which copy a run used in the receipt. If you do have a Workbench
+checkout and want a run to use it instead, pass
+`--workbench-scripts /path/to/coursecraft_workbench/scripts` or set
+`BPK_WORKBENCH_SCRIPTS`; the receipt will say so.
+
+**Rules.** The vendored files are never edited in this repository. A change to
+engine behaviour is made in the Workbench and brought here by re-pinning, so
+the two never silently diverge. If you find a problem that lives in a
+vendored file, report it (below) rather than patching the copy.
+
+**Updating them.** The drift check compares the copies with a Workbench
+checkout and, on request, replaces them from a named commit:
+
+```bash
+python3 scripts/check_vendor_drift.py /path/to/coursecraft_workbench               # report any drift
+python3 scripts/check_vendor_drift.py /path/to/coursecraft_workbench --commit <sha> # re-pin from that commit
+pytest -q                                                                            # then prove nothing broke
+```
+
+A re-pin updates the manifest; commit the vendored files and the manifest
+together. Without Workbench access you cannot re-pin yourself, and you do not
+need to: re-pins ship with this repository's releases and are listed in the
+changelog.
+
+## Forking, syncing, and contributing
+
+If you fork this repository to build your own courses, two things to know.
+
+- **Sync with `main` for updates.** The engine re-pins, template changes,
+  and fixes land on `main` here. A fork that stays on its own branch will
+  keep working, but it will not see them. Pull `main` into your fork before
+  a new course build, and read `CHANGELOG.md` for what changed.
+- **Contributions are welcome and appreciated.** Fixes, templates, authoring
+  guide improvements, new evidence from your own sandbox imports, or a
+  finding about how Brightspace behaves: open an issue or a pull request
+  against `main`. Keep a change in one of three places: this repository for
+  the packager's own behaviour; the Workbench for anything in a vendored file
+  (say so in the issue and the author will carry it upstream and re-pin);
+  your course's own repository for course maps, settings, and packages.
+  Commit messages say what changed and why; no AI attribution lines.
 
 ## Repository map
 
@@ -266,6 +321,7 @@ first.
 - A blueprint will not read: the diagnostics name the paragraph and say what
   to change. The authoring guide's last section lists what the tool will not
   guess.
-- A change to borrowed engine behaviour belongs upstream first, then a re-pin
-  here; `AGENTS.md` says what this repository owns.
+- A problem in a vendored file: report it; it is fixed in the Workbench and
+  re-pinned here, never patched in place. `AGENTS.md` says what this
+  repository owns.
 - Dependencies: `python-docx`, `lxml`, `openpyxl`, `jsonschema`.
