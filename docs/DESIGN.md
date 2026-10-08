@@ -132,29 +132,30 @@ treat the points table as the plan it joins to.
   map, and again at build, where it goes in the build settings. It never
   picks one.
 
-### 3.4a Heading levels: the convention and its alternative
+### 3.4a Heading levels: one to one
 
-Where the numbers come from. The Word blueprint uses the Title style for the
-document's title and Heading 2 for its frame: Course Introduction, Before
-Week 1, each week, Rubrics. Heading 1 is unused. Content inside a page or an
-activity therefore begins at Heading 3. On the course page the page heading is
-the one h1, so the first content level must be h2. Hence Heading 3 becomes h2,
-Heading 4 becomes h3, and Heading 5 and 6 become h4. Order and nesting are
-kept; the number shifts by one. The wizard candidate writes the reverse: a
-page's h2 becomes Heading 3.
+Decided by the owner on 2026-10-07: "make it 1:1 so someone is not confused
+when their H1 becomes a H2". The frame (course introduction, the area before
+Week 1, each week, the rubric appendix, notes) is Heading 1. The page heading
+line is the page's h1. Content starts at Heading 2 and maps one to one onto the
+page, Heading N → hN, with the template's `heading_map` an identity map that a
+template may still override. Rubric names sit one level under the frame.
 
-What is fixed and what is not. The frame level is a rule of the blueprint
-grammar and applies to every blueprint the tool reads. The page-side numbers
-sit in each template's manifest, so a template could map differently, but any
-template must give one h1 and sequential levels, so the first content level
-will be h2 in practice. The convention is universal in effect.
+The reader detects the frame level: Heading 1 by convention, Heading 2 in
+blueprints written before this date (all wizard output until the branch's
+one-to-one commit). A legacy frame is read with an offset of one, recorded in
+the model's `conventions`, and reported once as `FRAME_LEVEL_LEGACY`; pages
+render the same either way. The normalizer writes every output in the new
+convention: the course map states levels in the source document's own terms
+and the normalizer applies the frame shift when writing, so existing maps did
+not have to change. The MBA 620 normalized blueprint of 2026-10-07 is the
+first file in the new convention.
 
-The alternative, not chosen. Make the frame Heading 1 and start content at
-Heading 2, so Word levels equal page levels one to one. Easier for someone
-writing from blank, and closer to a Google Doc's default outline. The cost is
-a change to the wizard's frame and a one-level restyle of every existing
-blueprint, which the normalizer can do by rule. The owner asked for this
-detail on 2026-10-06 and has not yet decided.
+What the rule costs. An author who skips a level now sees the skip on the
+page, which is what one-to-one means; the Page Kit gate reports it as a
+warning. An author who uses Heading 1 inside a page starts a new frame section
+by accident; the reader's `UNKNOWN_SECTION` message says Heading 1 is the frame
+and content starts at Heading 2.
 
 ### 3.5a Short forms for hand authoring (provisional)
 
@@ -188,6 +189,13 @@ listed under such a checklist are added after the built ones. Without the line
 a checklist is copied as typed, and the reader warns when a typed item names an
 activity kind the week does not have.
 
+Owner's note, 2026-10-07: in future a blueprint should have a checklist section
+in each week that is filled out by hand, not generated. That is the typed form
+above, and it is already how the wizard lays a week out; MBA 620 used the
+`Items:` line only because its typed checklists had drifted. The blank
+blueprint will carry a `Checklist:` row in every week, pre-filled with the
+`Items:` line as a starting point the author may replace with typed items.
+
 ### 3.7 Dates
 
 The blueprint speaks in weeks and weekdays. A calendar in the build settings
@@ -218,6 +226,17 @@ due-day conventions beside it, so a build names a term instead of typing
 dates. The other practice in the ecosystem, building with one term's dates and
 bulk-managing them in Brightspace before each later term, stays available.
 
+Owner's answer, 2026-10-07: build this later; for now day-of-week wording is
+typed in the body text and the build settings carry the term's week table. The
+institution's term-dates workbook was examined the same day: the MBA eight-week
+pattern (Week 1 Wednesday to Sunday, middle weeks Monday to Sunday, last week
+Monday to Friday) holds for every MBA A and B term in the current sheets, and
+Fall B 2026 matches the dates this build uses. The design that follows from it,
+a registry generated from the workbook plus per-program due-day conventions in
+three phases (first week, middle weeks, last week), is written up in
+`workspace/review/mba_620/blueprint_packager_records_2026-10-06/term_dates/TERM_CALENDAR_PROPOSAL.md`
+in the MBA 620 repository.
+
 ### Changing a course after it is built
 
 Not solved, and worth stating. A rebuild gives a new package; what it does to
@@ -235,6 +254,18 @@ a course that already exists is the open question. Three routes:
 
 The owner is comfortable with the first route for MBA 620 and notes others may
 not be, or it may not be appropriate.
+
+Owner's decision, 2026-10-07: give the person importing the package the choice
+at import time, with a note that says both routes exist, "import and the pages
+and items will be overwritten, or delete first, your preference". Either way
+the package uses the same resource codes by default, with new codes only for
+genuinely new objects, so one package serves both routes and there are not two
+kinds of surface to maintain. What this needs from the tool: the identity rule
+already holds (same object, same code, every build); the runbook that ships
+with every package states the two routes; and the sandbox re-import experiment
+confirms what Brightspace does with matching codes, because the "overwritten"
+half of the note is a claim that has not been tested here. Until it is, the
+note says so.
 
 ## 4. Normalization
 
@@ -307,6 +338,15 @@ Three rules keep it honest:
 The decisions stay written against the export they were made on. A later
 export is reached by translation, with a report each time.
 
+Owner's objection, 2026-10-07, to rule 3: "I do not like 'One outside every
+stretch stops the run so a person places it'." To be revisited together. The
+alternative on the table: an added paragraph between two mapped ranges is
+attached to the range that ends just before it, the run continues, and the
+report lists the placement as an inference for a person to confirm or move.
+The run would stop only when the paragraph has no mapped neighbour on either
+side, which in a blueprint means it sits outside every section. Not
+implemented; recorded as a question on the response sheet.
+
 ### Fidelity proof
 
 After writing, the tool reads the normalized file back from disk and checks:
@@ -358,14 +398,24 @@ Brightspace treats two surfaces differently, so the renderer does too.
 
 | Surface | Used for | Styling |
 |---|---|---|
-| Page | packaged HTML topics | one `<style>` block per page |
-| Fragment | assignment instructions, discussion descriptions | inline styles on every element |
+| Page | packaged HTML topics | one `<style>` block per page, from the template |
+| Fragment | assignment instructions, discussion descriptions | none by default: plain semantic HTML, styled by the tenant's own stylesheet like any hand-written description |
 
 A template is a folder with a manifest: page CSS, section headings the template
-supplies, a heading map, the inline style table for fragments, and how each
-visual cue renders. Build settings pick a template by id.
+supplies, a heading map (identity by convention), an optional inline style
+table for fragments, and how each visual cue renders. Build settings pick a
+template by id, and `fragment_styles: "template"` turns the inline table on.
 
-`bumk515-classic` is the only template so far. Its page CSS is the old course's
+Owner's decision after the first sandbox round, 2026-10-07: the BUMK 515
+styling is not the default. In editor fields its inline styles (19px type, a
+1.65 line height, its margins) read as odd spacing next to the tenant's own
+text, so fragments are plain. For pages a composite template is being made
+from BUMK 515, MBA 630, and BUMG 660 with the darker navy brand and without the
+large hero callouts; it becomes the default page template once the owner has
+seen it, and `bumk515-classic` stays selectable by name. Template layer
+choices come later.
+
+`bumk515-classic` was the first template. Its page CSS is the old course's
 own `<style>` element, verbatim, plus the timeline rules from the old roadmap
 page. Its fragment styles are the inline styles the old course used most.
 

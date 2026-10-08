@@ -57,6 +57,8 @@ class Template:
     cleaned_links: list[dict[str, str]] = field(default_factory=list)
     # internal link targets the build knows: (kind, title) -> {"page": relative href or None, "quicklink": href or None}
     link_targets: dict[tuple[str, str], dict[str, str | None]] = field(default_factory=dict)
+    heading_offset: int = 0  # the model's frame offset (0 by convention; 1 for an older frame at Heading 2)
+    fragment_styles: bool = False  # inline styles in editor fields; off by default
 
     def internal_href(self, kind: str, title: str, surface: str) -> str | None:
         target = self.link_targets.get((kind.lower(), title))
@@ -112,17 +114,30 @@ class RenderContext:
     restorations: list[LinkRestoration] = field(default_factory=list)
     diagnostics: list[dict[str, str]] = field(default_factory=list)
     heading_shift: int = 0
+    heading_offset: int = 0  # frame_level - FRAME_LEVEL, from the model's conventions
+    content_top: int = 2  # the first content level on this surface
 
     def style(self, key: str) -> str:
-        if self.surface != "fragment":
+        """Inline style for an editor-field element. Empty by default.
+
+        Editor fields (assignment and discussion descriptions) are plain semantic HTML
+        so the tenant's own stylesheet sets type, color, and spacing, the same as every
+        hand-written description. A template may still offer inline styles; a build
+        turns them on with `fragment_styles: "template"` (owner's call of 2026-10-07:
+        the BUMK 515 inline styles are not the default)."""
+        if self.surface != "fragment" or not self.template.fragment_styles:
             return ""
-        value = self.template.manifest["surfaces"]["fragment"]["styles"].get(key, "")
+        value = self.template.manifest["surfaces"]["fragment"].get("styles", {}).get(key, "")
         return f' style="{html.escape(value, quote=True)}"' if value else ""
 
     def heading_tag(self, level: int) -> str:
-        mapping = self.template.manifest["surfaces"][self.surface]["heading_map"]
-        level = max(3, min(6, level + self.heading_shift))
-        return mapping.get(str(level), "h4")
+        """Word Heading N -> hN, after removing a legacy frame offset and any local shift.
+
+        The page heading is the surface's h1, so content never renders below h2.
+        A template may still remap a level in its `heading_map`; the default is identity."""
+        mapping = self.template.manifest["surfaces"][self.surface].get("heading_map", {})
+        level = max(2, min(6, level - self.heading_offset + self.heading_shift))
+        return mapping.get(str(level), f"h{level}")
 
     def warn(self, code: str, message: str) -> None:
         self.diagnostics.append({"severity": "warning", "code": code, "message": message, "where": self.where})
@@ -202,6 +217,19 @@ def _internal_links(segments: list[dict[str, Any]], ctx: RenderContext) -> list[
             segments = _replace_span(segments, match.start(), match.end(), marker)
             continue
         segments = _replace_span(segments, match.start(), match.end(), {"text": words or title, "href": href, "internal": True})
+
+
+def heading_inline(runs: list[dict[str, Any]], ctx: RenderContext) -> str:
+    """A heading's text; anything the author put after a line break inside it is a subline.
+
+    Authors write "1. Initial Observation⏎What did you notice?" as one heading with a soft
+    break. The words stay in the heading; the second line is wrapped in <small> so it reads as
+    a subtitle instead of a second heading line of the same weight."""
+    text = inline(runs, ctx)
+    if "<br>" not in text:
+        return text
+    first, rest = text.split("<br>", 1)
+    return f"{first}<br><small>{rest.replace('<br>', ' ')}</small>"
 
 
 def inline(runs: list[dict[str, Any]], ctx: RenderContext) -> str:
@@ -285,7 +313,7 @@ def render_blocks(blocks: list[dict[str, Any]], ctx: RenderContext) -> str:
             if all(run.get("b") for run in runs if run["text"].strip()):
                 # a heading that is bold from end to end takes its weight from the template
                 runs = [{k: v for k, v in run.items() if k != "b"} for run in runs]
-            out.append(f"<{tag}{ctx.style(tag)}>{inline(runs, ctx)}</{tag}>")
+            out.append(f"<{tag}{ctx.style(tag)}>{heading_inline(runs, ctx)}</{tag}>")
         elif kind == "dropdown":
             inner = render_blocks(block["blocks"], ctx)
             out.append(f"<details>\n<summary>{html.escape(block['title'], quote=False)}</summary>\n{inner}\n</details>")
@@ -409,17 +437,18 @@ def _resources_section(blocks: list[dict[str, Any]], ctx: RenderContext, default
     headings = [b for b in blocks if b["kind"] == "heading"]
     top = min((b["level"] for b in headings), default=None)
     lead_is_own = bool(blocks) and blocks[0]["kind"] == "heading" and blocks[0]["level"] == top and sum(1 for b in headings if b["level"] == top) == 1
+    model_top = ctx.content_top + ctx.heading_offset  # the first content level as the model records it
     if lead_is_own:
-        ctx.heading_shift = 3 - top
+        ctx.heading_shift = model_top - top
         return render_blocks(blocks, ctx)
-    ctx.heading_shift = (4 - top) if top is not None else 0
+    ctx.heading_shift = (model_top + 1 - top) if top is not None else 0
     return f"<h2>{html.escape(default_heading, quote=False)}</h2>\n" + render_blocks(blocks, ctx)
 
 
 def render_week_page(week: dict[str, Any], template: Template, restorations: list[LinkRestoration]) -> tuple[str, list[dict[str, str]]]:
     page = week["overview_page"]
     chrome = template.manifest["surfaces"]["page"]
-    ctx = RenderContext(template, "page", where=page["title"], restorations=restorations)
+    ctx = RenderContext(template, "page", where=page["title"], restorations=restorations, heading_offset=template.heading_offset)
     heading = page.get("page_heading") or page["title"]
     sections = ['<section id="overview"><hr>', render_blocks(page["blocks"], ctx), "</section>"]
     if week["objectives"]:
@@ -434,15 +463,17 @@ def render_week_page(week: dict[str, Any], template: Template, restorations: lis
 
 
 def render_course_page(page: dict[str, Any], template: Template, restorations: list[LinkRestoration]) -> tuple[str, list[dict[str, str]]]:
-    ctx = RenderContext(template, "page", where=page["title"], restorations=restorations)
+    ctx = RenderContext(template, "page", where=page["title"], restorations=restorations, heading_offset=template.heading_offset)
     heading = page.get("page_heading") or page["title"]
     body = '<section id="content"><hr>\n' + render_blocks(page["blocks"], ctx) + "\n</section>"
     return _shell(template, heading, heading, body), ctx.diagnostics
 
 
 def render_fragment(blocks: list[dict[str, Any]], template: Template, where: str, restorations: list[LinkRestoration] | None = None) -> tuple[str, list[dict[str, str]]]:
-    ctx = RenderContext(template, "fragment", where=where, restorations=restorations or [])
+    ctx = RenderContext(template, "fragment", where=where, restorations=restorations or [], heading_offset=template.heading_offset)
     inner = render_blocks(blocks, ctx)
+    if not template.fragment_styles:
+        return inner, ctx.diagnostics  # plain semantic HTML, no wrapper
     return f"<div{ctx.style('wrapper')}>\n{inner}\n</div>", ctx.diagnostics
 
 

@@ -48,6 +48,7 @@ class Diagnostics:
 
 class Reader:
     def __init__(self, doc: Document) -> None:
+        self.frame_level = V.FRAME_LEVEL
         self.doc = doc
         self.diag = Diagnostics()
 
@@ -274,10 +275,19 @@ class Reader:
             "retired_rubrics": {"paragraphs": 0, "tables": 0, "names": []},
             "notes": [],
         }
-        # split the body into regions at Heading 2 / Title paragraphs
+        # the frame level: Heading 1 by convention; Heading 2 in older blueprints
+        levels = {node.heading_level for node in doc.body if isinstance(node, Para) and node.heading_level and node.text().strip()}
+        frame_level = V.FRAME_LEVEL if V.FRAME_LEVEL in levels else (V.LEGACY_FRAME_LEVEL if V.LEGACY_FRAME_LEVEL in levels else V.FRAME_LEVEL)
+        self.frame_level = frame_level
+        model["conventions"] = {"frame_level": frame_level, "content_top": V.content_top(frame_level),
+                                "heading_offset": frame_level - V.FRAME_LEVEL}
+        if frame_level != V.FRAME_LEVEL:
+            self.diag.info("FRAME_LEVEL_LEGACY", f"The frame is at Heading {frame_level}; the convention is Heading {V.FRAME_LEVEL}. "
+                           f"Every heading is read one level up so page levels still map one to one", "document")
+        # split the body into regions at frame-level / Title paragraphs
         regions: list[tuple[str, Para | None, list[Para | Table]]] = [("front", None, [])]
         for node in doc.body:
-            if isinstance(node, Para) and (node.heading_level == 2 or node.style == "Title") and node.text().strip():
+            if isinstance(node, Para) and (node.heading_level == frame_level or node.style == "Title") and node.text().strip():
                 text = node.text().strip()
                 if node.style == "Title" and not regions[-1][2] and regions[-1][0] == "front":
                     regions[-1][2].append(node)
@@ -322,7 +332,8 @@ class Reader:
             elif heading is not None and heading.style == "Title":
                 continue  # e.g. the "Rubrics" tab title
             else:
-                self.diag.warn("UNKNOWN_SECTION", f"Heading '{name}' is not part of the structure vocabulary", name)
+                self.diag.warn("UNKNOWN_SECTION", f"Heading '{name}' at Heading {self.frame_level} is not part of the structure vocabulary. "
+                               f"Heading {self.frame_level} is reserved for the frame; content inside a page starts at Heading {V.content_top(self.frame_level)}", name)
         model["diagnostics"] = self.diag.items
         return model
 
@@ -466,7 +477,7 @@ class Reader:
                 text = node.text().strip()
                 if not text:
                     continue
-                if node.heading_level == 3:
+                if node.heading_level == V.content_top(self.frame_level):
                     current = {"name": text, "used_by": [], "description": [], "grid": None, "notes_before": pending_notes, "src": node.id}
                     pending_notes = []
                     model["rubrics"].append(current)

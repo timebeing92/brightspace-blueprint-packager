@@ -1,7 +1,7 @@
 {
   "schema": "blueprint_packager.capabilities/0.1",
-  "note": "What this tool can put into a package, and how well each shape is proven. Levels follow docs/IMPORT_TEST_LOG.md: L1 local read-back, L2 shape matches a real export, L3 imports, L4 survives import and re-export. A level names the best evidence that exists anywhere for the shape, and who holds it. Nothing built by this tool has been imported yet.",
-  "this_tool_evidence": "L1",
+  "note": "What this tool can put into a package, and how well each shape is proven. Levels follow docs/IMPORT_TEST_LOG.md: L1 local read-back, L2 shape matches a real export, L3 imports, L4 survives import and re-export. A level names the best evidence that exists anywhere for the shape, and who holds it.",
+  "this_tool_evidence": "L4 for the MBA 620 Fall B 2026 sandbox package of 2026-10-07: imported into sandbox course 52145, re-exported, and read back by this tool's verifier with every structural check passing (workspace/review/mba_620/sandbox_2026-10/SANDBOX_ROUND_1.md)",
   "capabilities": [
     {
       "shape": "module with HTML topics",
@@ -152,6 +152,12 @@
   ],
   "authoring_rules": [
     {
+      "rule": "heading levels",
+      "source": "one to one: the frame is Heading 1, the page heading line is the page's h1, content Heading N is hN from Heading 2 down",
+      "legacy": "a frame at Heading 2 is read with an offset of one and reported as FRAME_LEVEL_LEGACY; the normalizer rewrites it",
+      "decided": "owner, 2026-10-07"
+    },
+    {
       "rule": "activity title",
       "source": "the activity's own heading in the body, with its week in front when the heading lacks it",
       "fallback": "the points table row, when the map gives no heading",
@@ -197,26 +203,30 @@
       "built_with": "d2l_package_lib (date_due)",
       "best_evidence": "L4",
       "evidence_holder": "MBA 630 course build: survived import and re-export",
-      "this_tool_evidence": "L1"
+      "this_tool_evidence": "L4 (docs/IMPORT_TEST_LOG.md Receipt 10, MBA 620 sandbox round 1, 2026-10-07)"
     },
     {
       "shape": "end date on a checklist item",
       "built_with": "d2l_package_lib (date_end)",
       "best_evidence": "L4",
       "evidence_holder": "MBA 630 course build",
-      "this_tool_evidence": "L1"
+      "this_tool_evidence": "L4 (docs/IMPORT_TEST_LOG.md Receipt 10, MBA 620 sandbox round 1, 2026-10-07)"
     },
     {
       "shape": "due date on a carried quiz, nested timestamp form",
       "built_with": "local rewrite of the source payload",
       "best_evidence": "L2 (matches the form Brightspace exports)",
       "evidence_holder": "none for import; MBA 630's flat form was lost on import",
-      "this_tool_evidence": "L1"
+      "this_tool_evidence": "L4 (docs/IMPORT_TEST_LOG.md Receipt 10, MBA 620 sandbox round 1, 2026-10-07)"
     },
     {
       "shape": "dates on discussion topics",
       "status": "not built",
       "reason": "no MBA export shows native dates on topics; deadlines ride on checklist items"
+    },
+    {
+      "shape": "re-export forms",
+      "observed": "2026-10-07: dropbox date_due and checklist date_end return without the .000Z suffix; the quiz nested timestamp returns intact; the quiz item gains a manifest date_due attribute"
     }
   ]
 }

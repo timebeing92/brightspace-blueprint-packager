@@ -87,6 +87,25 @@ def remove_numbering(para: etree._Element) -> None:
         ppr.remove(ppr.find(w("numPr")))
 
 
+def copy_numbering(para: etree._Element, like: etree._Element) -> None:
+    """Give `para` the list definition (numPr) of `like`, replacing any it has. Text untouched."""
+    import copy
+
+    source = like.find(w("pPr"))
+    num = source.find(w("numPr")) if source is not None else None
+    if num is None:
+        raise ValueError("the paragraph to copy the list from is not a list item")
+    ppr = para.find(w("pPr"))
+    if ppr is None:
+        ppr = etree.SubElement(para, w("pPr"))
+        para.remove(ppr)
+        para.insert(0, ppr)
+    remove_numbering(para)
+    # numPr sits after pStyle in the schema order
+    style = ppr.find(w("pStyle"))
+    ppr.insert(1 if style is not None else 0, copy.deepcopy(num))
+
+
 def unbold(para: etree._Element) -> None:
     """Remove explicit bold from every run of a paragraph."""
     for rpr in para.iter(w("rPr")):

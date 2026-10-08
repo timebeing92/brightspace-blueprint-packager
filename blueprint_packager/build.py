@@ -107,7 +107,9 @@ class Builder:
             scripts = (self.repo_root / scripts).resolve()
         self.scripts_dir = scripts
         self.lib, self.rlib = load_building_blocks(scripts)
-        self.template = Template.load(settings.get("template", "bumk515-classic"))
+        self.template = Template.load(settings.get("template", "composite-navy"))  # owner's default since 2026-10-07
+        self.template.heading_offset = int(model.get("conventions", {}).get("heading_offset", 0))
+        self.template.fragment_styles = settings.get("fragment_styles", "plain") == "template"
         # link cleanup: named query parameters dropped from web addresses in the package only
         self.template.link_rules = list(settings.get("link_cleanup", {}).get("drop_query_parameters", []))
         try:
@@ -750,6 +752,8 @@ class Builder:
                               "weeks": {str(n): [a.isoformat(), b.isoformat()] for n, (a, b) in sorted(self.calendar.weeks.items())}}
                              if self.calendar else None),
                 "link_cleanup": self._cleaned_links(),
+                "rendering": {"template": self.template.id, "editor_fields": "template inline styles" if self.template.fragment_styles else "plain semantic HTML",
+                              "heading_subline": "text after a line break inside a heading is wrapped in <small>"},
                 "notes": self.notes,
             }
             (temp_root / "object_map.json").write_text(json.dumps(object_map, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

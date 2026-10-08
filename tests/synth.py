@@ -10,6 +10,19 @@ from blueprint_packager import vocabulary as V
 LABELS = {key: label for key, _prefix, label in V.SECTION_LABELS}
 
 
+def make_list_item(paragraph, num_id: int = 1, level: int = 0) -> None:
+    """Give a python-docx paragraph a paragraph-level list definition, as Word and Google Docs write them."""
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    ppr = paragraph._p.get_or_add_pPr()
+    num = OxmlElement("w:numPr")
+    ilvl = OxmlElement("w:ilvl"); ilvl.set(qn("w:val"), str(level))
+    nid = OxmlElement("w:numId"); nid.set(qn("w:val"), str(num_id))
+    num.append(ilvl); num.append(nid)
+    ppr.append(num)
+
+
 def _fill(cell, lines):
     first = True
     for line in lines:
@@ -47,9 +60,9 @@ def _front(doc, grade_rows):
     table.rows[-1].cells[1].text = str(sum(points for _name, points in grade_rows))
 
 
-def _rubric(doc, name, used_by, heading=True):
+def _rubric(doc, name, used_by, heading=True, level=2):
     if heading:
-        doc.add_paragraph(name, style="Heading 3")
+        doc.add_paragraph(name, style=f"Heading {level}")
     else:
         doc.add_paragraph(name)
     for user in used_by:
@@ -63,7 +76,7 @@ def _rubric(doc, name, used_by, heading=True):
 
 
 DEFAULT_OVERVIEW = ["Page: Week 1 Overview", "Page heading: Week 1 – Sample Topic", "Overview paragraph one.",
-                    ("Key Ideas:", "Heading 3"),
+                    ("Key Ideas:", "Heading 2"),
                     "Dropdown / expandable section: First Idea", "Inside the first panel.",
                     "Checklist: this line is ordinary content, not a checklist object.",
                     "End of dropdown / expandable section",
@@ -76,45 +89,69 @@ DEFAULT_PRE_WEEK = [
 ]
 
 
+def _shift_headings(lines, shift):
+    """Move every ("text", "Heading N") tuple in a fixture list down by `shift` levels."""
+    if not shift or lines is None:
+        return lines
+    out = []
+    for line in lines:
+        if isinstance(line, tuple) and line[1].startswith("Heading"):
+            out.append((line[0], f"Heading {int(line[1].split()[1]) + shift}"))
+        else:
+            out.append(line)
+    return out
+
+
 def canonical(path: Path, *, rubric_on_assignment: str = "Report Rubric", assignment_points: str = "60 pts",
               checklist: list[str] | None = None, overview: list | None = None, pre_week: list | None = None,
-              assignment_body: list | None = None) -> Path:
-    """A blueprint already in the canonical layout."""
+              assignment_body: list | None = None, frame_level: int = 1) -> Path:
+    """A blueprint already in the canonical layout.
+
+    `frame_level` 1 is the convention (frame at Heading 1, content from Heading 2, one to one
+    with the page); 2 reproduces older wizard output, which the reader must accept with a shift."""
+    shift = frame_level - 1
+
+    def H(level):
+        return f"Heading {level + shift}"
+
+    overview = _shift_headings(overview or DEFAULT_OVERVIEW, shift)
+    pre_week = _shift_headings(pre_week or DEFAULT_PRE_WEEK, shift)
+    assignment_body = _shift_headings(assignment_body, shift)
     doc = Document()
     _front(doc, [("Week 1 Assignment: Report", 60), ("Week 1 Discussion: Opening", 40)])
-    doc.add_paragraph(V.H_COURSE_INTRO, style="Heading 2")
+    doc.add_paragraph(V.H_COURSE_INTRO, style=H(1))
     doc.add_paragraph("Page: Welcome to SYN 101")
     doc.add_paragraph("Page heading: Welcome to SYN 101")
     doc.add_paragraph("Placement: Getting Started")
     doc.add_paragraph("This is the welcome text.")
-    doc.add_paragraph(V.H_BEFORE_WEEK_1, style="Heading 2")
-    _one_column(doc, pre_week or DEFAULT_PRE_WEEK)
-    doc.add_paragraph("Week 1 - Sample Topic", style="Heading 2")
+    doc.add_paragraph(V.H_BEFORE_WEEK_1, style=H(1))
+    _one_column(doc, pre_week)
+    doc.add_paragraph("Week 1 - Sample Topic", style=H(1))
     _one_column(doc, [
         [LABELS["overview"]],
-        overview or DEFAULT_OVERVIEW,
+        overview,
         [LABELS["objectives"], V.OBJECTIVES_SUBLABEL],
         ["By the end of this week, students will be able to:", "Do the first thing.", "Do the second thing."],
         [LABELS["resources"]],
-        [("Required Resources:", "Heading 3"), "Author, A. (2026). A synthetic reading."],
+        [("Required Resources:", H(2)), "Author, A. (2026). A synthetic reading."],
         [LABELS["assignments"]],
         ["Assignment: Week 1 Assignment: Report", f"Points: {assignment_points}", "Gradebook item: Week 1 Assignment: Report",
-         f"Rubric: {rubric_on_assignment}", *(assignment_body or [("The Report", "Heading 3"), "Write a short synthetic report.",
-                                                                  ("Submission Requirements", "Heading 4"), "One document."])],
+         f"Rubric: {rubric_on_assignment}", *(assignment_body or [("The Report", H(2)), "Write a short synthetic report.",
+                                                                  ("Submission Requirements", H(3)), "One document."])],
         [LABELS["discussions"]],
         ["Discussion: Week 1 Discussion: Opening", "Points: 40 pts", "Gradebook item: Week 1 Discussion: Opening",
          "Rubric: Discussion Rubric", "Forum: Discussions", "Introduce yourself to the synthetic class."],
         [LABELS["checklist"]],
         checklist or ["Checklist: Week 1 Checklist", "Post to the discussion", "Submit the report"],
     ])
-    doc.add_paragraph(V.H_COURSE_ACTIVITIES, style="Heading 2")
+    doc.add_paragraph(V.H_COURSE_ACTIVITIES, style=H(1))
     doc.add_paragraph("Discussion: Ask a Question")
     doc.add_paragraph("Forum: Community Forum")
     doc.add_paragraph("Post course questions here.")
-    doc.add_paragraph(V.H_RUBRICS, style="Heading 2")
-    _rubric(doc, "Report Rubric", ["Assignment: Week 1 Assignment: Report"])
-    _rubric(doc, "Discussion Rubric", ["Discussion: Week 1 Discussion: Opening"])
-    doc.add_paragraph(V.H_NOTES, style="Heading 2")
+    doc.add_paragraph(V.H_RUBRICS, style=H(1))
+    _rubric(doc, "Report Rubric", ["Assignment: Week 1 Assignment: Report"], level=2 + shift)
+    _rubric(doc, "Discussion Rubric", ["Discussion: Week 1 Discussion: Opening"], level=2 + shift)
+    doc.add_paragraph(V.H_NOTES, style=H(1))
     doc.add_paragraph("Synthetic note.")
     doc.save(path)
     return path

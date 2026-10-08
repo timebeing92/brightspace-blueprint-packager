@@ -563,3 +563,122 @@ def test_internal_link_brackets_become_links_or_visible_errors(tmp_path):
     codes = {n["code"] for n in result["errors"]}
     assert {"LINK_TARGET_UNKNOWN", "LINK_TARGET_UNREACHABLE"} <= codes  # the broken link, and a page link inside an activity
 
+
+
+# ------------------------------------------------------------ heading convention (one to one)
+def _styles(docx_path):
+    return [(p.text().strip(), p.style.title()) for p in read_docx(docx_path).paras() if p.heading_level]
+
+
+def test_normalizer_writes_the_frame_at_heading_1_and_shifts_an_older_source(tmp_path):
+    source = synth.messy(tmp_path / "messy.docx")  # an older source: frame at Heading 2, content from Heading 3
+    map_path = tmp_path / "map.json"
+    map_path.write_text(json.dumps(course_map_for(source)), encoding="utf-8")
+    out = tmp_path / "normalized.docx"
+    result = normalize(source, map_path, out)
+    assert result["heading_convention"] == {"source_frame_level": 2, "frame_level": 1, "frame_shift": 1}
+    styles = dict(_styles(out))
+    assert styles[V.H_COURSE_INTRO] == "Heading 1" and styles["Week 1 - Sample Topic"] == "Heading 1"
+    assert styles["The Report"] == "Heading 2"  # map said "heading 3" in the source's terms
+    assert styles["Report Rubric"] == "Heading 2"  # rubric names sit one under the frame
+    assert prove(result, out)["passed"]
+    model = read_model(out)
+    assert model["conventions"] == {"frame_level": 1, "content_top": 2, "heading_offset": 0}
+    assert not [d for d in model["diagnostics"] if d["code"] == "FRAME_LEVEL_LEGACY"]
+
+
+def test_reader_accepts_an_older_frame_with_an_offset_and_pages_still_map_one_to_one(tmp_path):
+    new = read_model(synth.canonical(tmp_path / "new.docx", frame_level=1))
+    old = read_model(synth.canonical(tmp_path / "old.docx", frame_level=2))
+    assert new["conventions"]["heading_offset"] == 0 and old["conventions"]["heading_offset"] == 1
+    assert [d["code"] for d in old["diagnostics"] if d["code"] == "FRAME_LEVEL_LEGACY"] == ["FRAME_LEVEL_LEGACY"]
+    # the same structure is read from both
+    strip = lambda m: {k: v for k, v in m.items() if k not in ("diagnostics", "conventions", "source", "reader")}  # noqa: E731
+    new_titles = [w["overview_page"]["title"] for w in new["weeks"]]
+    assert new_titles == [w["overview_page"]["title"] for w in old["weeks"]]
+    assert [b["level"] for b in new["weeks"][0]["overview_page"]["blocks"] if b["kind"] == "heading"] == [2]
+    assert [b["level"] for b in old["weeks"][0]["overview_page"]["blocks"] if b["kind"] == "heading"] == [3]
+
+
+@pytest.mark.skipif(not HAS_WORKBENCH, reason="Workbench building blocks not present")
+def test_pages_render_word_levels_one_to_one(tmp_path):
+    from blueprint_packager.build import Builder
+
+    overview = ["Page: Week 1 Overview", "Page heading: Week 1 – Sample Topic", "Overview paragraph one.",
+                ("Key Ideas", "Heading 2"), "A paragraph.", ("A finer point", "Heading 3"), "Another.", ("Finer still", "Heading 4"), "Last."]
+    body = [("The Report", "Heading 2"), "Write it.", ("Submission Requirements", "Heading 3"), "One document.", ("Format", "Heading 4"), "PDF."]
+    pages = {}
+    for label, level in (("new", 1), ("old", 2)):
+        model = model_with_joins(synth.canonical(tmp_path / f"{label}.docx", overview=overview, assignment_body=body, frame_level=level))
+        Builder(model, SETTINGS, REPO_ROOT).run(tmp_path / label, force=True)
+        pages[label] = (tmp_path / label / "package" / "course_pages" / "week-1-overview.html").read_text(encoding="utf-8")
+    for page in pages.values():
+        assert page.count("<h1>") == 1
+        assert "<h2>Key Ideas</h2>" in page and "<h3>A finer point</h3>" in page and "<h4>Finer still</h4>" in page
+    # the older frame renders the same page: levels are read one up, so nothing changes on the page
+    assert pages["new"] == pages["old"]
+
+
+# ------------------------------------------------------------ editor fields, sublines, bullets, re-export forms
+@pytest.mark.skipif(not HAS_WORKBENCH, reason="Workbench building blocks not present")
+def test_editor_fields_are_plain_semantic_html_unless_the_build_asks_for_template_styles(tmp_path):
+    import html as html_mod
+    import re
+
+    from blueprint_packager.build import Builder
+
+    body = [("The Report", "Heading 2"), "Write it.", ("1. First step\nWhat do you notice?", "Heading 3"), "One document."]
+    model = model_with_joins(synth.canonical(tmp_path / "plain.docx", assignment_body=body))
+
+    def description(settings, out):
+        Builder(model, settings, REPO_ROOT).run(tmp_path / out, force=True)
+        xml = (tmp_path / out / "package" / "dropbox_d2l.xml").read_text(encoding="utf-8")
+        return html_mod.unescape(re.search(r"<instructions[^>]*>(.*?)</instructions>|<description[^>]*>(.*?)</description>", xml, re.S).group(0))
+
+    plain = description(SETTINGS, "plain")
+    assert 'style="' not in plain and "<div" not in plain  # the tenant's stylesheet does the styling
+    assert "<h3>1. First step<br><small>What do you notice?</small></h3>" in plain  # the author's second line is a subline
+    styled = description({**SETTINGS, "fragment_styles": "template"}, "styled")
+    assert 'style="' in styled and "<text><div style=" in styled
+
+
+def test_bullet_operation_makes_paragraphs_list_items_like_another(tmp_path):
+    source = synth.messy(tmp_path / "messy.docx")
+    cmap = course_map_for(source)
+    pid = lambda text: _pid(source, text)  # noqa: E731
+    from docx import Document as _D
+
+    d = _D(str(source))  # the messy fixture has no list; add one paragraph to copy the list definition from
+    synth.make_list_item(d.add_paragraph("A bullet to copy from."))
+    d.save(str(source))
+    cmap = course_map_for(source)
+    doc = read_docx(source)
+    like = next(p.id for p in doc.paras() if p.list_num_id is not None)
+    cmap["notes"]["content"].append(like)  # account for the added paragraph so the fidelity proof still closes
+    target = pid("Write a short synthetic report.")
+    cmap["bullet"] = [{"ids": [target], "like": like, "reason": "test"}]
+    map_path = tmp_path / "map.json"
+    map_path.write_text(json.dumps(cmap), encoding="utf-8")
+    out = tmp_path / "normalized.docx"
+    result = normalize(source, map_path, out)
+    assert prove(result, out)["passed"]
+    written = next(p for p in read_docx(out).paras() if p.text().strip() == "Write a short synthetic report.")
+    assert written.list_num_id is not None
+    assert result["dispositions"][target].disposition == "kept_restyled"
+
+
+def test_verifier_tolerates_re_export_forms():
+    from blueprint_packager.verify import same_instant, straight_quotes
+
+    assert same_instant("2026-11-09T04:59:00.000Z") == same_instant("2026-11-09T04:59:00") == "2026-11-09T04:59:00"
+    assert straight_quotes("Week 5 The “Really?” Partnership Test") == 'Week 5 The "Really?" Partnership Test'
+
+
+def test_the_default_page_template_is_the_composite():
+    from blueprint_packager.html_render import Template
+
+    default = Template.load("composite-navy")
+    assert default.id == "composite-navy"
+    assert default.manifest["surfaces"]["page"]["heading_map"] == {"2": "h2", "3": "h3", "4": "h4", "5": "h5", "6": "h6"}
+    assert default.manifest["surfaces"]["fragment"].get("styles", {}) == {}  # editor fields stay plain
+

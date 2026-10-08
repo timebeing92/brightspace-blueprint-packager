@@ -34,6 +34,21 @@ from .joins import TYPE_LABEL
 from .render_text import plain
 
 
+
+def straight_quotes(text: str) -> str:
+    """Curly quotes as their straight forms. Brightspace writes grade item names this way after import
+    (observed in the MBA 620 sandbox re-export, 2026-10-07); titles elsewhere keep the curly forms."""
+    return text.replace("\u201c", '"').replace("\u201d", '"').replace("\u2018", "'").replace("\u2019", "'")
+
+
+def same_instant(stamp: str) -> str:
+    """A UTC stamp without its fraction or zone suffix, so '2026-11-09T04:59:00.000Z' and the
+    re-exported '2026-11-09T04:59:00' compare equal."""
+    stamp = stamp.strip()
+    if stamp.endswith("Z"):
+        stamp = stamp[:-1]
+    return stamp.split(".", 1)[0]
+
 def squash(text: str) -> str:
     text = unicodedata.normalize("NFKC", text).replace(" ", " ")
     return re.sub(r"\s+", "", text)
@@ -95,6 +110,8 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
     settings_restorations = [n for n in object_map.get("notes", [])]
     checks: list[dict[str, Any]] = []
 
+    notes: list[str] = []  # observations that are not failures, kept in the report
+
     def check(name: str, passed: bool, detail: str) -> None:
         checks.append({"check": name, "passed": bool(passed), "detail": detail})
 
@@ -116,7 +133,7 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
     check("Blueprint Wizard pipeline reads the package", result.returncode == 0 and bundle.is_dir(),
           f"exit {result.returncode}" + (f"; {result.stderr.strip()[-200:]}" if result.returncode else ""))
     if not bundle.is_dir():
-        return _finish(build_dir, checks, suffix, _reader_identity(scripts))
+        return _finish(build_dir, checks, suffix, _reader_identity(scripts), notes)
     activities = json.loads((bundle / "readback__course_activities.json").read_text(encoding="utf-8"))
     structure = json.loads((bundle / "readback__course_structure.json").read_text(encoding="utf-8"))
     rubrics_back = json.loads((bundle / "readback__rubrics.json").read_text(encoding="utf-8")) if (bundle / "readback__rubrics.json").exists() else {"rubrics": []}
@@ -160,8 +177,10 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
             problems.append(f"{label} not found")
             continue
         expected_grade = built_name.get(activity.get("grade_item") or "", activity.get("grade_item") or "")
-        if expected_grade != (row.get("grade_item_name") or ""):
+        if straight_quotes(expected_grade) != straight_quotes(row.get("grade_item_name") or ""):
             problems.append(f"{label}: grade item '{row.get('grade_item_name')}' != '{expected_grade}'")
+        elif expected_grade != (row.get("grade_item_name") or ""):
+            notes.append(f"{label}: grade item name read back with straight quotes ('{row.get('grade_item_name')}'); Brightspace straightens quotes in grade item names on import")
         points = row.get("out_of") if activity["type"] == "assignment" else row.get("score_out_of") if activity["type"] == "discussion" else row.get("grade_item_out_of")
         expected_points = planned_points.get((activity["type"], activity["title"]), activity.get("points"))
         if expected_points is not None and (points in (None, "") or abs(float(points) - float(expected_points)) > 1e-9):
@@ -179,8 +198,8 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
 
     # gradebook
     built_points = {o["points_table_row"]: float(o["points"]) for o in object_map["objects"] if o["kind"] == "grade_item" and o.get("points_table_row")}
-    plan = [(built_name.get(i["name"], i["name"]), built_points.get(i["name"], float(i["points"]))) for i in model["grade_plan"]["items"]]
-    grades = [(g["name"], float(g["out_of"])) for g in activities.get("grade_items", [])]
+    plan = [(straight_quotes(built_name.get(i["name"], i["name"])), built_points.get(i["name"], float(i["points"]))) for i in model["grade_plan"]["items"]]
+    grades = [(straight_quotes(g["name"]), float(g["out_of"])) for g in activities.get("grade_items", [])]
     orphans = [g["name"] for g in activities.get("grade_items", []) if not g.get("linked_activities")]
     table_total = sum(float(i["points"]) for i in model["grade_plan"]["items"])
     check("gradebook equals the grading plan", plan == grades and not orphans,
@@ -276,7 +295,7 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
         found: set[tuple[str, str]] = set()
         for row in activities.get("dropbox_folders", []):
             if row.get("date_due"):
-                found.add((f"Assignment: {row['name']}", row["date_due"]))
+                found.add((f"Assignment: {row['name']}", same_instant(row["date_due"])))
         checklist_file = package_dir / "checklist_d2l.xml"
         if checklist_file.is_file():
             for item in ET.parse(checklist_file).getroot().iter():
@@ -284,21 +303,21 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
                     name = next((c.text or "" for c in item if local(c.tag) == "name"), "")
                     end = next((c.text or "" for c in item if local(c.tag) == "date_end"), "")
                     if end:
-                        found.add((name, end))
+                        found.add((name, same_instant(end)))
         for quiz_file in sorted(package_dir.glob("quiz_d2l_*.xml")):
             text = quiz_file.read_text(encoding="utf-8-sig")
             stamp = re.search(r"<d2l_2p0:date_due><d2l_2p0:timestamp>(.*?)</d2l_2p0:timestamp></d2l_2p0:date_due>", text, flags=re.S)
             title = re.search(r'<assessment\b[^>]*?\btitle="([^"]*)"', text)
             if stamp and title:
                 n = {k: int(v) for k, v in re.findall(r"<d2l_2p0:(\w+)>(\d+)</d2l_2p0:\1>", stamp.group(1))}
-                found.add((f"Quiz: {title.group(1)}", f"{n['year']:04d}-{n['month']:02d}-{n['day']:02d}T{n['hour']:02d}:{n['minutes']:02d}:{n['seconds']:02d}.000Z"))
+                found.add((f"Quiz: {title.group(1)}", same_instant(f"{n['year']:04d}-{n['month']:02d}-{n['day']:02d}T{n['hour']:02d}:{n['minutes']:02d}:{n['seconds']:02d}")))
         date_problems = []
         for d in planned_dates:
             if d["kind"].startswith("checklist item"):
                 name = d["kind"].split("(", 1)[1].rstrip(")") if "(" in d["kind"] else d["object"].split(": ", 1)[1]
-                key = (name, d["utc"])
+                key = (name, same_instant(d["utc"]))
             else:
-                key = (d["object"], d["utc"])
+                key = (d["object"], same_instant(d["utc"]))
             if key not in found:
                 date_problems.append(f"{d['object']} {d['kind']}")
         check("every planned date is in the package", not date_problems,
@@ -327,7 +346,7 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
     check("Blueprint Wizard QA finds no breaks", breaks in (0, [], None) or breaks == 0,
           f"breaks: {breaks if not isinstance(breaks, list) else len(breaks)}; broken relative references: "
           f"{sum(len(t.get('missing_refs') or []) for t in structure.get('html_topics', []))}")
-    return _finish(build_dir, checks, suffix, _reader_identity(scripts))
+    return _finish(build_dir, checks, suffix, _reader_identity(scripts), notes)
 
 
 def _removed_texts(build_dir: Path) -> list[str]:
@@ -339,7 +358,7 @@ def _removed_texts(build_dir: Path) -> list[str]:
     return [item["remove_text"] for item in settings.get("link_restorations", []) if item.get("remove_text")]
 
 
-def _finish(build_dir: Path, checks: list[dict[str, Any]], suffix: str = "", readers: dict[str, Any] | None = None) -> int:
+def _finish(build_dir: Path, checks: list[dict[str, Any]], suffix: str = "", readers: dict[str, Any] | None = None, notes: list[str] | None = None) -> int:
     passed = all(c["passed"] for c in checks)
     report = {
         "schema": "blueprint_packager.verification/0.1",
@@ -347,12 +366,15 @@ def _finish(build_dir: Path, checks: list[dict[str, Any]], suffix: str = "", rea
         "readers": readers or {},
         "passed": passed,
         "checks": checks,
+        "notes": notes or [],
     }
     (build_dir / f"verification_report{suffix}.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     reader_line = ""
     if readers:
         reader_line = f"Readers: Workbench checkout `{readers.get('checkout', '')}`" + (f" at commit `{readers['commit']}`" if readers.get("commit") else "") + "."
     lines = ["# Pre-import verification", "", report["evidence_level"], "", reader_line, "", "| Check | Result | Detail |", "|---|---|---|"]
+    if notes:
+        lines[4:4] = ["Notes: " + " ".join(notes), ""]
     for c in checks:
         lines.append(f"| {c['check']} | {'pass' if c['passed'] else 'FAIL'} | {c['detail'].replace('|', '/')} |")
     (build_dir / f"verification_report{suffix}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")

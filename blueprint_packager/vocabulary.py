@@ -22,7 +22,23 @@ import re
 
 VOCABULARY_VERSION = "blueprint-structure/0.1"
 
-# --- top-level headings (Heading 2) ---------------------------------------------
+# --- heading convention ----------------------------------------------------------
+# The frame (course introduction, before Week 1, each week, rubric appendix, notes)
+# is written at Heading 1. The page heading line is the page's h1. Content starts at
+# Heading 2 and maps one to one onto the page: Heading N -> hN. Rubric names sit one
+# level under the frame. Older blueprints with the frame at Heading 2 (Blueprint
+# Wizard output before 2026-10-07) are still read: every level is shifted up by one
+# and the model records the offset.
+FRAME_LEVEL = 1
+LEGACY_FRAME_LEVEL = 2
+
+
+def content_top(frame_level: int) -> int:
+    """The first heading level content may use under a frame at `frame_level`."""
+    return frame_level + 1
+
+
+# --- top-level headings (written at FRAME_LEVEL) --------------------------------
 H_COURSE_INTRO = "Course Introduction"
 H_BEFORE_WEEK_1 = "Before Week 1: Additional Resources and Information"
 H_COURSE_ACTIVITIES = "Unplaced Activities"  # wizard wording, kept

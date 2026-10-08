@@ -10,18 +10,34 @@ may change after review.
 
 ## 1. Headings
 
-Use Word's heading styles. The blueprint spends its top two levels on its own
-frame, so inside a page or an activity start at Heading 3.
+Use Word's heading styles. Your outline is the page's outline: Heading N in the
+blueprint is hN on the page, with one exception that is the same on every
+page. The page title is the page's h1, so content starts at Heading 2.
 
 | In the blueprint | In the course page |
 |---|---|
+| Title style | the course title (the document's title; not on any page) |
+| Heading 1 | the frame: Course Introduction, Before Week 1, each Week N, Rubric Appendix. Not content |
 | The `Page heading:` line | the page title, h1 |
-| Heading 3 | h2 |
-| Heading 4 | h3 |
-| Heading 5 and 6 | h4 |
+| Heading 2 | h2 |
+| Heading 3 | h3 |
+| Heading 4, 5, 6 | h4, h5, h6 |
 
-Levels keep their order and nesting; the number shifts by one because the
-blueprint's own frame uses Heading 1 and 2. Do not fake a heading with a bold
+Inside an activity the same holds: the activity's title is the object's own
+title in Brightspace, and its sections start at Heading 2 in the blueprint
+(the title line itself is a Heading 2; sections under it Heading 3 and down).
+
+Two small things about headings. A soft line break inside a heading (Shift+Enter
+in Word or Google Docs) keeps the words in the heading; on the page the second
+line becomes a subtitle under the first. And a heading that is bold from end to
+end loses that bold, because the page's own heading weight takes over.
+
+A blueprint written before 2026-10-07 has its frame at Heading 2 and content
+from Heading 3. The packager still reads it: every level is read one up and
+the companion says so, so pages come out the same. Running such a file through
+the normalizer writes it in the new convention.
+
+Do not fake a heading with a bold
 line and a colon.
 
 ## 2. Lists, tables, emphasis
@@ -34,6 +50,13 @@ line and a colon.
 
 If a blueprint came out of the wizard with list items as plain lines, retype
 them as bullets. The packager does not guess that discrete lines were a list.
+Where the document cannot be edited, the course map can make named paragraphs
+list items like another paragraph (`bullet`); the words stay as typed.
+
+How the result looks. Assignment and discussion descriptions are written as
+plain semantic HTML with no styling of their own, so they look like every
+other description in the tenant. Pages take their look from the selected
+template; the heading levels, lists, tables, and emphasis are the same in both.
 
 ## 3. Dropdowns, callouts, timelines
 
@@ -113,7 +136,7 @@ Quiz: Academic Integrity Agreement
 
 ## 8. Rubrics
 
-A rubric is a Heading 3 with its name, one `Used by:` line per activity that
+A rubric is a Heading 2 with its name, one `Used by:` line per activity that
 uses it, and its table. Joins are checked from both sides by exact title.
 
 ## 9. What the packager will not do

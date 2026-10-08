@@ -124,10 +124,13 @@ def model_markdown(model: dict[str, Any]) -> str:
         lines += [f"- Note: {text}" for text in rubric.get("description", [])] + [""]
         grid = rubric.get("grid")
         if grid:
-            lines += ["| Criterion | Weight | " + " | ".join(f"{l['name']} ({l['percent']:g}%)" for l in grid["levels"]) + " |",
+            def num(value):  # a weight or percent the reader could not parse shows as "?" instead of stopping the companion
+                return f"{value:g}" if isinstance(value, (int, float)) else "?"
+
+            lines += ["| Criterion | Weight | " + " | ".join(f"{l['name']} ({num(l.get('percent'))}%)" for l in grid["levels"]) + " |",
                       "|---|---|" + "---|" * len(grid["levels"])]
             for criterion in grid["criteria"]:
                 cells = [" ".join(plain(b["runs"]) for b in cell if b.get("runs")).replace("|", "\\|") for cell in criterion["cells"]]
-                lines.append(f"| {criterion['name']} | {criterion['weight']:g} | " + " | ".join(cells) + " |")
+                lines.append(f"| {criterion['name']} | {num(criterion.get('weight'))} | " + " | ".join(cells) + " |")
             lines.append("")
     return "\n".join(lines) + "\n"

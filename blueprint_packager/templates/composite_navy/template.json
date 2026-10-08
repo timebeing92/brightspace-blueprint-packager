@@ -1,0 +1,74 @@
+{
+  "schema": "blueprint_packager.page_template/0.1",
+  "id": "composite-navy",
+  "name": "Composite navy (BUMK 515 skeleton, MBA 630 palette, BUMG 660 headings)",
+  "version": "0.1.0",
+  "provenance": {
+    "composed": "2026-10-07, on the owner's direction: take the best of BUMK 515, MBA 630, and BUMG 660, with the darker navy branding and less ostentation, as the generic builder's page style",
+    "sources": {
+      "bumk515_classic/page.css": "skeleton, section rhythm, video wrap, details/summary, back to top, external-link mark, timeline markup",
+      "MBA 630 workspace/design/scenario/frontend/assets/mba630-course.css": "palette (#174b5c brand, #103945 brand dark, #075f7a link, #edf4f6 soft, #c7d8dc border, #4b626b muted, #a55b16 focus), top bar, h2 rule, table header row, link weight",
+      "BUMG 660 workspace/Overview Pages-Complete/BUMG_660_Week_1_Overview.html": "headings in brand dark at weight 600 and line-height 1.2, +/- summary marker"
+    },
+    "left_out": "MBA 630 overview and resources hero cards, evidence buttons, shadows, large radii; BUMG 660 shadowed panels and eyebrow/subtitle/lede header; BUMK 515 19px root size and 1.65 line-height",
+    "note": "Page surface only. Editor fields are plain semantic HTML by default (build setting fragment_styles); the optional fragment styles below are not applied unless a build asks for them."
+  },
+  "surfaces": {
+    "page": {
+      "css": "page.css",
+      "external_stylesheets": [
+        "https://s.brightspace.com/lib/fonts/0.6.1/fonts.css"
+      ],
+      "section_headings": {
+        "objectives": "Learning Objectives",
+        "resources": "Resources"
+      },
+      "back_to_top": "↑ Back to top",
+      "heading_map": {
+        "2": "h2",
+        "3": "h3",
+        "4": "h4",
+        "5": "h5",
+        "6": "h6"
+      }
+    },
+    "fragment": {
+      "heading_map": {
+        "2": "h2",
+        "3": "h3",
+        "4": "h4",
+        "5": "h5",
+        "6": "h6"
+      },
+      "styles": {},
+      "optional_styles_not_applied": {
+        "note": "A modest set for a build that sets fragment_styles to template. The renderer reads only the styles key, so these are inert until copied there.",
+        "h2": "color: #103945; margin: 0 0 .6rem; font-weight: 600; font-size: 1.4rem; line-height: 1.2;",
+        "h3": "color: #103945; margin: 1.25rem 0 .5rem; font-weight: 600; font-size: 1.15rem; line-height: 1.2;",
+        "h4": "color: #103945; margin: 1rem 0 .4rem; font-weight: 600; font-size: 1.02rem; line-height: 1.2;",
+        "p": "margin: 0 0 1rem;",
+        "ul": "margin: .5rem 0 1rem 1.4rem; padding: 0;",
+        "ol": "margin: .5rem 0 1rem 1.4rem; padding: 0;",
+        "li": "margin-bottom: .4rem;",
+        "callout": "border: 1px solid #d9e4e6; border-left: .3rem solid #174b5c; background: #edf4f6; padding: .9rem 1.1rem; border-radius: 4px; margin: 1rem 0 1.5rem;",
+        "table": "border-collapse: collapse; width: 100%; margin: 1rem 0;",
+        "td": "border: 1px solid #d9e4e6; padding: .55rem .7rem; vertical-align: top; text-align: left;",
+        "a": "color: #075f7a; font-weight: 600;"
+      }
+    }
+  },
+  "visual_cues": {
+    "Callout": "callout",
+    "Timeline": "timeline",
+    "Styled section": "styled_box"
+  },
+  "supports": [
+    "dropdown",
+    "callout",
+    "timeline",
+    "styled_box",
+    "video",
+    "table"
+  ],
+  "open_design_note": "Selected by build setting template: composite-navy. Not the default until the owner says so. Page Kit borrowings 13a to 13e are not in this template; see docs/TEMPLATE_COMPOSITE_NAVY.md."
+}

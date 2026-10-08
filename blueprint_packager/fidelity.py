@@ -148,6 +148,7 @@ def prove(result: dict[str, Any], out_docx: Path) -> dict[str, Any]:
         "authorized_additions": additions,
         "authorized_edits": edits,
         "points_decisions": result.get("points_decisions", []),
+        "heading_convention": result.get("heading_convention", {}),
         "authored_lines_not_carried_forward": len(nonempty_removed),
         "note": "Lines not carried forward are wizard-generated structure lines that were superseded, text under a pending deletion suggestion, or paragraphs removed on the operator's authority. Each is listed with its full text in the ledger.",
     }

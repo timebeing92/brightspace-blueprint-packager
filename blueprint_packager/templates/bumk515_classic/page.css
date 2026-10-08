@@ -134,6 +134,8 @@ a[target="_blank"]::after {
 
 /* ===== Block 3: additions for content the old pages did not contain ===== */
 h4{color:var(--brand);font-weight:500;font-size:1.1rem;margin:1rem 0 .5rem;}
+h5,h6{color:var(--brand);font-weight:500;font-size:1rem;margin:1rem 0 .5rem;}
+h6{font-style:italic;}
 .stage h2{font-size:1.25rem;margin:0 0 .5rem;}
 table.bp-table{border-collapse:collapse;width:100%;margin:1rem 0;}
 table.bp-table td,table.bp-table th{border:1px solid var(--border);padding:.5rem;vertical-align:top;text-align:left;}

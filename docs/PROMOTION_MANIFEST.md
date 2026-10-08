@@ -9,7 +9,7 @@ promotion. This file is the documentation that makes a later move safe.
 | Kind | Lives at | Goes to | Depends on |
 |---|---|---|---|
 | The packager | `tools/blueprint-packager/` | a new sibling producer in CourseCraft, Blueprint Wizard as the likely front door | Workbench `scripts/d2l_package_lib.py` and `scripts/rubric_package_lib.py`, byte-identical to upstream `9d3a620`; the Workbench readers for verification |
-| Wizard fixes | `candidate/blueprint_wizard_structure/` | a branch of the Workbench, then a bundle refresh | Workbench at `9d3a620` |
+| Wizard fixes | `candidate/blueprint_wizard_structure/` | on Workbench branch `fix/blueprint-structure-fidelity` (four commits and counting; not merged); a bundle refresh follows the merge | Workbench at `9d3a620` |
 | MBA 620 course work | `workspace/design/mba_620/`, `workspace/review/mba_620/`, `workspace/generated/…/mba_620_*` | stays here | the tool, at the version recorded in each build receipt |
 
 Course text never leaves the course lanes. Tests in the tool use synthetic
@@ -56,6 +56,20 @@ import and a re-export comparison. None has yet.
 seven survey reports, the producer-conventions summary, and an index of every
 decision, log, and review document produced while the tool was built. The
 owner asked that these come into CourseCraft as a record at promotion.
+
+## Where the commits are, 2026-10-06
+
+| Repository | Branch | What |
+|---|---|---|
+| this one | `tool/blueprint-packager` | three commits: the packager, the wizard candidate, the ownership notes and records packet |
+| this one | `master` | the tool branch plus two course commits: September intake and reviews; the 2026-10-06 build and reviews |
+| CourseCraft Workbench | `fix/blueprint-structure-fidelity` | `f6a28fb` the first fix set; `a92a3ab` one-to-one headings; `a0f3195` model /5; `a80af3f` bracket panels; `79bceaa` empty panels as pairs. Pushed into the local Workbench, not to GitHub. Not merged |
+
+This repository has a private GitHub remote as of 2026-10-06 night, with both
+branches pushed. The Workbench branch and the two backlog notes are local only.
+The owner intends a repository of its own for the packager; the tool branch is
+the seed, and the only personal material on it is machine paths in the survey
+reports, which a split would rewrite.
 
 ## How to tell it was applied correctly
 

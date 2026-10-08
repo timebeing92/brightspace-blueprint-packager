@@ -66,7 +66,8 @@ For moving the tool out of this repository, read `docs/PROMOTION_MANIFEST.md`.
 
 - `bpk.py` — command line
 - `blueprint_packager/` — the stages, one module each
-- `blueprint_packager/templates/bumk515_classic/` — the page template lifted from the BUMK 515 export
+- `blueprint_packager/templates/composite_navy/` — the default page template (2026-10-07): a composite of BUMK 515, MBA 630, and BUMG 660 with the darker navy brand and no hero blocks; see `docs/TEMPLATE_COMPOSITE_NAVY.md`
+- `blueprint_packager/templates/bumk515_classic/` — the page template lifted from the BUMK 515 export, selectable by name
 - `CAPABILITIES.json` — every shape the tool builds, with its evidence level
 - `docs/DESIGN.md` — the design, the structure vocabulary, and open directions
 - `tests/` — synthetic fixtures; `pytest tools/blueprint-packager/tests -q`

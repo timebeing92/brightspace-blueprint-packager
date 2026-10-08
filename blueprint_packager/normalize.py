@@ -35,6 +35,7 @@ from .docx_emit import (
     STRUCTURE_FILL,
     _run,
     clone_clean,
+    copy_numbering,
     make_link_run,
     make_para,
     make_single_column_table,
@@ -65,6 +66,7 @@ class OutRecord:
     style_to: str = ""
     section: str = ""
     edited: bool = False
+    listed: bool = False  # made a list item by the "bullet" operation
 
 
 @dataclass
@@ -85,6 +87,15 @@ class Normalizer:
         self.tables: dict[str, Table] = {t.id: t for t in doc.tables()}
         self.cells = {cell.id: cell for t in doc.tables() for row in t.rows for cell in row}
         self.styles = style_ids_by_name(doc.path)
+        # Heading convention. The course map states heading levels in the source
+        # document's own terms. The normalized blueprint is written with the frame
+        # at V.FRAME_LEVEL; every heading moves by the difference (the "frame shift").
+        policy = cmap.get("policy", {})
+        body_levels = {node.heading_level for node in doc.body if isinstance(node, Para) and node.heading_level and node.text().strip()}
+        self.source_frame_level = int(policy.get("source_frame_level") or
+                                      (V.FRAME_LEVEL if V.FRAME_LEVEL in body_levels else V.LEGACY_FRAME_LEVEL))
+        self.frame_level = int(policy.get("frame_level", V.FRAME_LEVEL))
+        self.frame_shift = self.source_frame_level - self.frame_level
         self.records: list[OutRecord] = []
         self.dispositions: dict[str, Disposition] = {}
         self.generated: list[dict[str, str]] = []
@@ -96,6 +107,12 @@ class Normalizer:
         self.restyle: dict[str, str] = dict(cmap.get("restyle", {}))
         self.subheads: dict[str, int] = {k: int(v) for k, v in cmap.get("subheads", {}).items()}
         self.unbold_ids: set[str] = set(self._expand(cmap.get("unbold", [])))
+        # "bullet": [{"ids": [...], "like": "p00451", "reason": "..."}]: make paragraphs list items
+        # with the same list definition as the paragraph named in "like". Words unchanged.
+        self.bullet_like: dict[str, str] = {}
+        for entry in cmap.get("bullet", []):
+            for pid in self._expand(entry["ids"]):
+                self.bullet_like[pid] = entry["like"]
         self.supersede: dict[str, str] = {}
         for entry in cmap.get("supersede", []):
             for pid in self._expand(entry["ids"]):
@@ -218,7 +235,12 @@ class Normalizer:
         return self.gen(text, "directive", note=note, fill=STRUCTURE_FILL,
                         bold_prefix=(f"{keyword}:" if keyword not in V.BLOCK_END_MARKERS else keyword))
 
+    def out_level(self, source_level: int) -> int:
+        """A heading level stated in the source document's terms, as written in the normalized file."""
+        return max(1, min(6, source_level - self.frame_shift))
+
     def heading(self, text: str, level: int, note: str = "") -> etree._Element:
+        level = self.out_level(level)
         return self.gen(text, f"heading{level}", note=note, style=self.styles[f"heading {level}"])
 
     def edited_text(self, para: Para) -> str:
@@ -256,6 +278,12 @@ class Normalizer:
         target = self.restyle.get(para.id)
         if para.id in self.subheads:
             target = f"heading {self.subheads[para.id]}"
+        shifted_by_rule = False
+        if target is None and para.heading_level is not None and self.frame_shift:
+            target = f"heading {para.heading_level}"
+            shifted_by_rule = True
+        if target is not None and target.lower().startswith("heading"):
+            target = f"heading {self.out_level(int(target.split()[1]))}"
         if target is not None:
             if target.lower() == "normal":
                 set_style(element, None)
@@ -268,10 +296,18 @@ class Normalizer:
         if para.id in self.unbold_ids:
             unbold(element)
             record.note = (record.note + "; " if record.note else "") + "accidental block bold removed"
+        if para.id in self.bullet_like:
+            like = self.by_id[self.bullet_like[para.id]]
+            copy_numbering(element, like.element)
+            record.note = (record.note + "; " if record.note else "") + f"made a list item like {like.id}"
+            record.style_to = record.style_to or (para.style or "Normal")
+            record.listed = True
         disposition = role
-        if record.style_to and record.style_to.lower() != (para.style or "normal").lower():
+        if (record.style_to and record.style_to.lower() != (para.style or "normal").lower()) or record.listed:
             disposition = "kept_restyled"
             record.role = "kept_restyled"
+            if shifted_by_rule:
+                record.note = (record.note + "; " if record.note else "") + f"frame shift: every heading moves up {self.frame_shift} (one-to-one convention)"
         if para.id in self.unbold_ids:
             disposition = "kept_unbolded" if disposition == "kept" else disposition + "+unbolded"
         if record.edited:
@@ -420,7 +456,7 @@ class Normalizer:
         note = f"added on the operator's authority; {clone['source']}"
         row = {"authorized_by": clone["authorized_by"], "source": clone["source"], "reason": clone.get("reason", ""), "section": self.section}
         out: list[etree._Element] = []
-        heading = make_para(clone["name"], style_id=self.styles["heading 3"])
+        heading = make_para(clone["name"], style_id=self.styles[f"heading {self.out_level(self.source_frame_level + 1)}"])
         self.additions_written.append({**row, "after": f"rubric cloned from {clone['table']}", "text": clone["name"], "links": []})
         out.append(self._tag(heading, OutRecord("generated", "authorized_addition", clone["name"], note)))
         for user in block.get("used_by", []):
@@ -588,7 +624,7 @@ class Normalizer:
         # 2. course introduction
         intro = cmap["course_introduction"]
         self.section = "course_introduction"
-        add(self._heading_from(intro["heading"], 2))
+        add(self._heading_from(intro["heading"], self.source_frame_level))
         for spec in intro["objects"]:
             for element in self.object_block(spec):
                 add(element)
@@ -596,7 +632,7 @@ class Normalizer:
         # 3. before week 1
         pre = cmap["before_week_1"]
         self.section = "before_week_1"
-        add(self._heading_from(pre["heading"], 2))
+        add(self._heading_from(pre["heading"], self.source_frame_level))
         rows: list[tuple[list[etree._Element], str | None]] = []
         for row in pre["rows"]:
             label_text = self.carried(row["label"], "row label")
@@ -627,7 +663,7 @@ class Normalizer:
         # 5. course-level activities
         acts = cmap["course_activities"]
         self.section = "course_activities"
-        add(self._heading_from(acts["heading"], 2))
+        add(self._heading_from(acts["heading"], self.source_frame_level))
         for element in self.content(acts.get("intro", [])):
             add(element)
         for spec in acts["objects"]:
@@ -639,7 +675,7 @@ class Normalizer:
         self.section = "rubrics"
         if rub.get("title"):
             add(self.keep(self.by_id[rub["title"]]))
-        add(self._heading_from(rub["heading"], 2))
+        add(self._heading_from(rub["heading"], self.source_frame_level))
         for element in self.content(rub.get("intro", [])):
             add(element)
         for block in rub["blocks"]:
@@ -652,7 +688,7 @@ class Normalizer:
                     add(element)
                 continue
             name_para = self.by_id[block["name"]]
-            self.restyle.setdefault(block["name"], "heading 3")
+            self.restyle.setdefault(block["name"], f"heading {self.source_frame_level + 1}")
             add(self.keep(name_para))
             for user in block.get("used_by", []):
                 if isinstance(user, dict):
@@ -664,7 +700,7 @@ class Normalizer:
             add(self.keep_table(self.tables[block["table"]], note="rubric grid copied whole"))
         if rub.get("retired"):
             self.section = "retired_rubrics"
-            add(self.heading(V.H_RETIRED_RUBRICS, 2, note="boundary heading for rubrics the blueprint itself marks as old"))
+            add(self.heading(V.H_RETIRED_RUBRICS, self.source_frame_level, note="boundary heading for rubrics the blueprint itself marks as old"))
             saved = (self.restyle, self.subheads)
             for element in self.content(rub["retired"]):
                 add(element)
@@ -673,7 +709,7 @@ class Normalizer:
         notes = cmap.get("notes")
         if notes:
             self.section = "notes"
-            add(self._heading_from(notes["heading"], 2))
+            add(self._heading_from(notes["heading"], self.source_frame_level))
             for element in self.content(notes.get("content", [])):
                 add(element)
 
@@ -689,14 +725,15 @@ class Normalizer:
     def _week_heading(self, week: dict[str, Any]) -> etree._Element:
         spec = week["heading"]
         if "keep" in spec:
-            return self._heading_from(spec["keep"], 2)
+            return self._heading_from(spec["keep"], self.source_frame_level)
         parts = [self.by_id[pid] for pid in spec["merge"]]
         text = " ".join(p.text(self.view).strip() for p in parts if p.text(self.view).strip())
         for para in parts:
             self._dispose(para.id, "merged_into_heading", carried_into=text, note="split heading merged; words unchanged")
         for pid in spec.get("drop_empty", []):
             self._dispose(pid, "dropped_empty", note="empty heading paragraph")
-        return self.gen(text, "heading2_merged", style=self.styles["heading 2"], note="merged from " + "+".join(spec["merge"]))
+        level = self.out_level(self.source_frame_level)
+        return self.gen(text, f"heading{level}_merged", style=self.styles[f"heading {level}"], note="merged from " + "+".join(spec["merge"]))
 
     def _label_templates(self) -> dict[str, list[Para]]:
         """One clean set of wizard label paragraphs per section, reused for every week."""
@@ -805,6 +842,8 @@ class Normalizer:
             "additions": self.additions_written,
             "edits": self.edits_written,
             "points_decisions": self.points_decisions,
+            "heading_convention": {"source_frame_level": self.source_frame_level, "frame_level": self.frame_level,
+                                   "frame_shift": self.frame_shift},
         }
 
 

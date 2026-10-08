@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased — 2026-10-07
+
+Changes made on the owner's response-sheet answers.
+
+- Heading convention is one to one. The frame is Heading 1, the page heading line is the page's h1, and content Heading N is hN from Heading 2 down. The reader detects a legacy frame at Heading 2, reads it with an offset, and reports `FRAME_LEVEL_LEGACY`. The normalizer applies the frame shift when writing, so course maps keep speaking in the source document's terms. Template heading maps are identity maps; the classic template styles h5 and h6.
+- Fidelity report and normalizer result record the heading convention used.
+- Tests: 28 (three new: the shift from an older source, the legacy offset, one-to-one rendering of the same page from both frames).
+
+Changes made on the first sandbox round (import, inspection, and re-export of the MBA 620 package).
+
+- Editor fields (assignment and discussion descriptions) are plain semantic HTML with no inline styles by default; the tenant's stylesheet applies. `fragment_styles: "template"` in the build settings restores a template's inline styles. The object map records the rendering mode.
+- A heading's text after a soft line break is wrapped in `<small>` so an author's two-line step title reads as title and subtitle.
+- Normalizer `bullet` operation: make paragraphs list items with the list definition of another paragraph (`{"ids": [...], "like": "p00450"}`). Structure only; words unchanged; recorded in the ledger.
+- Verifier: compares date stamps as instants (a re-export drops `.000Z`); compares grade item names with quotes straightened and reports the straightening as a note (Brightspace does this on import); carries notes into the report. The companion renderer tolerates a rubric weight it cannot parse.
+- New page template `composite-navy`, now the default: BUMK 515's skeleton, MBA 630's palette (`#174b5c` brand, `#103945` headings, all text pairs above 4.5:1), BUMG 660's heading weight, no hero cards or shadows. `bumk515-classic` stays selectable.
+- Evidence: the tool's first L4, Receipt 10 in the import test log.
+- Tests: 31.
+
 ## Unreleased — 2026-10-06, afternoon
 
 Changes made while applying the owner's first decisions to MBA 620.

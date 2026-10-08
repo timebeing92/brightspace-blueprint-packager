@@ -23,24 +23,28 @@
       },
       "back_to_top": "↑ Back to top",
       "heading_map": {
-        "3": "h2",
-        "4": "h3",
-        "5": "h4",
-        "6": "h4"
+        "2": "h2",
+        "3": "h3",
+        "4": "h4",
+        "5": "h5",
+        "6": "h6"
       }
     },
     "fragment": {
       "heading_map": {
-        "3": "h2",
-        "4": "h3",
-        "5": "h4",
-        "6": "h4"
+        "2": "h2",
+        "3": "h3",
+        "4": "h4",
+        "5": "h5",
+        "6": "h6"
       },
       "styles": {
         "wrapper": "max-width: 48rem; margin: 0 auto; font-family: 'Lato','Helvetica Neue',Arial,sans-serif; color: #202122; line-height: 1.65; font-size: 19px;",
         "h2": "color: #134f5c; margin: 0 0 .5rem; font-weight: 500; font-size: 1.5rem;",
         "h3": "color: #134f5c; margin: 1.25rem 0 .5rem; font-weight: 500; font-size: 1.25rem;",
         "h4": "color: #134f5c; margin: 1rem 0 .5rem; font-weight: 500; font-size: 1.1rem;",
+        "h5": "color: #134f5c; margin: 1rem 0 .5rem; font-weight: 500; font-size: 1rem;",
+        "h6": "color: #134f5c; margin: 1rem 0 .5rem; font-weight: 500; font-size: 1rem; font-style: italic;",
         "p": "margin: .5rem 0 1rem;",
         "ul": "margin: .5rem 0 1rem 1.25rem; padding: 0;",
         "ol": "margin: .5rem 0 1rem 1.25rem; padding: 0;",
