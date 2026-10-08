@@ -106,3 +106,14 @@ this template, and how:
   heading, and the open panel's content indented to the summary's text.
 Preview: `workspace/review/mba_620/sandbox_2026-10/style_pass_2_preview/` in the MBA 620 repository.
 
+## Pass 3, 2026-10-08, after the owner saw pass 2 in the sandbox
+
+- Dropdowns are white cards with a soft shadow in the manner of BUMG 660, so
+  they read as clickable; no left bar (it ran down the open panel); the summary
+  surface is distinct from the callout tint; hover deepens the shadow and the
+  summary. Bullets inside a panel sit under the panel's text.
+- The focus ring shows only for keyboard focus and sits inside the card; a
+  mouse click no longer leaves the orange line Brightspace was drawing under
+  the summary.
+- "Back to top" is not bold, in this template and the classic one.
+

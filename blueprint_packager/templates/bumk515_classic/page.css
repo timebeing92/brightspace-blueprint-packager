@@ -140,3 +140,4 @@ h6{font-style:italic;}
 table.bp-table{border-collapse:collapse;width:100%;margin:1rem 0;}
 table.bp-table td,table.bp-table th{border:1px solid var(--border);padding:.5rem;vertical-align:top;text-align:left;}
 .styled-box{background:#f5fafa;border-left:4px solid var(--brand);padding:1rem 1.25rem;margin:1rem 0 1.5rem;border-radius:4px;}
+.back-top a{font-weight:400;}  /* owner, 2026-10-08: not bold */

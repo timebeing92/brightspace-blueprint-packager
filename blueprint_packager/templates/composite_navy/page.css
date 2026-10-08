@@ -114,7 +114,8 @@ li::marker{color:var(--brand);}
 a{color:var(--link);font-weight:600;text-decoration-thickness:.08em;text-underline-offset:.15em;}
 a:visited{color:var(--link-visited);}
 a:hover{text-decoration-thickness:.14em;}
-a:focus,a:focus-visible,summary:focus,summary:focus-visible,iframe:focus{
+a:focus-visible,summary:focus-visible,iframe:focus-visible{
+  outline-offset:-3px;  /* inside the dropdown card, which clips its overflow; a mouse click shows no ring */
   outline:3px solid var(--focus);
   outline-offset:3px;
 }
@@ -133,13 +134,14 @@ img{max-width:100%;height:auto;}
 .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
 .transcript{font-size:.95rem;}
 
-/* ---------- Dropdown (details/summary; arrow marker in line with the heading, flat panel) ---------- */
+/* ---------- Dropdown (details/summary): a white card with a soft shadow, as BUMG 660 does, so it
+   reads as clickable; no left bar, and a surface distinct from the callout tint (owner, 2026-10-08) ---------- */
 details{
   margin:1.1rem 0;
   border:1px solid var(--border);
-  border-left:.35rem solid var(--brand);
-  border-radius:5px;
+  border-radius:10px;
   background:#fff;
+  box-shadow:0 4px 14px rgba(16,57,69,.07);
   overflow:hidden;
 }
 summary{
@@ -151,15 +153,17 @@ summary{
   display:flex;
   align-items:center;
   gap:.6rem;
-  padding:.85rem 1.05rem;
-  background:var(--soft);
-  transition:background .15s ease;
+  padding:.9rem 1.1rem;
+  background:#fbfdfd;
+  transition:background .15s ease,box-shadow .15s ease;
 }
-summary:hover{background:var(--soft-strong);}
+summary:hover{background:#f3f8f9;}
+details:hover{box-shadow:0 6px 18px rgba(16,57,69,.11);}
 details[open] summary{border-bottom:1px solid var(--border-soft);}
-details > :not(summary){margin-left:1.05rem;margin-right:1.05rem;}
-details > summary + *{margin-top:.9rem;}
-details > :last-child{margin-bottom:.95rem;}
+details > :not(summary){margin-left:1.1rem;margin-right:1.1rem;}
+details ul,details ol{padding-left:1.25rem;}  /* bullets sit under the panel's text, not outside it */
+details > summary + *{margin-top:.95rem;}
+details > :last-child{margin-bottom:1rem;}
 summary::-webkit-details-marker{display:none;}
 summary::before{
   content:"";
@@ -206,7 +210,7 @@ table.bp-table tbody tr:nth-child(even) td{background:var(--row-alt);}
 
 /* ---------- Back to top (BUMK 515) ---------- */
 .back-top{text-align:right;margin-top:1.5rem;}
-.back-top a{font-size:.9rem;font-weight:600;text-decoration:none;}
+.back-top a{font-size:.9rem;font-weight:400;text-decoration:none;}  /* owner, 2026-10-08: not bold */
 .back-top a:hover,.back-top a:focus{text-decoration:underline;}
 
 /* ---------- Small screens ---------- */

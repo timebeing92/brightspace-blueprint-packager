@@ -270,8 +270,8 @@ content. So:
   (route 1), until an API path exists;
 - page content alone can be refreshed in place: the builder writes
   `course_pages_refresh.zip` beside the package, the `course_pages/` folder to
-  upload through Manage Files at the same paths (untested until a round tries
-  it);
+  upload through Manage Files at the same paths (tried the same day: every
+  page updated in place, no new objects; Receipt 12);
 - the same-codes rule stays, for provenance and for reading a re-export back
   against the build, not because Brightspace uses it.
 
