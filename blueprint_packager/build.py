@@ -721,6 +721,17 @@ class Builder:
             lib.write_xml(self.build_manifest(payloads), package_dir / "imsmanifest.xml")
             zip_name = self.settings["package"].get("zip_name", "package.zip")
             lib.deterministic_zip(package_dir, temp_root / zip_name)
+            # Pages-only refresh (sandbox round 2, 2026-10-08): Brightspace overwrites a course file at the
+            # same path on import but duplicates every other object, so page content can be refreshed in a
+            # built course by uploading this ZIP's folder through Manage Files. Untested until a round tries it.
+            pages_dir = package_dir / self.settings.get("pages_dir", "course_pages")
+            refresh_name = None
+            if pages_dir.is_dir():
+                refresh_name = "course_pages_refresh.zip"
+                staging = temp_root / "_refresh"
+                shutil.copytree(pages_dir, staging / pages_dir.name)
+                lib.deterministic_zip(staging, temp_root / refresh_name)
+                shutil.rmtree(staging)
 
             errors = [n for n in self.notes if n["severity"] == "error"]
             receipt = {
@@ -744,6 +755,10 @@ class Builder:
                 ],
                 "zip": {"path": zip_name, "role": "package_zip", "bytes": (temp_root / zip_name).stat().st_size,
                         "sha256": I.sha256_file(temp_root / zip_name), "extensions": {}},
+                "pages_refresh_zip": ({"path": refresh_name, "role": "pages_refresh", "bytes": (temp_root / refresh_name).stat().st_size,
+                                       "sha256": I.sha256_file(temp_root / refresh_name),
+                                       "use": "upload the folder inside through Manage Files at the same path to refresh page content in a built course; nothing else changes"}
+                                      if refresh_name else None),
                 "extensions": {
                     "live_brightspace_operations": "not_performed",
                     "producer": {"tool": I.TOOL, "version": __version__},

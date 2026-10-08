@@ -823,3 +823,16 @@ def test_pages_carry_a_provenance_comment_and_descriptions_start_after_their_tit
     assert "<h2" not in text and "<h3" in text and "The Situation" in text  # the title heading is left to the folder's own title
     notes = json.loads((tmp_path / "out" / "object_map.json").read_text(encoding="utf-8"))["notes"]
     assert any(n["code"] == "TITLE_HEADING_SPLIT" for n in notes)
+
+
+@pytest.mark.skipif(not HAS_WORKBENCH, reason="Workbench building blocks not present")
+def test_a_pages_only_refresh_zip_is_written_beside_the_package(tmp_path):
+    from blueprint_packager.build import Builder
+
+    model = model_with_joins(synth.canonical(tmp_path / "canonical.docx"))
+    result = Builder(model, SETTINGS, REPO_ROOT).run(tmp_path / "out", force=True)
+    refresh = tmp_path / "out" / "course_pages_refresh.zip"
+    assert refresh.is_file()
+    names = zipfile.ZipFile(refresh).namelist()
+    assert names and all(n.startswith("course_pages/") for n in names) and "course_pages/week-1-overview.html" in names
+    assert result["receipt"]["pages_refresh_zip"]["role"] == "pages_refresh"

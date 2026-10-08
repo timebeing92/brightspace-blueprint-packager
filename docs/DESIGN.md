@@ -256,9 +256,29 @@ a course that already exists is the open question. Three routes:
 The owner is comfortable with the first route for MBA 620 and notes others may
 not be, or it may not be appropriate.
 
-Owner's decision, 2026-10-07: give the person importing the package the choice
-at import time, with a note that says both routes exist, "import and the pages
-and items will be overwritten, or delete first, your preference". Either way
+Settled by evidence on 2026-10-08 (MBA 620 sandbox round 2, the package
+imported over the round-1 content, re-export counted): route 2 does not
+exist. Brightspace duplicated every module, topic, assignment folder,
+discussion forum and topic, checklist, quiz, rubric, and grade item, left the
+new activities unlinked from their grade items ("grade item already in use"),
+and minted new resource codes for some duplicates. Resource codes are carried,
+not matched. The one exception is course files: an HTML page at the same path
+is overwritten in place and every module pointing at it shows the new
+content. So:
+
+- a built course is updated by deleting the built content and importing again
+  (route 1), until an API path exists;
+- page content alone can be refreshed in place: the builder writes
+  `course_pages_refresh.zip` beside the package, the `course_pages/` folder to
+  upload through Manage Files at the same paths (untested until a round tries
+  it);
+- the same-codes rule stays, for provenance and for reading a re-export back
+  against the build, not because Brightspace uses it.
+
+Owner's decision, 2026-10-07 (superseded in part by the evidence above): give
+the person importing the package the choice at import time, with a note that
+says both routes exist, "import and the pages and items will be overwritten,
+or delete first, your preference". Either way
 the package uses the same resource codes by default, with new codes only for
 genuinely new objects, so one package serves both routes and there are not two
 kinds of surface to maintain. What this needs from the tool: the identity rule
