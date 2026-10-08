@@ -2,6 +2,7 @@
 
 ## 0.1.1 — 2026-10-08, evening
 
+- README rewritten for readers who arrive without context: who it is for, the idea in one picture, quick start, how it works, what a build produces, importing and updating, writing a blueprint, styling, evidence and provenance, repository map. A pixel-art illustration (`docs/assets/blueprint-packager.svg`, drawn from a text grid by `scripts/render_readme_art.py`) in the manner of the Blueprint Wizard runner's splash.
 - Vendored Workbench re-pinned from `9d3a620` to `2c967f9`, the main after PR #5 and the bundle refresh: the readers the verify step runs now carry the merged wizard (one-to-one headings, model /5, bracket panels and links, page chrome). The `/4` schema is vendored beside `/5`. Tests read the pin from the manifest instead of naming a commit.
 
 ## 0.1.0 — 2026-10-08 — own repository

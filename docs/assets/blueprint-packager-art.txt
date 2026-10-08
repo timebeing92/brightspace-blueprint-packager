@@ -1,0 +1,33 @@
+# Pixel grid for docs/assets/blueprint-packager.svg. One character per cell;
+# scripts/render_readme_art.py turns it into SVG. Legend (palette shared with
+# the Blueprint Wizard runner's splash where the colours overlap):
+#   .  transparent        H  hat #5f0087        R  robe #875faf       S  skin #ffd7af
+#   B  beard #dadada      E  eye / dark #14303e W  wand #875f00       G  gold #ffd787
+#   K  box #af875f        D  box edge #875f00   F  monitor frame #54707e
+#   C  screen #d7ffff     V  navy bar #174b5c   L  page lines #5f5faf  T  stand #54707e
+#   M  motion #b8d3de     P  package glow #ffe9b8  Z  zip teeth #dadada
+................................................
+........H.......................................
+.......HHH......................................
+......HHHHH........G............................
+.....HHHHHHH...............G....................
+....HHHHHHHHH.......................FFFFFFFFFFF.
+...HHHHHHHHHHH......................FCCCCCCCCCF.
+..HHHHHHHHHHHHH.....................FCVVVVVVVCF.
+.....SSSSSSS........................FCVVVVVVVCF.
+.....SESSSES......G.................FCCCCCCCCCF.
+.....SSSSSSS...........PPPPPPPPP....FCLLLLLCCCF.
+....BBBBBBBBB.........PKKKKDKKKKP...FCCCCCCCCCF.
+....BBBBBBBBB.....MM..PKKKKGKKKKPDDDDCLLLLLLLCF.
+.....BBBBBBB......MMM.PKGGGGGGGKPZZZZCCCCCCCCCF.
+....RRRRRRRRR.....MM..PKKKKGKKKKPDDDDCLLLLCCCCF.
+...RRRRRRRRRRR.RRS....PKKKKDKKKKP...FCCCCCCCCCF.
+...RRRRRRRRRRRRRRRSWWWWWPPPPPPPPP...FCLLLLLLCCF.
+...RRRRRRRRRRR.......G..........G...FCCCCCCCCCF.
+...RRRRRRRRRRR......................FFFFFFFFFFF.
+...RRRRRRRRRRR...........G...............TTT....
+..RRRRRRRRRRRRR..........................TTT....
+..RRRRRRRRRRRRR.......................TTTTTTTTT.
+..RRRRRRRRRRRRR.................................
+..RRRRRRRRRRRRR.................................
+..EEEE....EEEE..................................
