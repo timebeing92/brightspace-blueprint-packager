@@ -116,4 +116,4 @@ Preview: `workspace/review/mba_620/sandbox_2026-10/style_pass_2_preview/` in the
   mouse click no longer leaves the orange line Brightspace was drawing under
   the summary.
 - "Back to top" is not bold, in this template and the classic one.
-
+- Lists inside a panel are indented from the panel's text (owner's last note; approved: "we can go with this").

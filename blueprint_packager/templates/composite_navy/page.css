@@ -161,7 +161,7 @@ summary:hover{background:#f3f8f9;}
 details:hover{box-shadow:0 6px 18px rgba(16,57,69,.11);}
 details[open] summary{border-bottom:1px solid var(--border-soft);}
 details > :not(summary){margin-left:1.1rem;margin-right:1.1rem;}
-details ul,details ol{padding-left:1.25rem;}  /* bullets sit under the panel's text, not outside it */
+details ul,details ol{padding-left:1.6rem;margin-left:2.1rem;}  /* lists indented from the panel's text (owner, 2026-10-08) */
 details > summary + *{margin-top:.95rem;}
 details > :last-child{margin-bottom:1rem;}
 summary::-webkit-details-marker{display:none;}
