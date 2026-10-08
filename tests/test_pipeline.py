@@ -13,8 +13,15 @@ from blueprint_packager.joins import resolve
 from blueprint_packager.normalize import MapError, Normalizer, normalize
 from blueprint_packager.reader import read_model
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-HAS_WORKBENCH = (REPO_ROOT / "scripts" / "d2l_package_lib.py").is_file()
+from blueprint_packager import workbench as WB
+
+REPO_ROOT = WB.REPO_DIR  # the Builder's settings_dir argument; the scripts come from WB.scripts_dir()
+try:
+    SCRIPTS_DIR = WB.scripts_dir()
+    HAS_WORKBENCH = True
+except WB.WorkbenchNotFound:
+    SCRIPTS_DIR = None
+    HAS_WORKBENCH = False
 
 
 def model_with_joins(path):
@@ -44,7 +51,7 @@ def test_identity_keys_match_the_workbench_construction():
         pytest.skip("Workbench scripts not present")
     import sys
 
-    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    sys.path.insert(0, str(SCRIPTS_DIR))
     import course_artifact_contracts as contracts
 
     assert I.scoped_key("entity", "a", "b", "c") == contracts._scoped_key("entity", "a", "b", "c")
@@ -718,7 +725,7 @@ def test_the_default_page_template_is_the_composite():
     assert default.id == "composite-navy"
     assert default.manifest["surfaces"]["page"]["heading_map"] == {"2": "h2", "3": "h3", "4": "h4", "5": "h5", "6": "h6"}
     assert {"h2", "p", "callout", "callout_gold"} <= set(default.manifest["surfaces"]["fragment"]["styles"])  # the modest set for editor fields
-    assert set(default.manifest["callout_tones"]) == {"default", "gold", "grey"}
+    assert {"default", "gold", "grey"} <= set(default.manifest["callout_tones"])  # "warm" is an alias of gold
 
 
 
@@ -836,3 +843,24 @@ def test_a_pages_only_refresh_zip_is_written_beside_the_package(tmp_path):
     names = zipfile.ZipFile(refresh).namelist()
     assert names and all(n.startswith("course_pages/") for n in names) and "course_pages/week-1-overview.html" in names
     assert result["receipt"]["pages_refresh_zip"]["role"] == "pages_refresh"
+
+
+def test_workbench_scripts_resolve_to_the_vendored_mirror_and_are_recorded():
+    scripts = WB.scripts_dir()
+    assert scripts == WB.VENDOR_SCRIPTS and (scripts / "d2l_package_lib.py").is_file()
+    assert WB.pinned_commit(scripts) and WB.pinned_commit(scripts).startswith("9d3a620")
+    assert WB.describe(scripts)["source"] == "vendored"
+
+
+@pytest.mark.skipif(not HAS_WORKBENCH, reason="Workbench building blocks not present")
+def test_the_receipt_and_the_report_name_the_scripts_used(tmp_path):
+    from blueprint_packager.build import Builder
+    from blueprint_packager.verify import verify_build
+
+    model = model_with_joins(synth.canonical(tmp_path / "canonical.docx"))
+    result = Builder(model, SETTINGS, REPO_ROOT).run(tmp_path / "out", force=True)
+    assert result["receipt"]["workbench_scripts"]["source"] == "vendored"
+    assert result["receipt"]["workbench_scripts"]["pinned_commit"].startswith("9d3a620")
+    assert verify_build(tmp_path / "out", model) == 0
+    report = json.loads((tmp_path / "out" / "verification_report.json").read_text(encoding="utf-8"))
+    assert report["readers"]["pinned_commit"].startswith("9d3a620") and report["readers"]["source"] == "vendored"

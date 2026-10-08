@@ -108,7 +108,7 @@ def producer(repo_root: Path, version: str) -> dict[str, Any]:
         "component": TOOL, "identity_state": "git" if commit else "unknown", "version": version,
         "repository": None, "ref": git("branch", "--show-current") or None, "commit": commit or None,
         "dirty": bool(git("status", "--porcelain")) if commit else None,
-        "extensions": {"host_repository": repo_root.name, "status": "downstream proving ground; not a released producer"},
+        "extensions": {"host_repository": repo_root.name, "status": "standalone producer repository since 2026-10-08; Workbench libraries vendored"},
     }
 
 

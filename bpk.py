@@ -102,7 +102,7 @@ def _receipt(out_dir: Path, stem: str, source_path: Path, started: str, steps: l
     receipt = I.run_receipt(
         run_id=I.new_run_id(), source=I.document_source(source_path, *lineage), bundle_dir=out_dir, receipt_name=name,
         started_at=started, steps=steps, parameters=parameters, contract_by_name=contracts, diagnostics=diagnostics,
-        repo_root=Path(__file__).resolve().parents[2], version=__version__)
+        repo_root=Path(__file__).resolve().parent, version=__version__)
     _write_json(out_dir / name, receipt)
 
 

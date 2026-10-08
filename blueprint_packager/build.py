@@ -28,6 +28,7 @@ from typing import Any
 
 from . import __version__
 from . import identity as I
+from . import workbench as WB
 from .calendar import Calendar, CalendarError, WEEKDAYS, utc_parts
 from .html_render import LinkRestoration, Template, render_course_page, render_fragment, render_week_page
 from .joins import TYPE_LABEL
@@ -65,10 +66,22 @@ class BuildError(ValueError):
 
 
 def _find_repo_root(start: Path) -> Path:
+    """Kept for callers that still pass a repository root; the scripts directory is what matters now."""
     for candidate in [start, *start.parents]:
         if (candidate / "scripts" / "d2l_package_lib.py").is_file():
             return candidate
-    raise BuildError("Could not find scripts/d2l_package_lib.py above the settings file; set 'workbench_scripts'.")
+    return WB.REPO_DIR
+
+
+def _producer_path(path: Path, repo_root: Path, scripts_dir: Path) -> str:
+    """A producer file's path as the receipt names it: relative to this repository when inside it,
+    else relative to the scripts directory's parent (a Workbench checkout), else absolute."""
+    for base in (repo_root, scripts_dir.parent):
+        try:
+            return path.relative_to(base).as_posix()
+        except ValueError:
+            continue
+    return path.as_posix()
 
 
 def load_building_blocks(scripts_dir: Path):
@@ -101,11 +114,13 @@ class Builder:
         self.model = model
         self.settings = settings
         self.settings_dir = settings_dir
-        self.repo_root = _find_repo_root(settings_dir)
-        scripts = Path(settings.get("workbench_scripts") or self.repo_root / "scripts")
-        if not scripts.is_absolute():
-            scripts = (self.repo_root / scripts).resolve()
+        try:
+            scripts = WB.scripts_dir(settings.get("workbench_scripts"), start=settings_dir)
+        except WB.WorkbenchNotFound as exc:
+            raise BuildError(str(exc)) from exc
         self.scripts_dir = scripts
+        self.workbench = WB.describe(scripts)
+        self.repo_root = WB.REPO_DIR
         self.lib, self.rlib = load_building_blocks(scripts)
         self.template = Template.load(settings.get("template", "composite-navy"))  # owner's default since 2026-10-07
         self.rendered_html: dict[str, str] = {}
@@ -741,11 +756,12 @@ class Builder:
                 "deterministic": True,
                 "contract_sha256": I.canonical_sha256({"model": self.model.get("source"), "settings": self.settings}),
                 "producer_files": [
-                    {"path": path.relative_to(self.repo_root).as_posix(), "role": "producer", "bytes": path.stat().st_size,
+                    {"path": _producer_path(path, self.repo_root, self.scripts_dir), "role": "producer", "bytes": path.stat().st_size,
                      "sha256": I.sha256_file(path), "extensions": {}}
                     for path in sorted([*Path(__file__).resolve().parent.glob("*.py"),
                                         self.scripts_dir / "d2l_package_lib.py", self.scripts_dir / "rubric_package_lib.py"])
                 ],
+                "workbench_scripts": self.workbench,
                 "codes": dict(sorted(self.codes.items())),
                 "support_assets": [],
                 "package_files": [

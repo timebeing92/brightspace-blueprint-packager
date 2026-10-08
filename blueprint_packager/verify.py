@@ -29,7 +29,7 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
-from .build import _find_repo_root
+from . import workbench as WB
 from .joins import TYPE_LABEL
 from .render_text import plain
 
@@ -74,7 +74,7 @@ def paragraphs(blocks: list[dict[str, Any]]) -> list[str]:
 
 def _reader_identity(scripts: Path) -> dict[str, Any]:
     """Which reader code looked at the package: commit when known, file hashes always."""
-    identity: dict[str, Any] = {"checkout": scripts.parent.name, "files": {}}
+    identity: dict[str, Any] = {"checkout": scripts.parent.name, "files": {}, **WB.describe(scripts)}
     for name in ("check_package_conformance.py", "build_blueprint_bundle.py", "reconstruct_course_structure.py",
                  "extract_course_activities.py", "extract_rubrics_to_workbook.py"):
         path = scripts / name
@@ -94,13 +94,12 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
                  label: str | None = None) -> int:
     build_dir = build_dir.resolve()
     if workbench_scripts is not None:
-        scripts = Path(workbench_scripts).expanduser().resolve()
+        scripts = WB.scripts_dir(workbench_scripts)
         if not (scripts / "build_blueprint_bundle.py").is_file():
             raise FileNotFoundError(f"No build_blueprint_bundle.py in {scripts}")
         label = label or "second_opinion"
     else:
-        repo_root = _find_repo_root(build_dir) if (build_dir / "scripts").exists() else _find_repo_root(Path(__file__).resolve())
-        scripts = repo_root / "scripts"
+        scripts = WB.scripts_dir(start=build_dir)
     suffix = f"__{re.sub(r'[^A-Za-z0-9_-]+', '_', label)}" if label else ""
     child_env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     package_dir = build_dir / "package"
