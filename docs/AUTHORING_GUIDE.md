@@ -82,6 +82,15 @@ type. Every opener needs its closer.
 
 Each marker sits on its own line. A callout's title is its first heading inside.
 
+A callout can take a tone from the template's palette, or a colour of its own,
+as attributes on the opener: `[callout tone=gold]` for "keep this in mind"
+snippets and information that needs highlighting, `[callout tone=grey]` for an
+aside, or `[callout color=#336699]` for one-off colour. With no attribute the
+callout uses the template's default tone. An unknown tone is reported and the
+default is used. The palette is listed in the template's manifest under
+`callout_tones`; today it is default, gold, and grey (owner's choice,
+2026-10-08: minimal optionality until there is a design surface).
+
 ## 4. Links to other parts of the course (*provisional*)
 
 Web addresses are ordinary hyperlinks. For a link to something inside the

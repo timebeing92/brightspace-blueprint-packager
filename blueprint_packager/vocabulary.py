@@ -144,7 +144,16 @@ BRACKET_BLOCKS = {
     "timeline": (D_VISUAL, D_VISUAL_END, "Timeline"),
     "box": (D_VISUAL, D_VISUAL_END, "Styled section"),
 }
-_BRACKET_RE = re.compile(r"^\[\s*(/?)\s*([A-Za-z]+)\s*(?::\s*(.*?))?\s*\]$", re.S)
+_BRACKET_RE = re.compile(r"^\[\s*(/?)\s*([A-Za-z]+)((?:\s+[a-z_]+=[^\s\]:]+)*)\s*(?::\s*(.*?))?\s*\]$", re.S)
+_ATTR_RE = re.compile(r"([a-z_]+)=([^\s\]]+)")
+
+
+def parse_bracket_attrs(text: str) -> dict[str, str]:
+    """The key=value attributes on a bracket opener, e.g. `[callout tone=gold]` -> {"tone": "gold"}."""
+    match = _BRACKET_RE.match(text.strip())
+    if not match or match.group(1) == "/":
+        return {}
+    return dict(_ATTR_RE.findall(match.group(3) or ""))
 
 
 def parse_bracket_block(text: str) -> tuple[str, str] | None:
@@ -152,7 +161,7 @@ def parse_bracket_block(text: str) -> tuple[str, str] | None:
     match = _BRACKET_RE.match(text.strip())
     if not match:
         return None
-    closing, name, title = match.group(1) == "/", match.group(2).lower(), (match.group(3) or "").strip()
+    closing, name, title = match.group(1) == "/", match.group(2).lower(), (match.group(4) or "").strip()
     if name not in BRACKET_BLOCKS:
         return None
     opener, closer, cue = BRACKET_BLOCKS[name]

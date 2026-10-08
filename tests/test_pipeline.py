@@ -657,7 +657,7 @@ def test_pages_render_word_levels_one_to_one(tmp_path):
 
 # ------------------------------------------------------------ editor fields, sublines, bullets, re-export forms
 @pytest.mark.skipif(not HAS_WORKBENCH, reason="Workbench building blocks not present")
-def test_editor_fields_are_plain_semantic_html_unless_the_build_asks_for_template_styles(tmp_path):
+def test_editor_fields_carry_the_templates_modest_styles_unless_the_build_asks_for_plain(tmp_path):
     import html as html_mod
     import re
 
@@ -671,10 +671,10 @@ def test_editor_fields_are_plain_semantic_html_unless_the_build_asks_for_templat
         xml = (tmp_path / out / "package" / "dropbox_d2l.xml").read_text(encoding="utf-8")
         return html_mod.unescape(re.search(r"<instructions[^>]*>(.*?)</instructions>|<description[^>]*>(.*?)</description>", xml, re.S).group(0))
 
-    plain = description(SETTINGS, "plain")
+    plain = description({**SETTINGS, "fragment_styles": "plain"}, "plain")
     assert 'style="' not in plain and "<div" not in plain  # the tenant's stylesheet does the styling
     assert "<h3>1. First step<br><small>What do you notice?</small></h3>" in plain  # the author's second line is a subline
-    styled = description({**SETTINGS, "fragment_styles": "template"}, "styled")
+    styled = description(SETTINGS, "styled")  # the default since 2026-10-08: the template's modest set
     assert 'style="' in styled and "<text><div style=" in styled
 
 
@@ -716,7 +716,8 @@ def test_the_default_page_template_is_the_composite():
     default = Template.load("composite-navy")
     assert default.id == "composite-navy"
     assert default.manifest["surfaces"]["page"]["heading_map"] == {"2": "h2", "3": "h3", "4": "h4", "5": "h5", "6": "h6"}
-    assert default.manifest["surfaces"]["fragment"].get("styles", {}) == {}  # editor fields stay plain
+    assert {"h2", "p", "callout", "callout_gold"} <= set(default.manifest["surfaces"]["fragment"]["styles"])  # the modest set for editor fields
+    assert set(default.manifest["callout_tones"]) == {"default", "gold", "grey"}
 
 
 
@@ -747,3 +748,56 @@ def test_a_blank_blueprint_builds_a_package(tmp_path):
     assert result["errors"] == []
     names = set(zipfile.ZipFile(result["zip"]).namelist())
     assert {"imsmanifest.xml", "grades_d2l.xml", "rubrics_d2l.xml", "dropbox_d2l.xml", "checklist_d2l.xml"} <= names
+
+
+# ------------------------------------------------------------ callout tones, wrap, bullet guard
+@pytest.mark.skipif(not HAS_WORKBENCH, reason="Workbench building blocks not present")
+def test_callout_tones_and_colours_from_bracket_attributes(tmp_path):
+    from blueprint_packager.build import Builder
+
+    overview = ["Page: Week 1 Overview", "Page heading: Week 1 – Sample Topic", "Lead paragraph.",
+                "[callout tone=gold]", "Keep this distinction in mind:", "[/callout]",
+                "[callout color=#336699]", "A custom colour.", "[/callout]",
+                "[callout tone=plaid]", "Unknown tone.", "[/callout]"]
+    model = model_with_joins(synth.canonical(tmp_path / "tones.docx", overview=overview, frame_level=1))
+    assert errors(model) == []
+    settings = {**SETTINGS, "template": "composite-navy"}
+    result = Builder(model, settings, REPO_ROOT).run(tmp_path / "out", force=True)
+    page = (tmp_path / "out" / "package" / "course_pages" / "week-1-overview.html").read_text(encoding="utf-8")
+    assert '<div class="callout callout--gold">' in page
+    assert '<div class="callout" style="border-left-color: #336699;">' in page
+    assert page.count('<div class="callout">') == 1  # the unknown tone fell back to the default
+    notes = json.loads((tmp_path / "out" / "object_map.json").read_text(encoding="utf-8"))["notes"]
+    assert any(n["code"] == "CALLOUT_TONE_UNKNOWN" for n in notes)
+    assert '<a class="skip" href="#main">' in page and 'loading="lazy"' not in page  # no video on this page
+
+
+def test_wrap_writes_bracket_lines_around_kept_paragraphs_and_bullet_never_doubles(tmp_path):
+    source = synth.messy(tmp_path / "messy.docx")
+    cmap = course_map_for(source)
+    first = _pid(source, "Write a short synthetic report.")
+    cmap["wrap"] = [{"first": first, "last": first, "block": "callout", "attrs": {"tone": "gold"}, "reason": "test"}]
+    from docx import Document as _D
+
+    d = _D(str(source))
+    synth.make_list_item(d.add_paragraph("Already a bullet."))
+    d.save(str(source))
+    cmap = course_map_for(source)
+    cmap["wrap"] = [{"first": first, "last": first, "block": "callout", "attrs": {"tone": "gold"}, "reason": "test"}]
+    doc = read_docx(source)
+    already = next(p.id for p in doc.paras() if p.list_num_id is not None)
+    cmap["notes"]["content"].append(already)
+    cmap["bullet"] = [{"ids": [already], "like": already, "reason": "would double-bullet"}]
+    map_path = tmp_path / "map.json"
+    map_path.write_text(json.dumps(cmap), encoding="utf-8")
+    out = tmp_path / "normalized.docx"
+    result = normalize(source, map_path, out)
+    assert prove(result, out)["passed"]
+    texts = [p.text().strip() for p in read_docx(out).paras()]
+    i = texts.index("Write a short synthetic report.")
+    assert texts[i - 1] == "[callout tone=gold]" and texts[i + 1] == "[/callout]"
+    assert "already a list item; bullet operation skipped" in (result["records"][[r.origin for r in result["records"]].index(already)].note)
+    model = read_model(out)
+    callouts = [b for b in model["weeks"][0]["assignments"][0]["blocks"] if b["kind"] == "visual"]
+    assert callouts and callouts[0]["attrs"] == {"tone": "gold"}
+

@@ -158,6 +158,16 @@
       "decided": "owner, 2026-10-07"
     },
     {
+      "rule": "callout tones",
+      "source": "bracket attributes tone=<name> from the template palette or color=#hex; default, gold, grey in composite-navy",
+      "decided": "owner, 2026-10-08 (item 22)"
+    },
+    {
+      "rule": "editor-field styling",
+      "source": "the page template's modest inline set by default; plain on request",
+      "decided": "owner, 2026-10-08 (item 23)"
+    },
+    {
       "rule": "activity title",
       "source": "the activity's own heading in the body, with its week in front when the heading lacks it",
       "fallback": "the points table row, when the map gives no heading",
@@ -228,5 +238,15 @@
       "shape": "re-export forms",
       "observed": "2026-10-07: dropbox date_due and checklist date_end return without the .000Z suffix; the quiz nested timestamp returns intact; the quiz item gains a manifest date_due attribute"
     }
-  ]
+  ],
+  "early_page_checks": {
+    "codes": [
+      "HEADING_LEVEL_JUMP",
+      "TABLE_HEADER_MISSING",
+      "LINK_TEXT_BARE"
+    ],
+    "severity": "warning",
+    "decided": "owner, 2026-10-08 (item 13a)",
+    "note": "the page gate still runs at verification; these give the same facts earlier, with paragraph ids"
+  }
 }

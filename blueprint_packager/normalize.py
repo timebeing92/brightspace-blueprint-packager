@@ -113,6 +113,16 @@ class Normalizer:
         for entry in cmap.get("bullet", []):
             for pid in self._expand(entry["ids"]):
                 self.bullet_like[pid] = entry["like"]
+        # "wrap": [{"first": "p00610", "last": "p00612", "block": "callout", "attrs": {"tone": "gold"}, "reason": "..."}]:
+        # bracket lines written around a range of kept paragraphs. Structure only; words unchanged.
+        self.wrap_open: dict[str, dict[str, Any]] = {}
+        self.wrap_close: dict[str, list[str]] = {}
+        for entry in cmap.get("wrap", []):
+            block = entry["block"].lower()
+            if block not in V.BRACKET_BLOCKS:
+                raise MapError(f"wrap: unknown block '{entry['block']}'")
+            self.wrap_open[entry["first"]] = entry
+            self.wrap_close.setdefault(entry["last"], []).append(block)
         self.supersede: dict[str, str] = {}
         for entry in cmap.get("supersede", []):
             for pid in self._expand(entry["ids"]):
@@ -297,11 +307,15 @@ class Normalizer:
             unbold(element)
             record.note = (record.note + "; " if record.note else "") + "accidental block bold removed"
         if para.id in self.bullet_like:
-            like = self.by_id[self.bullet_like[para.id]]
-            copy_numbering(element, like.element)
-            record.note = (record.note + "; " if record.note else "") + f"made a list item like {like.id}"
-            record.style_to = record.style_to or (para.style or "Normal")
-            record.listed = True
+            if para.list_num_id is not None:
+                # owner, 2026-10-08: never double-bullet a paragraph that is already a list item
+                record.note = (record.note + "; " if record.note else "") + "already a list item; bullet operation skipped"
+            else:
+                like = self.by_id[self.bullet_like[para.id]]
+                copy_numbering(element, like.element)
+                record.note = (record.note + "; " if record.note else "") + f"made a list item like {like.id}"
+                record.style_to = record.style_to or (para.style or "Normal")
+                record.listed = True
         disposition = role
         if (record.style_to and record.style_to.lower() != (para.style or "normal").lower()) or record.listed:
             disposition = "kept_restyled"
@@ -391,6 +405,12 @@ class Normalizer:
             if isinstance(node, Table):
                 out.append(self.keep_table(node))
             else:
+                if node.id in self.wrap_open:
+                    spec = self.wrap_open[node.id]
+                    attrs = " ".join(f"{k}={v}" for k, v in (spec.get("attrs") or {}).items())
+                    title = f": {spec['title']}" if spec.get("title") else ""
+                    opener = f"[{spec['block'].lower()}{(' ' + attrs) if attrs else ''}{title}]"
+                    out.append(self.gen(opener, "wrap_open", note=f"opened on the operator's instruction: {spec.get('reason', '')}".rstrip(": ")))
                 emitted = self._content_para(node, ends_after)
                 out.extend(emitted)
                 if node.id in self.additions:
@@ -399,6 +419,8 @@ class Normalizer:
                     out.extend(self._emit_additions(node.id))
             for end_text in ends_after.pop(node.id, []):
                 out.append(self.directive(end_text, note="block end made explicit"))
+            for block in self.wrap_close.pop(node.id, []):
+                out.append(self.gen(f"[/{block}]", "wrap_close", note="closed on the operator's instruction"))
         if ends_after:
             raise MapError(f"Block end never reached inside its content range: {ends_after}")
         return out
@@ -834,6 +856,8 @@ class Normalizer:
                   for index, item in enumerate(items) if (pid, index) not in self._replacements_applied]
         if unused:
             raise MapError(f"Edits never applied (paragraph not kept or carried): {unused[:8]}")
+        if self.wrap_close:
+            raise MapError(f"Wrap never closed (last paragraph not reached in its content range): {sorted(self.wrap_close)}")
         write_docx(self.doc.path, out_path, root, extra_links=self.extra_links)
         return {
             "records": ordered,

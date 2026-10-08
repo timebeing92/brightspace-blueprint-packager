@@ -1,0 +1,20 @@
+{
+  "theme_id": "composite-navy",
+  "tokens": {
+    "brand": "#174b5c",
+    "brand_dark": "#103945",
+    "link": "#075f7a",
+    "accent": "#b7791f",
+    "text": "#1d2935",
+    "muted": "#4b626b",
+    "border": "#c7d8dc",
+    "surface": "#edf4f6",
+    "review": "#a55b16",
+    "review_border": "#e9d9b8",
+    "review_fill": "#fbf5e8"
+  },
+  "extensions": {
+    "source": "tools/blueprint-packager/blueprint_packager/templates/composite_navy/template.json tokens",
+    "note": "Page Kit theme shape (page_kit.schema.json, theme); review colours reuse the focus ring and the gold callout tint. Candidate for Page Kit's themes at promotion (owner, 2026-10-08, item 13d)."
+  }
+}

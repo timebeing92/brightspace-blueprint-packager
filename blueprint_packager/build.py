@@ -108,8 +108,10 @@ class Builder:
         self.scripts_dir = scripts
         self.lib, self.rlib = load_building_blocks(scripts)
         self.template = Template.load(settings.get("template", "composite-navy"))  # owner's default since 2026-10-07
+        self.rendered_html: dict[str, str] = {}
         self.template.heading_offset = int(model.get("conventions", {}).get("heading_offset", 0))
-        self.template.fragment_styles = settings.get("fragment_styles", "plain") == "template"
+        # owner, 2026-10-08: editor fields carry the template's modest style set by default ("plain is not acceptable")
+        self.template.fragment_styles = settings.get("fragment_styles", "template") == "template"
         # link cleanup: named query parameters dropped from web addresses in the package only
         self.template.link_rules = list(settings.get("link_cleanup", {}).get("drop_query_parameters", []))
         try:
@@ -287,6 +289,7 @@ class Builder:
                         grade_item=activity.get("grade_item"), rubric=activity.get("rubric"), forum=activity.get("forum"))
             if kind == "assignment":
                 fragment, diags = render_fragment(activity["blocks"], self.template, activity["title"], self.restorations)
+                self.rendered_html[f"{activity['type']}: {activity['title']}"] = fragment
                 self.notes.extend(diags)
                 folder = {"key": key, "name": activity["title"], "instructions_html": fragment,
                           "submission_type": self.settings.get("dropbox_defaults", {}).get("submission_type", "0")}
@@ -303,6 +306,7 @@ class Builder:
                 self.folders.append(folder)
             elif kind == "discussion":
                 fragment, diags = render_fragment(activity["blocks"], self.template, activity["title"], self.restorations)
+                self.rendered_html[f"{activity['type']}: {activity['title']}"] = fragment
                 self.notes.extend(diags)
                 topic = {"key": key, "title": activity["title"], "description_html": fragment, "_rubric": activity.get("rubric")}
                 if grade_key:
@@ -415,6 +419,7 @@ class Builder:
                 raise BuildError(f"Unknown restoration target type: {target['type']}")
         for page in model["pages"]:
             rendered, diags = render_course_page(page, self.template, self.restorations)
+            self.rendered_html[f"page: {page['title']}"] = rendered
             self.files[self.page_files[page["title"]]] = rendered
             self.notes.extend(diags)
             self.record("page", f"page:{slug(page['title'])}", page["title"], file=self.page_files[page["title"]],
@@ -422,6 +427,7 @@ class Builder:
         for week in model["weeks"]:
             page = week["overview_page"]
             rendered, diags = render_week_page(week, self.template, self.restorations)
+            self.rendered_html[f"page: {week['overview_page']['title']}"] = rendered
             self.files[self.page_files[page["title"]]] = rendered
             self.notes.extend(diags)
             self.record("page", f"page:{slug(page['title'])}", page["title"], file=self.page_files[page["title"]], week=week["number"])
@@ -752,6 +758,7 @@ class Builder:
                               "weeks": {str(n): [a.isoformat(), b.isoformat()] for n, (a, b) in sorted(self.calendar.weeks.items())}}
                              if self.calendar else None),
                 "link_cleanup": self._cleaned_links(),
+                "external_links": self._external_links(),
                 "rendering": {"template": self.template.id, "editor_fields": "template inline styles" if self.template.fragment_styles else "plain semantic HTML",
                               "heading_subline": "text after a line break inside a heading is wrapped in <small>"},
                 "notes": self.notes,
@@ -776,6 +783,15 @@ class Builder:
             if row["where"] and row["where"] not in places:
                 places.append(row["where"])
         return [{"from": a, "to": b, "where": places} for (a, b), places in merged.items()]
+
+    def _external_links(self) -> list[dict[str, Any]]:
+        """Every http(s) link in the rendered pages and editor fields, by object (13c, 2026-10-08)."""
+        out: list[dict[str, Any]] = []
+        for where, html_text in self.rendered_html.items():
+            hrefs = sorted(set(re.findall(r'href="(https?://[^"]+)"', html_text)))
+            if hrefs:
+                out.append({"object": where, "links": [html.unescape(h) for h in hrefs]})
+        return out
 
     def _object_map_markdown(self) -> str:
         lines = ["# Package object map", "", f"Base resource code: `{self.base_code}`", "", "## Module tree", ""]

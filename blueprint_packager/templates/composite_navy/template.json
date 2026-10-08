@@ -40,9 +40,7 @@
         "5": "h5",
         "6": "h6"
       },
-      "styles": {},
-      "optional_styles_not_applied": {
-        "note": "A modest set for a build that sets fragment_styles to template. The renderer reads only the styles key, so these are inert until copied there.",
+      "styles": {
         "h2": "color: #103945; margin: 0 0 .6rem; font-weight: 600; font-size: 1.4rem; line-height: 1.2;",
         "h3": "color: #103945; margin: 1.25rem 0 .5rem; font-weight: 600; font-size: 1.15rem; line-height: 1.2;",
         "h4": "color: #103945; margin: 1rem 0 .4rem; font-weight: 600; font-size: 1.02rem; line-height: 1.2;",
@@ -53,8 +51,12 @@
         "callout": "border: 1px solid #d9e4e6; border-left: .3rem solid #174b5c; background: #edf4f6; padding: .9rem 1.1rem; border-radius: 4px; margin: 1rem 0 1.5rem;",
         "table": "border-collapse: collapse; width: 100%; margin: 1rem 0;",
         "td": "border: 1px solid #d9e4e6; padding: .55rem .7rem; vertical-align: top; text-align: left;",
-        "a": "color: #075f7a; font-weight: 600;"
-      }
+        "a": "color: #075f7a; font-weight: 600;",
+        "callout_gold": "border: 1px solid #e9d9b8; border-left: .3rem solid #b7791f; background: #fbf5e8; padding: .9rem 1.1rem; border-radius: 4px; margin: 1rem 0 1.5rem;",
+        "callout_grey": "border: 1px solid #d9e4e6; border-left: .3rem solid #4b626b; background: #f7fafb; padding: .9rem 1.1rem; border-radius: 4px; margin: 1rem 0 1.5rem;",
+        "small": "font-size: .9rem; color: #4b626b; font-weight: 500;"
+      },
+      "note": "Applied in editor fields when the build's fragment_styles is \"template\" (the default since 2026-10-08; owner: plain is not acceptable). Derived from the composite page palette."
     }
   },
   "visual_cues": {
@@ -70,5 +72,25 @@
     "video",
     "table"
   ],
-  "open_design_note": "Selected by build setting template: composite-navy. Not the default until the owner says so. Page Kit borrowings 13a to 13e are not in this template; see docs/TEMPLATE_COMPOSITE_NAVY.md."
+  "open_design_note": "Selected by build setting template: composite-navy. Not the default until the owner says so. Page Kit borrowings 13a to 13e are not in this template; see docs/TEMPLATE_COMPOSITE_NAVY.md.",
+  "callout_tones": {
+    "default": "navy tint, the brand left border",
+    "gold": "muted orange-gold for 'keep this in mind' snippets and highlighted information",
+    "grey": "neutral, for asides"
+  },
+  "tokens": {
+    "brand": "#174b5c",
+    "brand_dark": "#103945",
+    "link": "#075f7a",
+    "accent": "#b7791f",
+    "text": "#1d2935",
+    "muted": "#4b626b",
+    "border": "#c7d8dc",
+    "surface": "#edf4f6",
+    "focus": "#a55b16",
+    "row_alt": "#f7fafb",
+    "gold_soft": "#fbf5e8",
+    "gold_border": "#e9d9b8"
+  },
+  "dropdown_marker": "arrow in line with the heading (owner, 2026-10-08)"
 }

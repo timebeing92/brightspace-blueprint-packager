@@ -2,6 +2,15 @@
 
 ## Unreleased — 2026-10-08
 
+Changes on the owner's second round of answers (response sheet Part 3 and the Page Kit items).
+
+- Callout tones: `[callout tone=gold]`, `[callout tone=grey]`, or `[callout color=#hex]` as bracket attributes; the composite template defines the palette (`callout_tones`) and a muted orange-gold tone for "keep this in mind" snippets. Unknown tones are reported and fall back.
+- Normalizer `wrap` operation: bracket lines written around a range of kept paragraphs, so a course map can put authored text in a callout without touching the words. The `bullet` operation never double-bullets a paragraph that is already a list item.
+- Editor fields carry the composite template's modest inline style set by default (`fragment_styles: "template"`); `plain` remains available. The composite's dropdown marker is an arrow in line with the heading; the template gained a skip link, print rules, and a token set (`tokens`, plus `theme.pagekit.json` in Page Kit's theme shape); video iframes load lazily.
+- Early page checks in the reader, with paragraph ids: `HEADING_LEVEL_JUMP`, `TABLE_HEADER_MISSING` (one-cell box tables exempt), `LINK_TEXT_BARE`. Warnings, never blocking.
+- The object map lists every external link by page and activity (`external_links`).
+- Tests: 37.
+
 - `rebase-map`: a paragraph that is new in a later export and sits between two mapped stretches joins the content stretch that ends just before it (same cell or body, never across a mapped line), and the report lists it under "Placed by inference, confirm" with `placed_by_inference` in the JSON. Only `content`, `intro`, `notes`, and `retired` lists grow. A new paragraph with no mapped content neighbour in its container still stops the run. Owner's rule (response sheet item 20). Tests: 35.
 
 ## Unreleased — 2026-10-08

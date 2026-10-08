@@ -29,8 +29,15 @@
   --muted:        #4b626b;
   --focus:        #a55b16;   /* MBA 630 focus ring */
   --row-alt:      #f7fafb;
+  --gold:         #b7791f;   /* muted orange-gold: "keep this in mind" callouts (owner, 2026-10-08) */
+  --gold-soft:    #fbf5e8;
+  --gold-border:  #e9d9b8;
   font-size: 18px;
 }
+
+/* ---------- Skip link (13b, agreed 2026-10-08) ---------- */
+.skip{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden;}
+.skip:focus{position:static;width:auto;height:auto;display:inline-block;margin:.5rem;padding:.4rem .8rem;background:#fff;color:var(--brand-dark);outline:3px solid var(--focus);}
 
 /* ---------- Base ---------- */
 *,*::before,*::after{box-sizing:border-box;}
@@ -116,7 +123,7 @@ img{max-width:100%;height:auto;}
 .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
 .transcript{font-size:.95rem;}
 
-/* ---------- Dropdown (details/summary; BUMG 660 +/- marker, flat panel) ---------- */
+/* ---------- Dropdown (details/summary; arrow marker in line with the heading, flat panel) ---------- */
 details{
   margin:1rem 0;
   padding:.8rem 1rem;
@@ -130,17 +137,21 @@ summary{
   font-weight:700;
   color:var(--brand-dark);
   list-style:none;
+  display:flex;
+  align-items:center;
+  gap:.55rem;
 }
 summary::-webkit-details-marker{display:none;}
 summary::before{
-  content:"+";
-  display:inline-block;
-  width:1rem;
-  margin-right:.4rem;
-  color:var(--brand);
-  font-weight:700;
+  content:"";
+  flex:0 0 auto;
+  width:0;height:0;
+  border-top:.42em solid transparent;
+  border-bottom:.42em solid transparent;
+  border-left:.62em solid var(--brand);
+  transition:transform .15s ease;
 }
-details[open] summary::before{content:"\2212";}   /* − */
+details[open] summary::before{transform:rotate(90deg);}
 details[open] summary{margin-bottom:.6rem;}
 details > :nth-child(2){margin-top:.25rem;}
 
@@ -154,6 +165,9 @@ details > :nth-child(2){margin-top:.25rem;}
   background:var(--soft);
 }
 .styled-box{background:#fff;}
+/* Tones: named in template.json "callout_tones"; chosen in the blueprint as [callout tone=gold] */
+.callout--gold{border-left-color:var(--gold);background:var(--gold-soft);border-color:var(--gold-border);}
+.callout--grey{border-left-color:var(--muted);background:var(--row-alt);}
 .callout > :first-child,.styled-box > :first-child{margin-top:0;}
 .callout h2,.callout h3,.callout h4,.styled-box h2,.styled-box h3,.styled-box h4{border-bottom:0;padding-bottom:0;margin-top:0;}
 
@@ -186,4 +200,17 @@ table.bp-table tbody tr:nth-child(even) td{background:var(--row-alt);}
   h3{font-size:1.1rem;}
   .wrapper{padding:0 .9rem;}
   table.bp-table{display:block;overflow-x:auto;}
+}
+
+/* ---------- Print (13b, agreed 2026-10-08) ---------- */
+@media print{
+  body{font-size:11pt;color:#000;background:#fff;}
+  header{border-top:0;}
+  .skip,.back-top,.video-wrap{display:none;}
+  a{color:#000;text-decoration:underline;}
+  a[href^="http"]::after{content:" (" attr(href) ")";font-size:.85em;}
+  details{border:1px solid #999;}
+  details:not([open]) > *:not(summary){display:block;}
+  summary::before{display:none;}
+  .callout,.styled-box{break-inside:avoid;border:1px solid #999;background:#fff;}
 }

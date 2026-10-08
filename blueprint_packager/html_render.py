@@ -381,10 +381,27 @@ def _render_visual(block: dict[str, Any], ctx: RenderContext) -> str:
         parts.append("</section>")
         return "\n".join(p for p in parts if p)
     inner = render_blocks(block["blocks"], ctx)
+    attrs = block.get("attrs") or {}
+    tone = attrs.get("tone", "")
+    palette = ctx.template.manifest.get("callout_tones", {})
+    if tone and tone not in palette:
+        ctx.warn("CALLOUT_TONE_UNKNOWN", f"callout tone '{tone}' is not in the template's palette {sorted(palette)}; the default tone is used")
+        tone = ""
+    color = attrs.get("color", "")
+    if color and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+        ctx.warn("CALLOUT_COLOR_INVALID", f"callout color '{color}' is not a six-digit hex colour; ignored")
+        color = ""
     if ctx.surface == "fragment":
-        return f"<div{ctx.style('callout')}>\n{inner}\n</div>"
+        style = ctx.style(f"callout_{tone}") if tone else ""
+        style = style or ctx.style("callout")
+        if color:
+            style = (style[:-1] + f" border-left-color: {color};\"") if style else f' style="border-left: .3rem solid {color};"'
+        return f"<div{style}>\n{inner}\n</div>"
     css_class = "styled-box" if kind == "styled_box" else "callout"
-    return f'<div class="{css_class}">\n{inner}\n</div>'
+    if tone:
+        css_class += f" callout--{tone}"
+    style = f' style="border-left-color: {color};"' if color else ""
+    return f'<div class="{css_class}"{style}>\n{inner}\n</div>'
 
 
 def _render_video(block: dict[str, Any], ctx: RenderContext) -> str:
@@ -396,7 +413,7 @@ def _render_video(block: dict[str, Any], ctx: RenderContext) -> str:
             return f"<p{ctx.style('p')}>{title}</p>"
         return f'<p{ctx.style("p")}><a href="{html.escape(href, quote=True)}" target="_blank" rel="noopener">{title}</a></p>'
     src = html.escape(href, quote=True)
-    frame = f'<iframe src="{src}" title="{title}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>'
+    frame = f'<iframe src="{src}" title="{title}" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>'
     if ctx.surface == "fragment":
         return ('<div style="position: relative; padding-top: 56.25%; margin-bottom: 1rem;">'
                 + frame.replace("<iframe ", '<iframe style="position: absolute; inset: 0; width: 100%; height: 100%; border: 0;" ')
@@ -424,9 +441,9 @@ def _shell(template: Template, title: str, heading: str, body: str) -> str:
         f"<title>{html.escape(title, quote=False)}</title>\n"
         '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
         f"{links}\n<style>\n{template.css}\n</style>\n"
-        '</head><body id="top"><header class="wrapper">\n'
+        '</head><body id="top"><a class="skip" href="#main">Skip to content</a><header class="wrapper">\n'
         f"<h1>{html.escape(heading, quote=False)}</h1>\n"
-        '</header><main class="wrapper" role="main">\n'
+        '</header><main id="main" class="wrapper" role="main" tabindex="-1">\n'
         f"{body}\n"
         "</main></body></html>\n"
     )

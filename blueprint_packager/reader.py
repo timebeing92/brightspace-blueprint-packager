@@ -109,6 +109,9 @@ class Reader:
                     continue
                 if keyword == V.D_VISUAL:
                     block = {"kind": "visual", "cue": value, "blocks": [], "src": node.id}
+                    attrs = V.parse_bracket_attrs(text)
+                    if attrs:
+                        block["attrs"] = attrs  # e.g. {"tone": "gold"} or {"color": "#b7791f"}
                     target().append(block)
                     stack.append(("visual", block))
                     continue
@@ -257,6 +260,55 @@ class Reader:
         return {"levels": levels, "criteria": criteria, "criterion_header": header[0] if header else "", "src": table.id}
 
     # -------------------------------------------------------------------- read
+    BARE_LINK_TEXT = {"here", "click here", "link", "this link", "read more", "more", "this", "this page", "learn more"}
+
+    def _page_checks(self, model: dict[str, Any]) -> None:
+        """Page-gate rules run early, with paragraph ids (13a, agreed 2026-10-08): heading level jumps,
+        tables without a header row, and bare link text. Warnings, never blocking."""
+        top = V.content_top(self.frame_level)
+
+        def walk(blocks: list[dict[str, Any]], where: str, previous: list[int]) -> None:
+            for block in blocks:
+                kind = block.get("kind")
+                if kind == "heading":
+                    level = int(block["level"])
+                    if level > (previous[0] + 1 if previous else top):
+                        self.diag.warn("HEADING_LEVEL_JUMP",
+                                       f"Heading level jumps to {level} after {previous[0] if previous else 'the page heading'}; "
+                                       f"the page gate will report this", block.get("src", where))
+                    previous[:] = [level]
+                if kind == "table":
+                    rows = block.get("rows") or []
+                    if rows and (len(rows) > 1 or len(rows[0]) > 1):  # a one-cell table is a box, not data
+                        head = rows[0]
+                        texts = [[r for b in cell for r in (b.get("runs") or []) if r.get("text", "").strip()] for cell in head]
+                        if not all(cell and all(r.get("b") for r in cell) for cell in texts):
+                            self.diag.warn("TABLE_HEADER_MISSING",
+                                           "Table's first row is not a bold header row; make the header bold so it reads as a header",
+                                           block.get("src", where))
+                        for row in rows:
+                            for cell in row:
+                                walk(cell, where, previous)
+                for run in block.get("runs") or []:
+                    href, text = run.get("href", ""), run.get("text", "").strip()
+                    if href and (text.lower().rstrip(".") in self.BARE_LINK_TEXT or text == href):
+                        self.diag.warn("LINK_TEXT_BARE", f"Link text '{text[:40]}' says nothing about its target; name the destination",
+                                       block.get("src", where))
+                for key in ("blocks", "children"):
+                    if isinstance(block.get(key), list):
+                        walk(block[key], where, previous)
+
+        for page in model.get("course_pages", []):
+            walk(page.get("blocks", []), f"Page: {page['title']}", [])
+        for week in model.get("weeks", []):
+            previous: list[int] = []
+            walk(week["overview_page"].get("blocks", []), f"Week {week['number']} page", previous)
+            for key in ("assignments", "discussions", "quizzes"):
+                for activity in week.get(key, []):
+                    walk(activity.get("blocks", []), f"Week {week['number']} / {activity['title']}", [])
+        for activity in model.get("course_activities", []):
+            walk(activity.get("blocks", []), activity["title"], [])
+
     def read(self) -> dict[str, Any]:
         doc = self.doc
         model: dict[str, Any] = {
@@ -334,6 +386,7 @@ class Reader:
             else:
                 self.diag.warn("UNKNOWN_SECTION", f"Heading '{name}' at Heading {self.frame_level} is not part of the structure vocabulary. "
                                f"Heading {self.frame_level} is reserved for the frame; content inside a page starts at Heading {V.content_top(self.frame_level)}", name)
+        self._page_checks(model)
         model["diagnostics"] = self.diag.items
         return model
 
