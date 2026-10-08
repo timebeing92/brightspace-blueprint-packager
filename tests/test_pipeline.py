@@ -848,7 +848,8 @@ def test_a_pages_only_refresh_zip_is_written_beside_the_package(tmp_path):
 def test_workbench_scripts_resolve_to_the_vendored_mirror_and_are_recorded():
     scripts = WB.scripts_dir()
     assert scripts == WB.VENDOR_SCRIPTS and (scripts / "d2l_package_lib.py").is_file()
-    assert WB.pinned_commit(scripts) and WB.pinned_commit(scripts).startswith("9d3a620")
+    manifest_commit = json.loads((WB.REPO_DIR / "vendor" / "coursecraft_workbench" / "MANIFEST.json").read_text(encoding="utf-8"))["commit"]
+    assert WB.pinned_commit(scripts) == manifest_commit  # whatever the manifest pins, the helper reports
     assert WB.describe(scripts)["source"] == "vendored"
 
 
@@ -860,7 +861,8 @@ def test_the_receipt_and_the_report_name_the_scripts_used(tmp_path):
     model = model_with_joins(synth.canonical(tmp_path / "canonical.docx"))
     result = Builder(model, SETTINGS, REPO_ROOT).run(tmp_path / "out", force=True)
     assert result["receipt"]["workbench_scripts"]["source"] == "vendored"
-    assert result["receipt"]["workbench_scripts"]["pinned_commit"].startswith("9d3a620")
+    manifest_commit = json.loads((WB.REPO_DIR / "vendor" / "coursecraft_workbench" / "MANIFEST.json").read_text(encoding="utf-8"))["commit"]
+    assert result["receipt"]["workbench_scripts"]["pinned_commit"] == manifest_commit
     assert verify_build(tmp_path / "out", model) == 0
     report = json.loads((tmp_path / "out" / "verification_report.json").read_text(encoding="utf-8"))
-    assert report["readers"]["pinned_commit"].startswith("9d3a620") and report["readers"]["source"] == "vendored"
+    assert report["readers"]["pinned_commit"] == manifest_commit and report["readers"]["source"] == "vendored"

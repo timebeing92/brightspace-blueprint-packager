@@ -85,7 +85,7 @@ reports, which a split would rewrite.
 ## Where things stand, 2026-10-08
 
 The packager lives in its own repository, `brightspace-blueprint-packager`,
-with the Workbench scripts it builds on vendored at `9d3a620` and a drift
+with the Workbench scripts it builds on vendored at `2c967f9` and a drift
 check. The Blueprint Wizard fixes are now Workbench pull request #5
 (https://github.com/timebeing92/coursecraft-workbench/pull/5), eight commits
 on `fix/blueprint-structure-fidelity`; the `candidate/` folder that carried

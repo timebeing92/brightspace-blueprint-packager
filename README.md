@@ -16,7 +16,7 @@ re-exported, and read back with every structural check passing (see
 
 The packager builds on the Workbench's package-writing libraries and verifies
 with its readers. Those scripts and the schema files they load are vendored
-under `vendor/coursecraft_workbench/` at commit `9d3a620`, so this repository
+under `vendor/coursecraft_workbench/` at commit `2c967f9` (re-pinned 2026-10-08 after the Workbench merged PR #5), so this repository
 runs on its own. `vendor/coursecraft_workbench/MANIFEST.json` names the commit
 and every file's hash.
 

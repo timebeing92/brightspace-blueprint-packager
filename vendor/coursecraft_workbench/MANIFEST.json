@@ -1,8 +1,8 @@
 {
   "schema": "brightspace-blueprint-packager.vendor_manifest/1",
   "source_repository": "coursecraft_workbench (github.com/timebeing92/coursecraft-workbench)",
-  "commit": "9d3a6203303243df632c2e921c7126d6998ec0f3",
-  "commit_short": "9d3a620",
+  "commit": "2c967f914c352c64e77a1bfb3611bddfc0671d8f",
+  "commit_short": "2c967f9",
   "pinned_on": "2026-10-08",
   "why": "owner's decision of 2026-10-08 (response sheet item 29): pin current upstream with a drift check like the bundle's",
   "layout": "mirrors the Workbench's own layout under this folder so each script's REPO_ROOT (two levels up) finds the schemas it loads at runtime",
@@ -10,13 +10,13 @@
   "files": [
     {
       "path": "scripts/blueprint_to_docx.py",
-      "sha256": "5ed3db6de3a6b033dfa4efd374b897c58141eebf2d7bbba7cb8ab957787a43fd",
-      "bytes": 29141
+      "sha256": "8ad1713771f3da3b83b9f23aa11b7d7f4a39265932187574d0aae388446b45c9",
+      "bytes": 45556
     },
     {
       "path": "scripts/build_blueprint_bundle.py",
-      "sha256": "e9345df4cbc57cd5cbb9d27cfe2cdc5c28e24519db35d43510b7a3df84e06f10",
-      "bytes": 87697
+      "sha256": "69081d1fb2d436e7420efd3328415ea594aba9deabd152d711e9857722abf1cd",
+      "bytes": 104651
     },
     {
       "path": "scripts/build_page.py",
@@ -40,8 +40,8 @@
     },
     {
       "path": "scripts/course_artifact_contracts.py",
-      "sha256": "c095cd48e3ea9f7549a50d464b4eb530e59e656b082654fdca72aa216dfc6e98",
-      "bytes": 25757
+      "sha256": "1076f8b1272105577015457661deb7c05110a8fdb1f03dd6aaf6e052b5a0e310",
+      "bytes": 25881
     },
     {
       "path": "scripts/course_qa_report.py",
@@ -60,8 +60,8 @@
     },
     {
       "path": "scripts/docx_structure_qa.py",
-      "sha256": "44e4cac2cff912a1b1c5905c870f394aa9e574b11f598680e92517c1547ddcd8",
-      "bytes": 15986
+      "sha256": "ae664463e205ffe15219e4d206b9848b206f2382756bc74ef14101ddd308d0e8",
+      "bytes": 16267
     },
     {
       "path": "scripts/export_inventory.py",
@@ -90,8 +90,8 @@
     },
     {
       "path": "scripts/reconstruct_course_structure.py",
-      "sha256": "e03423f4d31d201f741a5e52cfbb674274a239beea65d8c2629ba0dd5459f4e3",
-      "bytes": 82169
+      "sha256": "85d0337c9c2279d861b746c3775d57a8b05a37dc4589479493d08029bf4afc78",
+      "bytes": 97055
     },
     {
       "path": "scripts/render_blueprint_docx.py",
@@ -105,11 +105,16 @@
     },
     {
       "path": "scripts/rubrics_to_docx.py",
-      "sha256": "f1c15a635f3cd13e845e109754b57df155b174611d40cfa0beb92e4b4977b111",
-      "bytes": 14138
+      "sha256": "f25f07faf5a586f09912a621ffb39b9635317f5ecb0cd202dab7f8de42e4cab7",
+      "bytes": 14208
     },
     {
       "path": "workspace/reference/schemas/blueprint/blueprint_schema.json",
+      "sha256": "d758c89eb761b888dca8cd1a55997f4fa04f26faca1ac48643d9d3489684610f",
+      "bytes": 13122
+    },
+    {
+      "path": "workspace/reference/schemas/blueprint/blueprint_schema_4.json",
       "sha256": "419a6ba45c4ef95478713a62a7e796edc226967a91e309600bf8dc8136071041",
       "bytes": 9322
     },
