@@ -41,6 +41,15 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_blank(args: argparse.Namespace) -> int:
+    from blueprint_packager.blank import write_blank
+
+    out = write_blank(Path(args.output), course_number=args.course_number, course_title=args.course_title, term=args.term,
+                      weeks=args.weeks, topics=args.topic)
+    print(f"blank blueprint: {out} ({args.weeks} weeks)")
+    return 0
+
+
 REMEDIATION = {
     "TITLE_DIFFERS_FROM_BODY_HEADING": "Decide which wording is the activity's name and make the points table and the activity heading agree.",
     "RUBRIC_UNATTACHED": "Attach the rubric to an activity with a 'Used by:' line and a matching 'Rubric:' line, or move it under Retired Rubrics.",
@@ -209,6 +218,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", required=True)
     p.add_argument("--view", default="proposed", choices=["proposed", "base", "raw"])
     p.set_defaults(func=cmd_ingest)
+
+    p = sub.add_parser("blank", help="write a blank blueprint in the current convention, ready to fill in")
+    p.add_argument("output")
+    p.add_argument("--course-number", required=True)
+    p.add_argument("--course-title", required=True)
+    p.add_argument("--term", required=True)
+    p.add_argument("--weeks", type=int, default=8)
+    p.add_argument("--topic", action="append", default=[], help="a week's topic, in order; repeatable")
+    p.set_defaults(func=cmd_blank)
 
     p = sub.add_parser("normalize", help="apply a course map and write the normalized blueprint")
     p.add_argument("source")

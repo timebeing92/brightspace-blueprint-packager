@@ -12,6 +12,7 @@ with it has been imported into Brightspace.
 
 | Stage | Command | Input | Output |
 |---|---|---|---|
+| 0. Blank | `bpk.py blank` | course number, title, term, weeks | a blank blueprint in the current convention that reads with no errors |
 | A. Ingest | `bpk.py ingest` | blueprint DOCX | paragraph stream with stable ids |
 | B. Normalize | `bpk.py normalize` | DOCX and a course map | normalized DOCX, ledger, fidelity proof |
 | C. Read | `bpk.py read` | normalized DOCX | course model JSON with joins and diagnostics |

@@ -63,7 +63,7 @@ owner asked that these come into CourseCraft as a record at promotion.
 |---|---|---|
 | this one | `tool/blueprint-packager` | three commits: the packager, the wizard candidate, the ownership notes and records packet |
 | this one | `master` | the tool branch plus two course commits: September intake and reviews; the 2026-10-06 build and reviews |
-| CourseCraft Workbench | `fix/blueprint-structure-fidelity` | `f6a28fb` the first fix set; `a92a3ab` one-to-one headings; `a0f3195` model /5; `a80af3f` bracket panels; `79bceaa` empty panels as pairs. Pushed into the local Workbench, not to GitHub. Not merged |
+| CourseCraft Workbench | `fix/blueprint-structure-fidelity` | `f6a28fb` the first fix set; `a92a3ab` one-to-one headings; `a0f3195` model /5; `a80af3f` bracket panels; `79bceaa` empty panels as pairs; `d05aa9a` headings inside descriptions (loss 17); `483441c` internal links as brackets. Pushed into the local Workbench, not to GitHub. Not merged |
 
 This repository has a private GitHub remote as of 2026-10-06 night, with both
 branches pushed. The Workbench branch and the two backlog notes are local only.

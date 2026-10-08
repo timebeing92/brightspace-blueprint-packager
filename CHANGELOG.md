@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — 2026-10-08
+
+- `rebase-map`: a paragraph that is new in a later export and sits between two mapped stretches joins the content stretch that ends just before it (same cell or body, never across a mapped line), and the report lists it under "Placed by inference, confirm" with `placed_by_inference` in the JSON. Only `content`, `intro`, `notes`, and `retired` lists grow. A new paragraph with no mapped content neighbour in its container still stops the run. Owner's rule (response sheet item 20). Tests: 35.
+
+## Unreleased — 2026-10-08
+
+- `bpk.py blank`: a blank blueprint in the current convention (frame at Heading 1, content from Heading 2), with front matter, points table, a welcome page, a module row before Week 1, every week's six rows with the lines each needs, a `Checklist:` row pre-filled with `Items: From this week's activities` (owner's decision, item 19), two standard rubrics, and notes. Reads back with zero errors and builds a package as it stands. Two tests.
+
 ## Unreleased — 2026-10-07
 
 Changes made on the owner's response-sheet answers.

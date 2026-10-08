@@ -8,6 +8,17 @@ form for, and type a marker only where Word has none.
 Items marked *provisional* were added on 2026-10-06 from the owner's notes and
 may change after review.
 
+## 0. Starting from nothing
+
+`python3 bpk.py blank out.docx --course-number "NEW 101" --course-title "Title" --term "Spring A 2027" --weeks 8 --topic "Foundations" …`
+writes a blank blueprint in this convention: front matter, points table, a
+welcome page, one module row before Week 1, every week with its six rows and
+the lines each needs, two standard rubrics, and notes. It reads back with no
+errors as it stands, so a build works as soon as there is content. Every
+week's Checklist row is pre-filled with `Items: From this week's activities`;
+replace that line with typed items when you want a hand-written checklist.
+A generated example is `docs/examples/blank_blueprint__8_weeks.docx`.
+
 ## 1. Headings
 
 Use Word's heading styles. Your outline is the page's outline: Heading N in the

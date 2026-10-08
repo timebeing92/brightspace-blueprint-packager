@@ -7,8 +7,12 @@ paragraph, translates every id the map uses, and reports what changed so a
 person can see which decisions need a second look.
 
 It decides nothing about content. A paragraph that is new in the later export
-is reported, never silently placed; the normalizer still refuses any paragraph
-the translated map does not account for.
+and sits inside a mapped stretch comes along with it. One that sits between
+stretches joins the content stretch that ends just before it in the same cell
+or body, and that placement is reported as an inference for a person to confirm
+or move (the owner's rule of 2026-10-07; before that, such a paragraph stopped
+the run). Only a paragraph with no mapped content neighbour on either side in
+its container is left unplaced, and the normalizer still refuses it.
 """
 from __future__ import annotations
 
@@ -25,6 +29,9 @@ CELL_REF = re.compile(r"^@(c\d{4})$")
 TABLE_ID = re.compile(r"^t\d{3}$")
 ID_TOKEN = re.compile(r"\bp\d{5}\b")
 SIMILAR = 0.55  # two paragraphs this alike, in the same changed stretch, are one edited paragraph
+# Lists under these keys are stretches of authored content; a new paragraph may join one.
+# Lists under other keys (drop, unbold, ids, title, labels …) name paragraphs to act on and never grow.
+CONTENT_KEYS = {"content", "intro", "notes", "retired"}
 
 
 def _state(para: Para) -> str:
@@ -206,12 +213,104 @@ def rebase_map(course_map: dict[str, Any], alignment: dict[str, Any], new: Docum
     rebased = copy.deepcopy(course_map)
     source = rebased.pop("source", {})
     rebased = value(rebased, "map")
+    alignment["inferred_placements"] = _place_added(rebased, alignment, new, problems)
     rebased = {"schema": rebased.pop("schema", course_map.get("schema")), "course": rebased.pop("course", course_map.get("course")),
                "source": {"name": new.path.name, "sha256": new.sha256,
                           "rebased_from": {"name": source.get("name", old.path.name), "sha256": source.get("sha256", old.sha256)},
                           "retrieved": source.get("retrieved", "")},
                **rebased}
     return rebased, problems
+
+
+def _place_added(rebased: dict[str, Any], alignment: dict[str, Any], new: Document, problems: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Attach each new paragraph outside every mapped stretch to the content stretch before it.
+
+    Works in the later export's paragraph order, inside one container (a table cell or the body).
+    A stretch grows only across paragraphs nothing else in the map names, so a new paragraph
+    never crosses a mapped heading, label, or title line. With no content stretch before it,
+    the one after it grows backwards instead. With neither, the paragraph is left unplaced and
+    named in `problems`; the normalizer refuses it as before.
+    """
+    new_paras = list(new.paras())
+    index = {para.id: n for n, para in enumerate(new_paras)}
+    container = {para.id: para.container for para in new_paras}
+    cell_paras: dict[str, list[int]] = {}
+    table_paras: dict[str, list[int]] = {}
+    for table in new.tables():
+        table_paras.setdefault(table.id, [index[p.id] for p in table.paras()])
+        for row in table.rows:
+            for cell in row:
+                cell_paras[cell.id] = [index[p.id] for p in cell.paras()]
+
+    stretches: list[dict[str, Any]] = []  # content stretches that may grow
+    mapped: set[int] = set()  # every paragraph position the map names, any key
+
+    def note_string(item: str, holder: list | None, position: int | None, key: str, where: str) -> None:
+        match = RANGE_ID.match(item)
+        if match and match.group(1) in index and match.group(2) in index:
+            a, b = index[match.group(1)], index[match.group(2)]
+            mapped.update(range(a, b + 1))
+            if holder is not None and key in CONTENT_KEYS:
+                stretches.append({"start": a, "end": b, "holder": holder, "position": position, "where": where})
+        elif PARA_ID.match(item) and item in index:
+            mapped.add(index[item])
+            if holder is not None and key in CONTENT_KEYS:
+                stretches.append({"start": index[item], "end": index[item], "holder": holder, "position": position, "where": where})
+        else:
+            cell = CELL_REF.match(item)
+            if cell and cell.group(1) in cell_paras:
+                mapped.update(cell_paras[cell.group(1)])
+            elif TABLE_ID.match(item) and item in table_paras:
+                mapped.update(table_paras[item])
+
+    def walk(node: Any, key: str, where: str) -> None:
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if PARA_ID.match(k) and k in index:
+                    mapped.add(index[k])
+                walk(v, k, f"{where}.{k}")
+        elif isinstance(node, list):
+            for n, item in enumerate(node):
+                if isinstance(item, str):
+                    note_string(item, node, n, key, f"{where}[{n}]")
+                else:
+                    walk(item, key, f"{where}[{n}]")
+        elif isinstance(node, str):
+            note_string(node, None, None, key, where)
+
+    walk(rebased, "", "map")
+    placements: list[dict[str, str]] = []
+    added = sorted((a for a in alignment["added"] if a["new"] in index), key=lambda a: index[a["new"]])
+    for item in added:
+        pid = item["new"]
+        at = index[pid]
+        if at in mapped:
+            continue  # inside a mapped stretch: comes along
+        here = container[pid]
+        same = [s for s in stretches if container[new_paras[s["end"]].id] == here]
+        before = max((s for s in same if s["end"] < at and not any(n in mapped for n in range(s["end"] + 1, at))),
+                     key=lambda s: s["end"], default=None)
+        after = min((s for s in same if s["start"] > at and not any(n in mapped for n in range(at + 1, s["start"]))),
+                    key=lambda s: s["start"], default=None)
+        text = item["text"][:120]
+        if before is not None:
+            first = new_paras[before["start"]].id
+            before["holder"][before["position"]] = f"{first}:{pid}"
+            before["end"] = at
+            placements.append({"new": pid, "text": text, "joined": f"{first}:{pid}", "after": new_paras[at - 1].id if at else "",
+                               "where": before["where"], "how": "joined the content stretch that ends just before it"})
+        elif after is not None:
+            last = new_paras[after["end"]].id
+            after["holder"][after["position"]] = f"{pid}:{last}"
+            after["start"] = at
+            placements.append({"new": pid, "text": text, "joined": f"{pid}:{last}", "before": new_paras[after["start"] + 1].id if after["start"] + 1 < len(new_paras) else "",
+                               "where": after["where"], "how": "nothing mapped before it in its container; joined the content stretch after it"})
+        else:
+            problems.append({"where": "later export", "id": pid,
+                             "problem": f"new paragraph has no mapped content neighbour in its container; place it by hand: {text!r}"})
+            continue
+        mapped.add(at)
+    return placements
 
 
 def report(alignment: dict[str, Any], problems: list[dict[str, str]], old: Document, new: Document) -> dict[str, Any]:
@@ -225,6 +324,7 @@ def report(alignment: dict[str, Any], problems: list[dict[str, str]], old: Docum
         "added": alignment["added"],
         "removed": alignment["removed"],
         "suggestions_resolved": alignment["suggestions_resolved"],
+        "placed_by_inference": alignment.get("inferred_placements", []),
         "map_entries_needing_a_look": problems,
     }
 
@@ -237,7 +337,8 @@ def report_markdown(rep: dict[str, Any]) -> str:
              f"| Paragraphs in the earlier export | {c['old_paragraphs']} |", f"| Paragraphs in the later export | {c['new_paragraphs']} |",
              f"| Carried across | {c['carried']} |", f"| Edited in place | {c['edited_in_place']} |",
              f"| Added | {c['added']} |", f"| Removed | {c['removed']} |",
-             f"| Suggestions resolved with no change of text | {c['suggestions_resolved']} |", "",
+             f"| Suggestions resolved with no change of text | {c['suggestions_resolved']} |",
+             f"| New paragraphs placed by inference | {len(rep.get('placed_by_inference', []))} |", "",
              "Paragraph ids are unchanged." if rep["ids_unchanged"] else "Paragraph ids shifted; every id in the map was translated.", ""]
 
     def block(title: str, rows: list[str]) -> None:
@@ -251,5 +352,7 @@ def report_markdown(rep: dict[str, Any]) -> str:
     for item in rep["suggestions_resolved"]:
         grouped[(item["was"], item["now"])] = grouped.get((item["was"], item["now"]), 0) + 1
     block("Suggestions resolved", [f"- {n} paragraphs: {was} became {now}" for (was, now), n in grouped.items()])
+    block("Placed by inference, confirm",
+          [f"- `{p['new']}` {p['text']!r} now in `{p['joined']}` ({p['where']}): {p['how']}" for p in rep.get("placed_by_inference", [])])
     block("Map entries needing a look", [f"- {p['where']}: `{p['id']}` {p['problem']}" for p in rep["map_entries_needing_a_look"]])
     return "\n".join(lines) + "\n"

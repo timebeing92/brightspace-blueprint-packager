@@ -264,7 +264,7 @@ def test_authorized_additions_are_the_only_new_words(tmp_path):
         normalize(source, path, tmp_path / "unsigned.docx")
 
 
-def _edited_copy(source: Path, target: Path) -> Path:
+def _edited_copy(source: Path, target: Path, before_everything=False) -> Path:
     """The same blueprint after its author added two paragraphs and removed one."""
     import copy as _copy
 
@@ -283,8 +283,19 @@ def _edited_copy(source: Path, target: Path) -> Path:
             extra.text = ""
         anchor.addnext(new)
 
-    add_after("This is the welcome text.", "A new welcome sentence.")
-    add_after("Overview paragraph one.", "A new overview paragraph.")
+    def add_before(anchor_text: str, text: str) -> None:
+        anchor = paragraphs[anchor_text]
+        new = _copy.deepcopy(anchor)
+        texts = list(new.iter(qn("w:t")))
+        texts[0].text = text
+        for extra in texts[1:]:
+            extra.text = ""
+        anchor.addprevious(new)
+
+    add_after("This is the welcome text.", "A new welcome sentence.")  # between two mapped stretches
+    add_after("Overview paragraph one.", "A new overview paragraph.")  # inside a mapped range
+    if before_everything:
+        add_before("Blueprint", "A line typed above the title.")  # before anything the map names
     stale = paragraphs["Old HTML Title"]
     stale.getparent().remove(stale)
     doc.save(target)
@@ -304,18 +315,43 @@ def test_a_map_follows_the_document_when_paragraphs_shift(tmp_path):
     assert rebased["source"]["sha256"] == new.sha256
     assert [p for p in problems if p.get("severity") != "note"] == []  # the removed line was only in a list of lines to drop
 
-    # a paragraph added outside every mapped range is never placed silently
-    path = tmp_path / "rebased.json"
-    path.write_text(json.dumps(rebased), encoding="utf-8")
-    with pytest.raises(MapError, match="A new welcome sentence."):
-        normalize(later, path, tmp_path / "refused.docx")
+    # a paragraph added between two mapped stretches joins the content stretch before it, and the
+    # placement is reported as an inference; the run does not stop (owner's rule, 2026-10-07)
+    welcome, new_line = _pid(later, "This is the welcome text."), _pid(later, "A new welcome sentence.")
+    assert rebased["course_introduction"]["objects"][0]["content"] == [f"{welcome}:{new_line}"]
+    placed = alignment["inferred_placements"]
+    assert [p["new"] for p in placed] == [new_line] and placed[0]["joined"] == f"{welcome}:{new_line}"
+    assert "course_introduction" in placed[0]["where"]
+    rep = rebase.report(alignment, problems, old, new)
+    assert rep["placed_by_inference"] == placed
+    assert "## Placed by inference, confirm" in rebase.report_markdown(rep)
 
-    # once a person places it, the run passes; the paragraph added inside a range came along by itself
-    rebased["course_introduction"]["objects"][0]["content"].append(_pid(later, "A new welcome sentence."))
+    # the run passes as rebased; the paragraph added inside a range came along by itself, as before
     _, _, model = _normalized(tmp_path, rebased, later, "later_normalized.docx")
     assert errors(model) == []
     overview = " ".join("".join(r["text"] for r in b.get("runs", [])) for b in model["weeks"][0]["overview_page"]["blocks"])
     assert "A new overview paragraph." in overview
+    welcome_page = " ".join("".join(r["text"] for r in b.get("runs", [])) for b in model["pages"][0]["blocks"])
+    assert "A new welcome sentence." in welcome_page
+
+
+def test_a_new_paragraph_with_no_mapped_neighbour_still_stops_the_run(tmp_path):
+    from blueprint_packager import rebase
+
+    source = synth.messy(tmp_path / "messy.docx")
+    later = _edited_copy(source, tmp_path / "later.docx", before_everything=True)
+    old, new = read_docx(source), read_docx(later)
+    alignment = rebase.align(old, new)
+    assert alignment["counts"]["added"] == 3
+    rebased, problems = rebase.rebase_map(course_map_for(source), alignment, new, old)
+    stray = _pid(later, "A line typed above the title.")
+    blocking = [p for p in problems if p.get("severity") != "note"]
+    assert [p["id"] for p in blocking] == [stray] and "place it by hand" in blocking[0]["problem"]
+    assert [p["new"] for p in alignment["inferred_placements"]] == [_pid(later, "A new welcome sentence.")]  # the other one still joins
+    path = tmp_path / "rebased.json"
+    path.write_text(json.dumps(rebased), encoding="utf-8")
+    with pytest.raises(MapError, match="A line typed above the title."):
+        normalize(later, path, tmp_path / "refused.docx")
 
 
 def test_authorized_edits_are_applied_recorded_and_the_only_wording_changes(tmp_path):
@@ -682,3 +718,32 @@ def test_the_default_page_template_is_the_composite():
     assert default.manifest["surfaces"]["page"]["heading_map"] == {"2": "h2", "3": "h3", "4": "h4", "5": "h5", "6": "h6"}
     assert default.manifest["surfaces"]["fragment"].get("styles", {}) == {}  # editor fields stay plain
 
+
+
+# ------------------------------------------------------------ the blank blueprint
+def test_a_blank_blueprint_reads_clean_with_a_checklist_row_in_every_week(tmp_path):
+    from blueprint_packager.blank import write_blank
+
+    path = write_blank(tmp_path / "blank.docx", course_number="NEW 101", course_title="Course Title", term="Spring A 2027",
+                       weeks=3, topics=["Foundations", "Second Topic"])
+    model = model_with_joins(path)
+    assert errors(model) == []
+    assert model["conventions"]["frame_level"] == 1
+    assert [w["title"] for w in model["weeks"]] == ["Week 1 - Foundations", "Week 2 - Second Topic", "Week 3 - (topic)"]
+    for week in model["weeks"]:
+        assert week["checklist"]["derive"] is True  # the Items line is pre-filled in every week
+        assert week["overview_page"]["page_heading"].startswith(f"Week {week['number']} – ")
+        assert len(week["assignments"]) == 1 and len(week["discussions"]) == 1
+    assert sorted(r["name"] for r in model["rubrics"]) == ["Standard Assignment Rubric", "Standard Discussion Rubric"]
+
+
+@pytest.mark.skipif(not HAS_WORKBENCH, reason="Workbench building blocks not present")
+def test_a_blank_blueprint_builds_a_package(tmp_path):
+    from blueprint_packager.blank import write_blank
+    from blueprint_packager.build import Builder
+
+    model = model_with_joins(write_blank(tmp_path / "blank.docx", course_number="NEW 101", course_title="Course Title", term="Spring A 2027", weeks=2))
+    result = Builder(model, SETTINGS, REPO_ROOT).run(tmp_path / "out", force=True)
+    assert result["errors"] == []
+    names = set(zipfile.ZipFile(result["zip"]).namelist())
+    assert {"imsmanifest.xml", "grades_d2l.xml", "rubrics_d2l.xml", "dropbox_d2l.xml", "checklist_d2l.xml"} <= names

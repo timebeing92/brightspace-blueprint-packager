@@ -194,8 +194,8 @@
   ],
   "source_change_handling": {
     "command": "rebase-map",
-    "evidence": "synthetic fixture with added and removed paragraphs; MBA 620 across two same-day exports with no position change; MBA 620 against a simulated export with eleven paragraphs removed, which rebuilt to a byte-identical package",
-    "limit": "decisions stay written against the first export until re-based by hand"
+    "evidence": "synthetic fixture with added and removed paragraphs; MBA 620 across two same-day exports with no position change; MBA 620 against a simulated export with eleven paragraphs removed, which rebuilt to a byte-identical package; synthetic fixture with a paragraph added between stretches (joins, reported), one inside a range (comes along), and one above the title (refused)",
+    "limit": "a paragraph new in the later export that sits inside a mapped stretch comes along; one between two stretches joins the content stretch ending just before it in the same cell or body and is reported as an inference to confirm (placed_by_inference); one with no mapped content neighbour in its container is left unplaced and the normalizer refuses it. Content, intro, notes, and retired lists grow; lists of paragraphs to act on never do. Rule of 2026-10-08"
   },
   "date_shapes": [
     {

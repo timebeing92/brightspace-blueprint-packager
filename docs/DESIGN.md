@@ -193,8 +193,9 @@ Owner's note, 2026-10-07: in future a blueprint should have a checklist section
 in each week that is filled out by hand, not generated. That is the typed form
 above, and it is already how the wizard lays a week out; MBA 620 used the
 `Items:` line only because its typed checklists had drifted. The blank
-blueprint will carry a `Checklist:` row in every week, pre-filled with the
-`Items:` line as a starting point the author may replace with typed items.
+blueprint (`bpk.py blank`, 2026-10-08) carries a `Checklist:` row in every
+week, pre-filled with the `Items:` line as a starting point the author may
+replace with typed items.
 
 ### 3.7 Dates
 
@@ -332,20 +333,26 @@ Three rules keep it honest:
 1. A range survives while any paragraph inside it survives; its ends move inward.
 2. A removed paragraph is dropped from a list of things to act on, with a note.
    If a single required value points at it, the command stops.
-3. An added paragraph inside a mapped range comes along. One outside every
-   range is reported and left for the normalizer to refuse, so a person places it.
+3. An added paragraph inside a mapped range comes along. One between two
+   mapped stretches joins the content stretch that ends just before it, in the
+   same cell or body, and the report lists the placement under "Placed by
+   inference, confirm". A stretch grows only across paragraphs nothing else in
+   the map names, so a new line never crosses a mapped heading, label, or title
+   line; with no content stretch before it, the one after it grows backwards
+   instead. Only lists under `content`, `intro`, `notes`, and `retired` grow;
+   lists of paragraphs to act on (`drop`, `unbold`, `ids`, `title`, labels)
+   never do. A paragraph with no mapped content neighbour on either side in
+   its container is left unplaced and named in the report, and the normalizer
+   refuses it, as before.
 
 The decisions stay written against the export they were made on. A later
 export is reached by translation, with a report each time.
 
-Owner's objection, 2026-10-07, to rule 3: "I do not like 'One outside every
-stretch stops the run so a person places it'." To be revisited together. The
-alternative on the table: an added paragraph between two mapped ranges is
-attached to the range that ends just before it, the run continues, and the
-report lists the placement as an inference for a person to confirm or move.
-The run would stop only when the paragraph has no mapped neighbour on either
-side, which in a blueprint means it sits outside every section. Not
-implemented; recorded as a question on the response sheet.
+Rule 3 was changed on 2026-10-08 on the owner's objection of the day before
+("I do not like 'One outside every stretch stops the run so a person places
+it'") and their acceptance of the alternative above (response sheet item 20,
+"this seems reasonable"). Before the change a paragraph outside every stretch
+stopped the run.
 
 ### Fidelity proof
 
