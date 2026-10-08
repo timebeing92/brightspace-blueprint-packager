@@ -1,6 +1,6 @@
 ## Ecosystem producer conventions and consolidation thinking, distilled for the blueprint parser/packager
 
-All paths are absolute under `HUB = /Users/ehanson8/Documents/D2l & Coursebuilding Tools /` (trailing space). Abbreviations:
+All paths are absolute under `HUB = ~/Documents/D2l & Coursebuilding Tools /` (trailing space). Abbreviations:
 
 - Repos: `WB` = `HUB/coursecraft_workbench`, `BB` = `HUB/brightspace-blueprint-bundle`, `RB` = `HUB/brightspace-rubric-bundle`, `QB` = `HUB/brightspace-quiz-bundle-public`, `FD` = `HUB/brightspace-frontend-design-bundle`, `WS` = `HUB/coursecraft-workshop-space`.
 - Hub docs: `ECO` = `HUB/ECOSYSTEM.md`, `REC` = `HUB/RECOMMENDATION_2026-07-19_PRODUCTIZATION_AND_DESIGN.md`, `CODEX` = `HUB/CODEX_REVIEW_OF_FABLE_PRODUCTIZATION_AND_DESIGN_RECOMMENDATION_2026-07-20.md`, `QBWO` = `HUB/QUIZ_BINDER_EXPERIENCE_AND_MYTHOS_WORK_ORDER_2026-07-20.md`, `R4` = `HUB/FABLE_QUIZ_BINDER_R4_AND_CAPABILITY_LAB_COMMISSION_2026-07-23.md`, `HF` = `HUB/FABLE_RUBRIC_LOOM_HUGGING_FACE_SPACE_COMMISSION_2026-07-24.md`, `WEAVE` = `HUB/CODEX_RUBRIC_LOOM_WEAVE_COMMISSION_2026-07-25.md`, `HALL-F` / `HALL-S` = the two `*_WORKSHOP_HALL_*_COMMISSION_2026-07-27.md` files, `LAYERS` = `HUB/RECOMMENDATION_2026-07-25_CATALOG_COURSE_LAYERS.md`, `DESK` = `HUB/PLAN_2026-09-14_COURSECRAFT_DESKTOP.md`, `QPLAN` = `WB/plans/2026-07-15_quiz_tooling_consolidation_and_ecosystem_sequence.md`.

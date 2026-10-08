@@ -6,8 +6,8 @@ a pass through for use now, and for possible future use."
 Roots (read-only; nothing in `U` was written, run from inside, or compiled;
 the one probe used `-B` and `PYTHONDONTWRITEBYTECODE=1` and wrote to the
 scratchpad):
-- `U` = `/Users/ehanson8/Documents/D2l & Coursebuilding Tools /coursecraft_workbench` at `316039f` (`main`)
-- `F` = `/Users/ehanson8/Documents/MBA_620_Marketing_Major_Edit_Fall2026`
+- `U` = `~/Documents/D2l & Coursebuilding Tools /coursecraft_workbench` at `316039f` (`main`)
+- `F` = `~/Documents/MBA_620_Marketing_Major_Edit_Fall2026`
 - `P` = `F/tools/blueprint-packager/blueprint_packager`
 
 **Bottom line:** Page Kit is a page compiler with a gate, a token theme, a

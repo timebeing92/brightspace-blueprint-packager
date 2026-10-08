@@ -1,6 +1,6 @@
 # Blueprint Wizard survey (read-only; nothing run or modified)
 
-Abbreviations: `TOOLS` = `/Users/ehanson8/Documents/D2l & Coursebuilding Tools ` (trailing space); `BUNDLE` = `TOOLS/brightspace-blueprint-bundle`; `RUNNER` = `TOOLS/brightspace-blueprint-runner`; `OUT` = `/Users/ehanson8/Downloads/BUMK_515_Wizard_Test_Now_blueprint__blueprint_bundle`.
+Abbreviations: `TOOLS` = `~/Documents/D2l & Coursebuilding Tools ` (trailing space); `BUNDLE` = `TOOLS/brightspace-blueprint-bundle`; `RUNNER` = `TOOLS/brightspace-blueprint-runner`; `OUT` = `~/Downloads/BUMK_515_Wizard_Test_Now_blueprint__blueprint_bundle`.
 
 **Headline:** Blueprint Wizard is strictly one-way (export → blueprint). No reverse or round-trip code exists in the runner or bundle, and the planning docs explicitly exclude whole-course round-trip authoring from current scope.
 
@@ -13,7 +13,7 @@ Abbreviations: `TOOLS` = `/Users/ehanson8/Documents/D2l & Coursebuilding Tools `
 
 **Packaging and launch.**
 - It is a terminal (TUI) program, Python 3.11+, with no AI (`RUNNER/README.md:14-24`).
-- Managed ZIP layout in `/Users/ehanson8/Downloads/blueprint-wizard-managed-v2.8.1/`:
+- Managed ZIP layout in `~/Downloads/blueprint-wizard-managed-v2.8.1/`:
   - `Blueprint Wizard.command` / `.bat` / `blueprint_wizard_launcher.sh` call `launcher/stable_launcher.py`.
   - `current.json` selects `versions/2.8.1/{brightspace-blueprint-runner,brightspace-blueprint-bundle}`.
   - `user-data/` holds settings, logs and outputs.
@@ -38,7 +38,7 @@ Abbreviations: `TOOLS` = `/Users/ehanson8/Documents/D2l & Coursebuilding Tools `
   - older `blueprint_wizard.py`.
 - `blueprint_schema.json` is identical in both (sha `419a6ba4…`).
 
-**Other copies.** `/Users/ehanson8/Downloads/brightspace-blueprint-runner-main` and `…-main 2` are 14 July source ZIPs of the runner only (no bundle). `RUNNER/dist/` holds v2.1 to v2.7.0 ZIPs.
+**Other copies.** `~/Downloads/brightspace-blueprint-runner-main` and `…-main 2` are 14 July source ZIPs of the runner only (no bundle). `RUNNER/dist/` holds v2.1 to v2.7.0 ZIPs.
 
 ## 2. Pipeline
 

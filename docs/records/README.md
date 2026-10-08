@@ -99,3 +99,5 @@ Locations: this repository unless marked "course repo".
 - A sandbox import receipt and a re-export comparison.
 - A promotion record. None has been drafted.
 - SME decisions on the issues list and the dropdown review.
+
+Note on paths: in these copies, machine paths under the operator's home directory are written as `~/…`; the originals in the MBA 620 course repository carry the full paths.

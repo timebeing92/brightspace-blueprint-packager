@@ -1,8 +1,8 @@
 # Upstream coursecraft workbench: blueprint → Brightspace package tooling survey
 
 Roots (read-only; nothing was run that writes):
-- `U` = `/Users/ehanson8/Documents/D2l & Coursebuilding Tools /coursecraft_workbench`
-- `F` = `/Users/ehanson8/Documents/MBA_620_Marketing_Major_Edit_Fall2026`
+- `U` = `~/Documents/D2l & Coursebuilding Tools /coursecraft_workbench`
+- `F` = `~/Documents/MBA_620_Marketing_Major_Edit_Fall2026`
 
 **Bottom line:** upstream has verified builders for individual object bundles, but nothing that reads a blueprint (DOCX, Markdown or JSON) and produces a package or a builder contract. That middle step is manual or assistant-guided today.
 

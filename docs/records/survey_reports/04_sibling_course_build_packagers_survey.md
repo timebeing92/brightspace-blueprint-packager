@@ -1,6 +1,6 @@
 ## Downstream packager / blueprint-parser inventory (read-only survey, 2026-10-06)
 
-Nothing was created or modified. All paths are under `/Users/ehanson8/Documents` unless absolute. "UP" = `/Users/ehanson8/Documents/D2l & Coursebuilding Tools /coursecraft_workbench`.
+Nothing was created or modified. All paths are under `~/Documents` unless absolute. "UP" = `~/Documents/D2l & Coursebuilding Tools /coursecraft_workbench`.
 
 ### Headline
 

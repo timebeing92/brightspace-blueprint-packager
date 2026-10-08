@@ -1,6 +1,6 @@
 # MBA date conventions and Brightspace date XML: findings from MBA 630 and related exports
 
-Only one sibling MBA build exists: `/Users/ehanson8/Documents/MBA_630_Financial_Management_Course_Build` (the other "MBA" entries in `/Users/ehanson8/Documents` are loose media and notes files). Short paths below are relative to that root, abbreviated `M630/`. The MBA 620 template export you pointed to is abbreviated `M620-export/`.
+Only one sibling MBA build exists: `~/Documents/MBA_630_Financial_Management_Course_Build` (the other "MBA" entries in `~/Documents` are loose media and notes files). Short paths below are relative to that root, abbreviated `M630/`. The MBA 620 template export you pointed to is abbreviated `M620-export/`.
 
 **Headline:** dropbox due dates and checklist item dates survived the real import. Quiz due dates did not, and were re-entered in the tenant. Discussions carry no native dates in any MBA export.
 
@@ -80,7 +80,7 @@ def utc_value(value: str) -> str:
 
 ## D. Library support
 
-File: `/Users/ehanson8/Documents/MBA_620_Marketing_Major_Edit_Fall2026/scripts/d2l_package_lib.py`. It is byte-identical to the upstream copy MBA 630 imported from `/Users/ehanson8/Documents/D2l & Coursebuilding Tools /coursecraft_workbench/scripts/`.
+File: `~/Documents/MBA_620_Marketing_Major_Edit_Fall2026/scripts/d2l_package_lib.py`. It is byte-identical to the upstream copy MBA 630 imported from `~/Documents/D2l & Coursebuilding Tools /coursecraft_workbench/scripts/`.
 
 | Function | Date keys read | Lines |
 |---|---|---|

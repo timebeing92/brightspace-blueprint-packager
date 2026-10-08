@@ -3,11 +3,11 @@
 All work was read-only; the live DB was opened with `sqlite3 -readonly`.
 
 Path shorthand:
-- CAT = `/Users/ehanson8/Documents/D2l & Coursebuilding Tools /coursecraft-catalog`
-- WB = `/Users/ehanson8/Documents/D2l & Coursebuilding Tools /coursecraft_workbench`
-- REC = `/Users/ehanson8/Documents/D2l & Coursebuilding Tools /RECOMMENDATION_2026-07-25_CATALOG_COURSE_LAYERS.md`
+- CAT = `~/Documents/D2l & Coursebuilding Tools /coursecraft-catalog`
+- WB = `~/Documents/D2l & Coursebuilding Tools /coursecraft_workbench`
+- REC = `~/Documents/D2l & Coursebuilding Tools /RECOMMENDATION_2026-07-25_CATALOG_COURSE_LAYERS.md`
 - PLAN = `WB/plans/2026-07-12_course_component_catalog_pipeline_plan.md`
-- FORK = `/Users/ehanson8/Documents/MBA_620_Marketing_Major_Edit_Fall2026`
+- FORK = `~/Documents/MBA_620_Marketing_Major_Edit_Fall2026`
 
 ## Headline
 
@@ -157,7 +157,7 @@ Inference:
 
 - Branch `main` at `3340d40`, 0 ahead and 0 behind `origin/main`; clean working tree; no stash.
 - 14 other local branches, all 0 commits ahead of main (fully merged): `backup/reconciliation-20261001`, four `codex/*`, seven `fable/catalog-4-*`, `run-identity-refresh`, `sync-progress-partial-status`.
-- 12 linked worktrees under `/Users/ehanson8/Documents/D2l & Coursebuilding Tools /.worktrees/coursecraft-catalog/` (two detached: `codex-verify-4-1-2`, `verify-codex-small-fixes`). None hold unmerged work.
+- 12 linked worktrees under `~/Documents/D2l & Coursebuilding Tools /.worktrees/coursecraft-catalog/` (two detached: `codex-verify-4-1-2`, `verify-codex-small-fixes`). None hold unmerged work.
 - Last 12 commits:
 ```
 3340d40 docs: clarify reviewed Catalog publication and current contracts

@@ -1,6 +1,6 @@
 # Declared ownership/governance model for blueprint -> Brightspace packaging
 
-HUB = `/Users/ehanson8/Documents/D2l & Coursebuilding Tools /` (trailing space). Read-only; nothing was created or changed.
+HUB = `~/Documents/D2l & Coursebuilding Tools /` (trailing space). Read-only; nothing was created or changed.
 
 Read in full: `ECOSYSTEM.md` (all 1212 lines), `ecosystem.json`, `README.md`, `repos.lock`, the Desktop plan, both RECOMMENDATION docs, the Codex review, `CROSS_MACHINE_HANDOFF`, the 07-27 and 09-08 implementation logs, the governance READMEs, the 2026-10-01 reconciliation checkpoint, PR-2026-915/918/919, and the three workbench docs. Grep or head only: other checkpoints, older logs, the commission docs, and the catalog/workshop READMEs and ROADMAPs.
 
