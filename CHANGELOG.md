@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.0 — 2026-10-08 — own repository
+
+- Split from the MBA 620 course repository's `tools/blueprint-packager` with its history (`brightspace-blueprint-packager`).
+- The Workbench scripts and schemas the tool imports or runs are vendored at `9d3a620` with a manifest and `scripts/check_vendor_drift.py`; one helper, `blueprint_packager/workbench.py`, resolves which copy a run uses (explicit path, vendored mirror, or the fork layout) and every receipt and verification report records it.
+- The records packet travels in `docs/records/`; the sandbox receipts in `docs/IMPORT_RECEIPTS.md`.
+- `requirements.txt`, `pyproject.toml`, `.gitignore`; version 0.1.0. 41 tests.
+
 ## Unreleased — 2026-10-08
 
 Changes on the owner's second round of answers (response sheet Part 3 and the Page Kit items).
