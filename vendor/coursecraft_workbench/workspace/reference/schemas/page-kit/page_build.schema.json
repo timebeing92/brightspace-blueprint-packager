@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "coursecraft.page_build/1",
+  "title": "CourseCraft Page Build Receipt",
+  "type": "object",
+  "required": [
+    "schema",
+    "run_id",
+    "mode",
+    "declared_as_of",
+    "kit",
+    "composition",
+    "stylesheet",
+    "producer_files",
+    "publication_hold",
+    "release_blockers",
+    "diagnostics",
+    "pages",
+    "extensions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "coursecraft.page_build/1"},
+    "run_id": {"type": "string", "pattern": "^cc:run:"},
+    "mode": {"enum": ["review", "learner"]},
+    "declared_as_of": {"type": "string", "format": "date"},
+    "kit": {"$ref": "#/$defs/inputIdentity"},
+    "composition": {"$ref": "#/$defs/inputIdentity"},
+    "stylesheet": {"$ref": "#/$defs/inputIdentity"},
+    "producer_files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/inputIdentity"}
+    },
+    "publication_hold": {"type": "boolean"},
+    "release_blockers": {"type": "array", "items": {"$ref": "#/$defs/blocker"}},
+    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+    "pages": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/pageReceipt"}},
+    "extensions": {"type": "object", "additionalProperties": true}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "inputIdentity": {
+      "type": "object",
+      "required": ["path", "bytes", "sha256", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "bytes": {"type": "integer", "minimum": 0},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "blocker": {
+      "type": "object",
+      "required": ["code", "page_id", "block_id", "message", "remediation", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]+$"},
+        "page_id": {"type": "string", "minLength": 1},
+        "block_id": {"type": ["string", "null"]},
+        "message": {"type": "string", "minLength": 1},
+        "remediation": {"type": "string", "minLength": 1},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["id", "severity", "code", "page_id", "block_id", "message", "remediation", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "severity": {"enum": ["note", "warning", "error"]},
+        "code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]+$"},
+        "page_id": {"type": ["string", "null"]},
+        "block_id": {"type": ["string", "null"]},
+        "message": {"type": "string", "minLength": 1},
+        "remediation": {"type": "string", "minLength": 1},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "supportAsset": {
+      "type": "object",
+      "required": ["path", "role", "bytes", "sha256", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "role": {"type": "string", "minLength": 1},
+        "bytes": {"type": "integer", "minimum": 0},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "creatorActivity": {
+      "type": "object",
+      "required": ["activity_id", "mode", "runtime_type", "json_path", "provider_state", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "activity_id": {"type": "integer", "minimum": 1},
+        "mode": {"type": "string", "minLength": 1},
+        "runtime_type": {"type": "integer", "minimum": 0, "maximum": 7},
+        "json_path": {"type": "string", "minLength": 1},
+        "provider_state": {"enum": ["provider_backed", "placeholder", "missing", "unknown"]},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "pageReceipt": {
+      "type": "object",
+      "required": [
+        "page_id",
+        "page_type",
+        "title",
+        "filename",
+        "bytes",
+        "sha256",
+        "external_links",
+        "support_assets",
+        "creatorplus_activities",
+        "extensions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "page_id": {"type": "string", "minLength": 1},
+        "page_type": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "filename": {"type": "string", "minLength": 1},
+        "bytes": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "external_links": {"type": "array", "items": {"type": "string"}},
+        "support_assets": {"type": "array", "items": {"$ref": "#/$defs/supportAsset"}},
+        "creatorplus_activities": {"type": "array", "items": {"$ref": "#/$defs/creatorActivity"}},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    }
+  }
+}

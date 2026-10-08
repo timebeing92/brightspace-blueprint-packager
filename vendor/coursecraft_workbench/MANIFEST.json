@@ -1,0 +1,172 @@
+{
+  "schema": "brightspace-blueprint-packager.vendor_manifest/1",
+  "source_repository": "coursecraft_workbench (github.com/timebeing92/coursecraft-workbench)",
+  "commit": "9d3a6203303243df632c2e921c7126d6998ec0f3",
+  "commit_short": "9d3a620",
+  "pinned_on": "2026-10-08",
+  "why": "owner's decision of 2026-10-08 (response sheet item 29): pin current upstream with a drift check like the bundle's",
+  "layout": "mirrors the Workbench's own layout under this folder so each script's REPO_ROOT (two levels up) finds the schemas it loads at runtime",
+  "rule": "never edited here; refreshed from upstream by scripts/check_vendor_drift.py --commit <new>",
+  "files": [
+    {
+      "path": "scripts/blueprint_to_docx.py",
+      "sha256": "5ed3db6de3a6b033dfa4efd374b897c58141eebf2d7bbba7cb8ab957787a43fd",
+      "bytes": 29141
+    },
+    {
+      "path": "scripts/build_blueprint_bundle.py",
+      "sha256": "e9345df4cbc57cd5cbb9d27cfe2cdc5c28e24519db35d43510b7a3df84e06f10",
+      "bytes": 87697
+    },
+    {
+      "path": "scripts/build_page.py",
+      "sha256": "02ff88d4fb161d0b70b343b0351650ed7da31813e65e58782a210bbd1b86ac58",
+      "bytes": 2807
+    },
+    {
+      "path": "scripts/check_package_conformance.py",
+      "sha256": "52d25bc2e584ddaa89e2854568d0bd50c76d562958e629cec079533d9bc9d3d2",
+      "bytes": 7927
+    },
+    {
+      "path": "scripts/check_page_conformance.py",
+      "sha256": "5263027aa1f6ef9fe425fd237df7282d3672603d9d9faf3016ee298d125b1859",
+      "bytes": 2300
+    },
+    {
+      "path": "scripts/common_xml.py",
+      "sha256": "27e8e32971887eded7f4e1d54eb91a49e96eaebd0f51b942908feab6a9903430",
+      "bytes": 6529
+    },
+    {
+      "path": "scripts/course_artifact_contracts.py",
+      "sha256": "c095cd48e3ea9f7549a50d464b4eb530e59e656b082654fdca72aa216dfc6e98",
+      "bytes": 25757
+    },
+    {
+      "path": "scripts/course_qa_report.py",
+      "sha256": "b5ed8d8db48727ea2356a5e7c9432d65e7e6b21946fde5bb62d53ba1e1f36945",
+      "bytes": 25396
+    },
+    {
+      "path": "scripts/creatorplus_package.py",
+      "sha256": "e3987b82875cc1b7df65bf2a8e21dbf536c848a227d43f08bea05f9e067f50f9",
+      "bytes": 17987
+    },
+    {
+      "path": "scripts/d2l_package_lib.py",
+      "sha256": "57f0947a18ad634c3de66dcb35e416c1af3de9505fd90ba9c3e6853de9bea410",
+      "bytes": 35933
+    },
+    {
+      "path": "scripts/docx_structure_qa.py",
+      "sha256": "44e4cac2cff912a1b1c5905c870f394aa9e574b11f598680e92517c1547ddcd8",
+      "bytes": 15986
+    },
+    {
+      "path": "scripts/export_inventory.py",
+      "sha256": "475e98d4427c64888dc27cd0ce608e6c5c1ee4660a8570a63c8164aa472ba06a",
+      "bytes": 6429
+    },
+    {
+      "path": "scripts/extract_course_activities.py",
+      "sha256": "07e3cc2226a68666173aa932e87e42e8e2f5093cb72e3bd0f57d1f8e1aa7633a",
+      "bytes": 41511
+    },
+    {
+      "path": "scripts/extract_rubrics_to_workbook.py",
+      "sha256": "596e783c8538f50ecdebf7a76a798f12501d199e497584693e83a79dc36a1e3e",
+      "bytes": 16692
+    },
+    {
+      "path": "scripts/manifest_probe.py",
+      "sha256": "02cbefaf968fff7c06893c086269246c0819fafad3a563954d1b8e5836814889",
+      "bytes": 8234
+    },
+    {
+      "path": "scripts/page_kit.py",
+      "sha256": "389b366b02ef233f363717adbab7e94bd883e8139e88e9b41b10b1297d27dd22",
+      "bytes": 56362
+    },
+    {
+      "path": "scripts/reconstruct_course_structure.py",
+      "sha256": "e03423f4d31d201f741a5e52cfbb674274a239beea65d8c2629ba0dd5459f4e3",
+      "bytes": 82169
+    },
+    {
+      "path": "scripts/render_blueprint_docx.py",
+      "sha256": "7806473f2311d47038b930559d2e0999b0dac4c2842c7c7640cd908b35915fb5",
+      "bytes": 4639
+    },
+    {
+      "path": "scripts/rubric_package_lib.py",
+      "sha256": "631c484c4db8b502db4f26a1be881a8b2b459fd3098480b46135c40181df55e3",
+      "bytes": 53709
+    },
+    {
+      "path": "scripts/rubrics_to_docx.py",
+      "sha256": "f1c15a635f3cd13e845e109754b57df155b174611d40cfa0beb92e4b4977b111",
+      "bytes": 14138
+    },
+    {
+      "path": "workspace/reference/schemas/blueprint/blueprint_schema.json",
+      "sha256": "419a6ba45c4ef95478713a62a7e796edc226967a91e309600bf8dc8136071041",
+      "bytes": 9322
+    },
+    {
+      "path": "workspace/reference/schemas/course/activities_schema.json",
+      "sha256": "8704770eb98cd9993a5e12235270ef9fae53f306b406023ab950b92c1e8c8f1c",
+      "bytes": 5421
+    },
+    {
+      "path": "workspace/reference/schemas/course/component_package_receipt_schema.json",
+      "sha256": "3e5a4153be4a5beeefb6ee26994baee15f924a9043a2abf742d4b93e873015e0",
+      "bytes": 2603
+    },
+    {
+      "path": "workspace/reference/schemas/course/run_identity_2_schema.json",
+      "sha256": "9b810e6cbb51deacf3255cfa295824bcac31e42e98dfd1c54d44a12fd6b30641",
+      "bytes": 14985
+    },
+    {
+      "path": "workspace/reference/schemas/course/run_identity_schema.json",
+      "sha256": "d6477e72881b4ca2a6c182f110c9cba300949f3176c1898605491449b0c7de3d",
+      "bytes": 5524
+    },
+    {
+      "path": "workspace/reference/schemas/course/structure_schema.json",
+      "sha256": "858bcca803a5d67b99fb4cdbf348a15096436136ad2f9ef37795aae7cd5c0272",
+      "bytes": 4345
+    },
+    {
+      "path": "workspace/reference/schemas/page-kit/module_composition.schema.json",
+      "sha256": "c8f1bcfe2beee4e4234159596b3579754c97291724cc6f883db050d39bc7569e",
+      "bytes": 2722
+    },
+    {
+      "path": "workspace/reference/schemas/page-kit/page.schema.json",
+      "sha256": "ab7c33f69078ee616620e1c097258a758c0aa6c7eeda067d1a8f258a8018cb41",
+      "bytes": 8811
+    },
+    {
+      "path": "workspace/reference/schemas/page-kit/page_build.schema.json",
+      "sha256": "3873a731f32c3a1e1aca00af89ad711a591a6509c38e6fc9dba8309825128603",
+      "bytes": 5173
+    },
+    {
+      "path": "workspace/reference/schemas/page-kit/page_kit.schema.json",
+      "sha256": "94a5f430796d4571733042be2dfadf9b5edea9c0f58847741d02cf093bdf75d4",
+      "bytes": 4521
+    },
+    {
+      "path": "workspace/reference/schemas/rubrics/rubrics_schema.json",
+      "sha256": "8997f8546d803070ec6d38235a25563d3b63a71210b09fb444ed5690ecf3a0b6",
+      "bytes": 3944
+    },
+    {
+      "path": "workspace/reference/templates/brightspace-course-pages/page-kit.css",
+      "sha256": "216b8555f6b087a89d97ba8f866d59001a4919ccb49b448eaa0b988eeba9d973",
+      "bytes": 5871
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 # Blueprint Packager boundary
 
-Working title. A downstream proving ground inside the MBA 620 course build. It
-is not a released producer and not part of the Workbench.
+Its own repository since 2026-10-08 (split from the MBA 620 course build, where
+it was born as a downstream proving ground). A producer beside the other
+Brightspace bundles; not part of the Workbench, which it builds on.
 
 ## It owns
 
@@ -33,11 +34,21 @@ is not a released producer and not part of the Workbench.
 
 ## It borrows, and does not own
 
-- `scripts/d2l_package_lib.py` and `scripts/rubric_package_lib.py` for payload XML;
-- `scripts/check_package_conformance.py` and `scripts/build_blueprint_bundle.py` for read-back;
-- identity, receipt, and diagnostic record shapes from `scripts/course_artifact_contracts.py`.
+From the CourseCraft Workbench, vendored under `vendor/coursecraft_workbench/`
+at the commit named in its `MANIFEST.json`:
 
-A change to any borrowed behavior belongs upstream first.
+- `scripts/d2l_package_lib.py` and `scripts/rubric_package_lib.py` for payload XML;
+- `scripts/check_package_conformance.py`, `scripts/build_blueprint_bundle.py`, and the
+  readers it runs, plus `scripts/check_page_conformance.py`, for read-back;
+- identity, receipt, and diagnostic record shapes from `scripts/course_artifact_contracts.py`
+  and the schema files they load.
+
+Vendored files are never edited here. `python3 scripts/check_vendor_drift.py <workbench
+checkout>` shows drift; `--commit <sha>` re-pins every file from upstream, and the
+diff is reviewed before it is committed. A change to any borrowed behavior
+belongs upstream first; the mirror follows it at the next pin. Which scripts a
+run used (vendored, an explicit path, or a checkout) is recorded in every
+build receipt and verification report (`blueprint_packager/workbench.py`).
 
 ## Checks before handing work back
 

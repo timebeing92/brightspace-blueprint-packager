@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "coursecraft.page/1",
+  "title": "CourseCraft Page Instance",
+  "type": "object",
+  "required": [
+    "schema",
+    "page_id",
+    "kit_id",
+    "page_type",
+    "filename",
+    "eyebrow",
+    "title",
+    "lede",
+    "review_state",
+    "provenance",
+    "support_assets",
+    "slots",
+    "extensions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "coursecraft.page/1"},
+    "page_id": {"$ref": "#/$defs/id"},
+    "kit_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$"},
+    "page_type": {"type": "string", "pattern": "^[a-z][a-z0-9_-]+$"},
+    "filename": {"$ref": "#/$defs/htmlPath"},
+    "eyebrow": {"type": "string", "minLength": 1},
+    "title": {"type": "string", "minLength": 1},
+    "lede": {"type": "string", "minLength": 1},
+    "review_state": {"$ref": "#/$defs/reviewState"},
+    "provenance": {
+      "type": "object",
+      "required": ["source_project", "declared_as_of", "source_summary", "source_refs", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "source_project": {"type": "string", "minLength": 1},
+        "declared_as_of": {"type": "string", "format": "date"},
+        "source_summary": {"type": "string", "minLength": 1},
+        "source_refs": {"$ref": "#/$defs/sourceRefs"},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "support_assets": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/supportAsset"}
+    },
+    "slots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["slot_id", "blocks", "extensions"],
+        "additionalProperties": false,
+        "properties": {
+          "slot_id": {"$ref": "#/$defs/id"},
+          "blocks": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/block"}},
+          "extensions": {"type": "object", "additionalProperties": true}
+        }
+      }
+    },
+    "extensions": {"type": "object", "additionalProperties": true}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "safePath": {
+      "type": "string",
+      "minLength": 1,
+      "not": {"pattern": "(^/|(^|/)\\.\\.(/|$))"}
+    },
+    "htmlPath": {
+      "allOf": [
+        {"$ref": "#/$defs/safePath"},
+        {"pattern": "\\.html?$"}
+      ]
+    },
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "origin": {"enum": ["source_derived", "normalized", "inferred", "generated"]},
+    "reviewState": {"enum": ["unresolved", "ready_for_review", "approved", "not_required"]},
+    "sourceRefs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "link": {
+      "type": "object",
+      "required": ["label", "url", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "label": {"type": "string", "minLength": 1},
+        "url": {"type": "string", "minLength": 1},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "routeItem": {
+      "type": "object",
+      "required": ["label", "block_html", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "label": {"type": "string", "minLength": 1},
+        "block_html": {"type": "string", "minLength": 1},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "resourceItem": {
+      "type": "object",
+      "required": ["title", "url", "description_html", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "url": {"type": "string", "minLength": 1},
+        "description_html": {"type": "string", "minLength": 1},
+        "note_html": {"type": "string"},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "supportAsset": {
+      "type": "object",
+      "required": ["source", "target", "role", "sha256", "required_for_publication", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {"$ref": "#/$defs/safePath"},
+        "target": {"$ref": "#/$defs/safePath"},
+        "role": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "required_for_publication": {"type": "boolean"},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "creatorActivity": {
+      "type": "object",
+      "required": [
+        "activity_id",
+        "mode",
+        "runtime_type",
+        "json_source",
+        "json_path",
+        "json_sha256",
+        "wrapper_source",
+        "wrapper_sha256",
+        "provider_href",
+        "required_for_publication",
+        "extensions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "activity_id": {"type": "integer", "minimum": 1},
+        "mode": {
+          "enum": [
+            "fill_in_blank_text_v1",
+            "sorting_v1",
+            "sequencing_v1",
+            "quick_quiz_choice_v1",
+            "quick_quiz_multi_select_v1"
+          ]
+        },
+        "runtime_type": {"type": "integer", "minimum": 0, "maximum": 7},
+        "json_source": {"$ref": "#/$defs/safePath"},
+        "json_path": {"$ref": "#/$defs/safePath"},
+        "json_sha256": {"$ref": "#/$defs/sha256"},
+        "wrapper_source": {"$ref": "#/$defs/safePath"},
+        "wrapper_sha256": {"$ref": "#/$defs/sha256"},
+        "provider_href": {"type": "string"},
+        "required_for_publication": {"type": "boolean"},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "block": {
+      "type": "object",
+      "required": ["block_id", "kind", "origin", "review_state", "source_refs", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "block_id": {"$ref": "#/$defs/id"},
+        "kind": {
+          "enum": [
+            "prose",
+            "outcomes",
+            "video",
+            "disclosure",
+            "route_list",
+            "resources",
+            "creatorplus_group",
+            "callout",
+            "review_note",
+            "review_questions",
+            "raw_html"
+          ]
+        },
+        "origin": {"$ref": "#/$defs/origin"},
+        "review_state": {"$ref": "#/$defs/reviewState"},
+        "source_refs": {"$ref": "#/$defs/sourceRefs"},
+        "heading": {"type": "string", "minLength": 1},
+        "label": {"type": "string", "minLength": 1},
+        "block_html": {"type": "string", "minLength": 1},
+        "items_html": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "summary_text": {"type": "string", "minLength": 1},
+        "embed_url": {"type": ["string", "null"]},
+        "iframe_title": {"type": "string", "minLength": 1},
+        "required_for_publication": {"type": "boolean"},
+        "links": {"type": "array", "items": {"$ref": "#/$defs/link"}},
+        "route_items": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/routeItem"}},
+        "resource_items": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/resourceItem"}},
+        "activities": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/creatorActivity"}},
+        "callout_variant": {"enum": ["information", "action", "review"]},
+        "raw_html": {"type": "string", "minLength": 1},
+        "extensions": {"type": "object", "additionalProperties": true}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "prose"}}}, "then": {"required": ["block_html"]}},
+        {"if": {"properties": {"kind": {"const": "outcomes"}}}, "then": {"required": ["heading", "items_html"]}},
+        {"if": {"properties": {"kind": {"const": "video"}}}, "then": {"required": ["heading", "iframe_title", "required_for_publication", "links"]}},
+        {"if": {"properties": {"kind": {"const": "disclosure"}}}, "then": {"required": ["summary_text", "block_html"]}},
+        {"if": {"properties": {"kind": {"const": "route_list"}}}, "then": {"required": ["heading", "route_items"]}},
+        {"if": {"properties": {"kind": {"const": "resources"}}}, "then": {"required": ["heading", "resource_items"]}},
+        {"if": {"properties": {"kind": {"const": "creatorplus_group"}}}, "then": {"required": ["heading", "activities"]}},
+        {"if": {"properties": {"kind": {"const": "callout"}}}, "then": {"required": ["callout_variant", "block_html"]}},
+        {"if": {"properties": {"kind": {"const": "review_note"}}}, "then": {"required": ["label", "block_html"]}},
+        {"if": {"properties": {"kind": {"const": "review_questions"}}}, "then": {"required": ["heading", "items_html"]}},
+        {"if": {"properties": {"kind": {"const": "raw_html"}}}, "then": {"required": ["raw_html"]}}
+      ]
+    }
+  }
+}

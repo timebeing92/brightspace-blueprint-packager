@@ -1,0 +1,276 @@
+/* CourseCraft Page Kit — scoped, inline-safe Brightspace HTML-topic source. */
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: #ffffff;
+  color: #202122;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.6;
+}
+
+.cc-skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: -5rem;
+  z-index: 100;
+  padding: 0.65rem 0.9rem;
+  background: #ffffff;
+  border: 2px solid #202122;
+  color: #202122;
+}
+
+.cc-skip-link:focus { top: 0.75rem; }
+
+.cc-page {
+  --cc-brand: #134f5c;
+  --cc-brand-dark: #0f3f49;
+  --cc-link: #0b6677;
+  --cc-accent: #6d8c83;
+  --cc-text: #202122;
+  --cc-muted: #526163;
+  --cc-border: #d7dfdd;
+  --cc-surface: #f5f8f8;
+  --cc-review: #7a5a00;
+  --cc-review-border: #dccb8d;
+  --cc-review-fill: #fff9e8;
+  width: min(100% - 2rem, 74rem);
+  margin: 1rem auto 3rem;
+  color: var(--cc-text);
+}
+
+.cc-page a { color: var(--cc-link); text-underline-offset: 0.15em; }
+.cc-page a:hover { text-decoration-thickness: 0.14em; }
+.cc-page a:focus-visible,
+.cc-page summary:focus-visible,
+.cc-skip-link:focus-visible {
+  outline: 3px solid var(--cc-link);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.cc-page-header {
+  padding: clamp(1.4rem, 4vw, 2.6rem);
+  background: var(--cc-surface);
+  border-top: 0.4rem solid var(--cc-brand);
+  border-bottom: 1px solid var(--cc-border);
+}
+
+.cc-eyebrow {
+  margin: 0 0 0.45rem;
+  color: var(--cc-brand);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cc-page h1,
+.cc-page h2,
+.cc-page h3 {
+  color: var(--cc-brand-dark);
+  line-height: 1.22;
+}
+
+.cc-page h1 {
+  margin: 0;
+  max-width: 24ch;
+  font-size: clamp(2rem, 5vw, 3.3rem);
+}
+
+.cc-lede {
+  max-width: 68ch;
+  margin: 0.9rem 0 0;
+  color: var(--cc-muted);
+  font-size: 1.08rem;
+}
+
+.cc-page-body {
+  max-width: 70rem;
+  margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 2.4rem);
+}
+
+.cc-slot + .cc-slot { margin-top: 1.5rem; }
+
+.cc-block {
+  max-width: 72ch;
+  margin: 0 0 1.5rem;
+}
+
+.cc-block > :first-child { margin-top: 0; }
+.cc-block > :last-child { margin-bottom: 0; }
+
+.cc-block h2 { margin: 0 0 0.75rem; font-size: 1.55rem; }
+.cc-block h3 { margin: 0 0 0.4rem; font-size: 1.13rem; }
+.cc-block p { margin: 0 0 0.85rem; }
+.cc-block ul,
+.cc-block ol { padding-left: 1.35rem; }
+
+.cc-review-status,
+.cc-review-note,
+.cc-review-questions {
+  margin: 1.2rem 0 0;
+  padding: 1rem 1.1rem;
+  background: var(--cc-review-fill);
+  border: 1px solid var(--cc-review-border);
+  border-left: 0.3rem solid var(--cc-review);
+  color: var(--cc-text);
+}
+
+.cc-review-status strong,
+.cc-review-note > strong { color: var(--cc-review); }
+
+.cc-review-status ul,
+.cc-review-questions ol { margin-bottom: 0; }
+
+.cc-review-meta {
+  margin: 0 0 0.75rem;
+  padding: 0.45rem 0.65rem;
+  background: var(--cc-review-fill);
+  border: 1px solid var(--cc-review-border);
+  color: var(--cc-muted);
+  font-size: 0.8rem;
+}
+
+.cc-video-shell {
+  position: relative;
+  width: 100%;
+  margin: 0.85rem 0;
+  padding-top: 56.25%;
+  overflow: hidden;
+  background: #0f1720;
+}
+
+.cc-video-shell iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.cc-disclosure details {
+  border: 1px solid var(--cc-border);
+  background: #ffffff;
+}
+
+.cc-disclosure summary {
+  padding: 0.85rem 1rem;
+  color: var(--cc-brand-dark);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.cc-disclosure details[open] summary { border-bottom: 1px solid var(--cc-border); }
+.cc-details-body { padding: 1rem; }
+
+.cc-route-list,
+.cc-resource-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cc-route-list {
+  counter-reset: cc-route;
+}
+
+.cc-route-list li {
+  counter-increment: cc-route;
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, 1fr);
+  gap: 0.2rem 0.75rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--cc-border);
+}
+
+.cc-route-list li::before {
+  content: counter(cc-route);
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--cc-brand);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.cc-route-list li > strong,
+.cc-route-list li > div { grid-column: 2; }
+
+.cc-resource-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.cc-resource-list li {
+  padding: 1rem;
+  background: var(--cc-surface);
+  border-left: 0.3rem solid var(--cc-accent);
+}
+
+.cc-resource-note {
+  color: var(--cc-muted);
+  font-size: 0.9rem;
+}
+
+.cc-callout {
+  padding: 1rem 1.1rem;
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-left: 0.3rem solid var(--cc-brand);
+}
+
+.cc-callout--action { border-left-color: var(--cc-accent); }
+.cc-callout--review {
+  background: var(--cc-review-fill);
+  border-color: var(--cc-review-border);
+  border-left-color: var(--cc-review);
+}
+
+.cc-unresolved {
+  padding: 0.9rem 1rem;
+  background: var(--cc-review-fill);
+  border: 1px dashed var(--cc-review-border);
+  color: var(--cc-review);
+  font-weight: 700;
+}
+
+.cc-practice-shell {
+  margin: 1rem 0;
+  padding: 0.9rem;
+  border: 1px solid var(--cc-border);
+  background: #ffffff;
+}
+
+.cc-practice-shell iframe { max-width: 100%; border: 0; }
+
+@media (max-width: 42rem) {
+  .cc-page { width: min(100% - 1rem, 74rem); margin-top: 0.5rem; }
+  .cc-page-header,
+  .cc-page-body { padding: 1.1rem; }
+  .cc-route-list li { grid-template-columns: 1.9rem minmax(0, 1fr); }
+  .cc-route-list li::before { width: 1.7rem; height: 1.7rem; }
+}
+
+@media print {
+  body { color: #000000; }
+  .cc-skip-link,
+  .cc-review-status,
+  .cc-review-note,
+  .cc-review-questions,
+  .cc-review-meta { display: none !important; }
+  .cc-page { width: 100%; margin: 0; }
+  .cc-page-header { background: #ffffff; border: 1px solid #777777; }
+  .cc-page a { color: #000000; }
+  .cc-disclosure details > :not(summary) { display: block !important; }
+  .cc-block,
+  .cc-resource-list li,
+  .cc-callout { break-inside: avoid; }
+}

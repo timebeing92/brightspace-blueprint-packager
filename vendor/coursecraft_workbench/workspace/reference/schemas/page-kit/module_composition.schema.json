@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "coursecraft.module_composition/1",
+  "title": "CourseCraft Module Composition",
+  "type": "object",
+  "required": ["schema", "composition_id", "course", "module", "extensions"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "coursecraft.module_composition/1"},
+    "composition_id": {"$ref": "#/$defs/id"},
+    "course": {
+      "type": "object",
+      "required": ["code", "title", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "module": {
+      "type": "object",
+      "required": ["module_id", "title", "items", "extensions"],
+      "additionalProperties": false,
+      "properties": {
+        "module_id": {"$ref": "#/$defs/id"},
+        "title": {"type": "string", "minLength": 1},
+        "items": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/item"}},
+        "extensions": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "extensions": {"type": "object", "additionalProperties": true}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "safePath": {
+      "type": "string",
+      "minLength": 1,
+      "not": {"pattern": "(^/|(^|/)\\.\\.(/|$))"}
+    },
+    "item": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["item_id", "type", "page_id", "source", "extensions"],
+          "additionalProperties": false,
+          "properties": {
+            "item_id": {"$ref": "#/$defs/id"},
+            "type": {"const": "page"},
+            "page_id": {"$ref": "#/$defs/id"},
+            "source": {"$ref": "#/$defs/safePath"},
+            "extensions": {"type": "object", "additionalProperties": true}
+          }
+        },
+        {
+          "type": "object",
+          "required": ["item_id", "type", "object_kind", "title", "ref", "evidence_state", "extensions"],
+          "additionalProperties": false,
+          "properties": {
+            "item_id": {"$ref": "#/$defs/id"},
+            "type": {"const": "native_object"},
+            "object_kind": {"enum": ["quiz", "discussion", "assignment", "checklist", "other"]},
+            "title": {"type": "string", "minLength": 1},
+            "ref": {"type": "string", "minLength": 1},
+            "evidence_state": {"enum": ["observed", "generated_validated", "import_verified", "roundtrip_verified", "deferred"]},
+            "extensions": {"type": "object", "additionalProperties": true}
+          }
+        }
+      ]
+    }
+  }
+}
