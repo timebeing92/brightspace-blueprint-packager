@@ -6,3 +6,11 @@ venv/
 .DS_Store
 vendor/coursecraft_workbench/workspace/review/*
 !vendor/coursecraft_workbench/workspace/review/README.md
+.last_run.json
+.update_check.json
+.update_check.json.tmp
+logs/
+dist/
+INSTALL_RECEIPT.json
+INSTALL_RECEIPT.txt
+.blueprint-packager-current

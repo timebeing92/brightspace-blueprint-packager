@@ -30,17 +30,18 @@ passing. See [Evidence and provenance](#evidence-and-provenance).
 1. [Who this is for](#who-this-is-for)
 2. [The idea in one picture](#the-idea-in-one-picture)
 3. [What you need](#what-you-need)
-4. [Quick start](#quick-start)
-5. [How it works](#how-it-works)
-6. [What a build produces](#what-a-build-produces)
-7. [Importing, and updating a course later](#importing-and-updating-a-course-later)
-8. [Writing a blueprint](#writing-a-blueprint)
-9. [Page styling](#page-styling)
-10. [Evidence and provenance](#evidence-and-provenance)
-11. [The vendored engine](#the-vendored-engine)
-12. [Forking, syncing, and contributing](#forking-syncing-and-contributing)
-13. [Repository map](#repository-map)
-14. [Questions and changes](#questions-and-changes)
+4. [Guided install and run](#guided-install-and-run)
+5. [Quick start on the command line](#quick-start-on-the-command-line)
+6. [How it works](#how-it-works)
+7. [What a build produces](#what-a-build-produces)
+8. [Importing, and updating a course later](#importing-and-updating-a-course-later)
+9. [Writing a blueprint](#writing-a-blueprint)
+10. [Page styling](#page-styling)
+11. [Evidence and provenance](#evidence-and-provenance)
+12. [The vendored engine](#the-vendored-engine)
+13. [Forking, syncing, and contributing](#forking-syncing-and-contributing)
+14. [Repository map](#repository-map)
+15. [Questions and changes](#questions-and-changes)
 
 ---
 
@@ -83,7 +84,79 @@ again.
   first round. Importing needs the course's Import/Export/Copy Components
   permission; nothing here talks to Brightspace directly.
 
-## Quick start
+## Guided install and run
+
+The guided runner does the setup and walks through a build in one terminal
+window. There is nothing else to install by hand: on first run it asks before
+creating a private `.venv` inside its folder and installing its packages
+there. Your blueprint and your package never leave your machine.
+
+**Download and start.** The repository is private, so a one-command install
+needs GitHub access: the `gh` command signed in (`gh auth login`), or git with
+saved credentials for github.com.
+
+| Platform | Install | Start later |
+|---|---|---|
+| macOS | `bash install_blueprint_packager.sh` (or unzip a release and double-click **Blueprint Packager.command**; if macOS warns about an unidentified developer the first time, right-click it and choose Open) | double-click **Blueprint Packager.command** |
+| Windows | `powershell -NoProfile -ExecutionPolicy Bypass -File install_blueprint_packager.ps1` (or unzip a release and double-click **Blueprint Packager.bat**) | double-click **Blueprint Packager.bat** |
+| Linux | `bash install_blueprint_packager.sh` | `bash blueprint_packager.sh` |
+
+The installer puts the latest release in `./blueprint-packager/` (or a folder
+you name), writes a pointer the launchers read, and starts the runner.
+Running it again installs a newer release beside the old one; nothing is
+deleted, and the old folder's launcher forwards to the current version.
+
+**What the runner walks through.** Each phase has a line of context and a
+`· n of N ·` marker so you know where you are.
+
+1. **Splash.** The wizard delivers a package into a monitor. Any key skips it.
+2. **The workshop.** Python 3.11 or later, the private environment, the
+   Python packages, and the vendored engine's integrity: every file in its
+   manifest present with the recorded hash. A missing package is offered as
+   an install, with a question first. Vendored files are only reported,
+   never changed. Then a quiet, once-a-day check for a newer release.
+3. **The task.** A numbered menu with a sentence each: first time here
+   (a blank blueprint, opened for you), build a package (read, build, verify
+   in one go, the usual path), a dry run that reads and reports without
+   building, verify an existing build folder, re-sync a course map after
+   the document changed, or check for updates. When a blueprint was built
+   before, the runner offers to build it again with the same answers.
+4. **The commission.** The inputs the task needs. Drag a file into the
+   window instead of typing its path; the runner looks inside and shows the
+   title and the number of weeks before you commit to it. Build settings
+   can be an existing file (drag it in), the last one used, or made for
+   you from a few questions: package title, the course label above each
+   page title, a manifest identifier, the page template, and an optional
+   term calendar from the first day of Week 1 and a week count. Answers
+   are remembered in `.last_run.json`, and a summary card can be edited by
+   number before anything runs.
+5. **The build.** The stages run one after another with their output
+   dimmed beneath and the time each took. Verification shows its twelve
+   checks as a live checklist. The first stage that fails stops the run and
+   shows its last lines and the log.
+6. **The results.** A card with the ZIP and its SHA-256, the pages-refresh
+   ZIP, the object map, the verification report with its pass count, and a
+   "What to do next" card: import once into an empty course, importing
+   again duplicates everything but pages, page text can be refreshed
+   through Manage Files. Then an offer to open the folder.
+
+Every run writes a log under `logs/`. Ctrl-C cancels cleanly. Flags:
+`--plain` (no colour, art, or animation; also automatic when output is not a
+terminal or `NO_COLOR` is set), `--yes` (accept the remembered answers and run
+without prompts, for repeat builds), `--task build --blueprint …` and the
+other inputs as flags for scripted use, `--doctor` (check the setup only),
+`--check-for-updates`, `--no-update-check` or `BPK_NO_UPDATE_CHECK=1`. See
+`INSTALL_AND_TROUBLESHOOT.md` when something does not start.
+
+**Updates.** On start, when GitHub is reachable, the runner compares the
+installed version with the latest release once a day and says when a newer
+one exists, with the one command to install it beside this version and
+restart. Releases are pinned to a commit and carry a manifest of every file's
+hash; the installer verifies the hashes before anything is put in place, and
+leaves the previous version where it was. `RELEASING.md` says how a release
+is cut.
+
+## Quick start on the command line
 
 ```bash
 # once
@@ -298,12 +371,18 @@ If you fork this repository to build your own courses, two things to know.
 
 | Path | What |
 |---|---|
+| `Blueprint Packager.command`, `Blueprint Packager.bat`, `blueprint_packager.sh`, `blueprint_packager.ps1` | The double-click and terminal launchers: find Python, make the private `.venv`, start the guided runner. |
+| `install_blueprint_packager.sh`, `.ps1` | One-command install of the latest release into a folder, then start. |
+| `scripts/packager_tui.py`, `scripts/ui.py`, `scripts/art.py` | The guided runner, its terminal components, and the splash. |
+| `scripts/update_check.py`, `launcher/install_release.py` | The once-a-day release check, and the verified side-by-side installer it offers. |
+| `scripts/make_release_bundle.py`, `RELEASING.md` | Cut a release ZIP with its manifest; the steps. |
 | `bpk.py` | The command line. `python3 bpk.py --help` lists the stages. |
 | `blueprint_packager/` | One module per stage: `docx_ingest`, `normalize`, `fidelity`, `reader`, `joins`, `calendar`, `html_render`, `build`, `verify`, `rebase`, `blank`; `vocabulary` holds the blueprint layout's words; `workbench` decides where the engine files come from. |
 | `blueprint_packager/templates/` | Page templates: `composite_navy` (default), `bumk515_classic`. |
 | `vendor/coursecraft_workbench/` | The pinned engine files and schemas, with their manifest. |
 | `scripts/check_vendor_drift.py` | Compares the vendored files with a Workbench checkout; re-pins on request. |
-| `scripts/render_readme_art.py` | Draws the picture at the top of this page from a text grid. |
+| `scripts/render_readme_art.py` | Draws the picture at the top of this page from a text grid; the splash uses the same grid. |
+| `INSTALL_AND_TROUBLESHOOT.md` | When the launcher or the runner does not start. |
 | `docs/AUTHORING_GUIDE.md` | How to write a blueprint. Start here if you will edit one. |
 | `docs/DESIGN.md` | Why the tool is shaped as it is, and the open directions. |
 | `docs/IMPORT_RECEIPTS.md` | The sandbox receipts behind the evidence level. |

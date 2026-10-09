@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — 2026-10-08, night
+
+- The guided runner: `Blueprint Packager.command` (macOS), `Blueprint Packager.bat` (Windows), `blueprint_packager.sh` and `.ps1`, which find Python 3.11+, make a private `.venv` with a question first, and start `scripts/packager_tui.py`. Phases with a line of context each: splash (the wizard delivers the package into a monitor, drawn from the README's grid), the workshop (Python, packages, the vendored engine's hashes, a quiet update check), the task menu (first time here, build, dry run, verify, re-sync, updates), the commission (drag-and-drop paths with a look inside, settings made from a few questions or taken from a file, answers remembered, a card editable by number), the build (live stages, verification as a checklist, the first failure stops with its log), and the results (ZIP with hash, pages-refresh ZIP, object map, verification count, and what to do next). `--yes` repeats the last build without prompts; `--plain` for text only; `--doctor`.
+- One-command installers for macOS/Linux and Windows that fetch the latest release through `gh` (the repository is private) or clone `main`, write a pointer, and start the runner.
+- `scripts/update_check.py`: a once-a-day release check through `gh` or a token, cached, never longer than two seconds, with the one command to update; `launcher/install_release.py` installs a verified release beside the current one and switches the pointer atomically.
+- `scripts/make_release_bundle.py` and `RELEASING.md`: a release ZIP from a clean `git archive` with `release_manifest.json` (version, commit, date, every file's hash, the vendored Workbench pin) and a `.sha256` sidecar.
+- `INSTALL_AND_TROUBLESHOOT.md`. Tests for the workshop checks, settings generation, the week table, the update check, the release manifest, the installer, and a scripted end-to-end run of the runner.
+
 ## 0.1.1 — 2026-10-08, evening
 
 - README rewritten for readers who arrive without context: who it is for, the idea in one picture, quick start, how it works, what a build produces, importing and updating, writing a blueprint, styling, evidence and provenance, repository map. A pixel-art illustration (`docs/assets/blueprint-packager.svg`, drawn from a text grid by `scripts/render_readme_art.py`) in the manner of the Blueprint Wizard runner's splash.
