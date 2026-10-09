@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 — 2026-10-09
+
+- The blank blueprint's panels and links are coloured the way Blueprint Wizard colours them in an export blueprint, so the two documents look alike: dropdowns lavender, callouts blue, the gold callout in the composite's warm colours, internal links underlined in link blue; the key at the top shows each in its colour. Week 1's overview now carries all four examples: a dropdown, a blue callout, a gold callout, and a link. The opening guide is rewritten in plain, specific language: what the document is, what to do in order, how to read what is already on the page, four rules that save a round of fixes, and the key.
+
 ## 0.2.1 — 2026-10-09
 
 - The blank blueprint is presented for the person who will write in it: a short guide and a key at the top (kept as front-matter text, never built), worked examples of a dropdown, a gold callout, and an internal link inside Week 1's overview, breathing room inside every table, shaded label rows that never split from their content, prompts in grey italics and structure keywords in navy, Lato at 11 points with 1.15 line spacing, one-inch margins. It still reads back with zero errors and builds as it stands. No change to how a blueprint is read or built.

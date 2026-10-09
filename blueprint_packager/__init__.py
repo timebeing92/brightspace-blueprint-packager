@@ -9,4 +9,4 @@ rubric XML builder, Blueprint Wizard extractors for read-back verification)
 without being tied to their release cycles. See README.md and docs/DESIGN.md.
 """
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
