@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 — 2026-10-09
+
+- The blank blueprint is presented for the person who will write in it: a short guide and a key at the top (kept as front-matter text, never built), worked examples of a dropdown, a gold callout, and an internal link inside Week 1's overview, breathing room inside every table, shaded label rows that never split from their content, prompts in grey italics and structure keywords in navy, Lato at 11 points with 1.15 line spacing, one-inch margins. It still reads back with zero errors and builds as it stands. No change to how a blueprint is read or built.
+
 ## 0.2.0 — 2026-10-08, night
 
 - The guided runner: `Blueprint Packager.command` (macOS), `Blueprint Packager.bat` (Windows), `blueprint_packager.sh` and `.ps1`, which find Python 3.11+, make a private `.venv` with a question first, and start `scripts/packager_tui.py`. Phases with a line of context each: splash (the wizard delivers the package into a monitor, drawn from the README's grid), the workshop (Python, packages, the vendored engine's hashes, a quiet update check), the task menu (first time here, build, dry run, verify, re-sync, updates), the commission (drag-and-drop paths with a look inside, settings made from a few questions or taken from a file, answers remembered, a card editable by number), the build (live stages, verification as a checklist, the first failure stops with its log), and the results (ZIP with hash, pages-refresh ZIP, object map, verification count, and what to do next). `--yes` repeats the last build without prompts; `--plain` for text only; `--doctor`.

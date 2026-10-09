@@ -17,7 +17,7 @@ the lines each needs, two standard rubrics, and notes. It reads back with no
 errors as it stands, so a build works as soon as there is content. Every
 week's Checklist row is pre-filled with `Items: From this week's activities`;
 replace that line with typed items when you want a hand-written checklist.
-A generated example is `docs/examples/blank_blueprint__8_weeks.docx`.
+A generated example is `docs/examples/blank_blueprint__8_weeks.docx`. The blank opens with a short guide and a key, and Week 1's overview carries a worked dropdown, callout, and internal link to copy from; grey italic text is a prompt to replace, upright text is structure to keep.
 
 ## 1. Headings
 
