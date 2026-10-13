@@ -67,7 +67,9 @@ def pinned_commit(scripts: Path) -> str | None:
     manifest = scripts.parent / "MANIFEST.json"
     if manifest.is_file():
         try:
-            return json.loads(manifest.read_text(encoding="utf-8")).get("commit")
+            metadata = json.loads(manifest.read_text(encoding="utf-8"))
+            commit = metadata.get("commit") if isinstance(metadata, dict) else None
+            return commit if isinstance(commit, str) and commit else None
         except (OSError, ValueError):
             return None
     return None
@@ -75,5 +77,7 @@ def pinned_commit(scripts: Path) -> str | None:
 
 def describe(scripts: Path) -> dict[str, str | None]:
     """What the receipt and the verification report record about the scripts used."""
-    source = "vendored" if scripts == VENDOR_SCRIPTS else ("explicit" if os.environ.get("BPK_WORKBENCH_SCRIPTS") else "checkout")
-    return {"dir": str(scripts), "source": source, "pinned_commit": pinned_commit(scripts)}
+    scripts = scripts.resolve()
+    pin = pinned_commit(scripts)
+    source = "vendored" if scripts == VENDOR_SCRIPTS.resolve() or pin else ("explicit" if os.environ.get("BPK_WORKBENCH_SCRIPTS") else "checkout")
+    return {"dir": str(scripts), "source": source, "pinned_commit": pin}

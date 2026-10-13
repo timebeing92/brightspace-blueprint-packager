@@ -1,5 +1,56 @@
 # Changelog
 
+## Unreleased — authoring and verification candidate, 2026-10-09
+
+Based on released v0.2.2. No version bump, tag, publication, or new tenant import
+is implied by this entry. The implementation log holds current test and render
+evidence; historical tenant receipts retain their original artifact scope.
+
+- Follow-up SME/ID usability revision: ordinary writing prompts, readable author
+  notes, a first-page replacement example and handoff sequence, and a separate
+  authoring reference with genuinely multiline copyable examples. Existing
+  bracket forms remain supported. Document-only fields, optional areas and the
+  limits of technical readiness are stated explicitly. Designers and SMEs can
+  defer optional styling and connections for manual completion in Brightspace;
+  the guide explains how to remove unused references before packaging.
+  Runner counts exclude the reference examples. Points warnings and capability
+  documentation now describe the existing build-time determination gate accurately.
+
+- Source-accounting ledgers for direct reads; unknown, unplaced, or unsupported
+  authored content is blocking. Native images and authored module/link bodies
+  receive explicit diagnostics instead of disappearing. Malformed documents
+  produce useful errors. Current input contracts are checked before building;
+  re-read existing DOCX files to replace older cached models.
+- Verification checks actual Wizard QA findings, represents unavailable evidence
+  accurately, compares internal-link display text and destinations, retains
+  checklist link targets, and records the vendored Workbench pin separately from
+  the Packager checkout commit.
+- Minimal blank and optional worked-example forms; zero or multiple assignments
+  and discussions per week; common counts and weekly overrides; clearer overview
+  and learning-objective writing areas. Guidance and pending content have explicit
+  markers, normal writing typography, repeated grading/rubric headers, and revised
+  table continuation behaviour. Existing blank files are protected and explicit
+  overwrite creates a backup.
+- Draft readiness reports and explicit preview builds. Normal builds require
+  completed fields or supported recorded retention choices. Read also writes
+  relationship reports. Exact structural activity renames can be previewed and
+  applied to a new copy with an authorizer, reason, and change ledger.
+- Video brackets and placeholders, compatible with the existing long form.
+  Supported YouTube/Vimeo URLs become responsive players; unsupported valid
+  destinations require an explicit link fallback. Missing or malformed video
+  URLs do not become empty iframes. Local tests do not prove tenant playback.
+- Explicit `from-wizard` conversion of an immutable extraction bundle into native
+  authoring DOCX. Source contracts, hashes, dispositions, and diagnostics travel
+  in a sidecar; rubric-free bundles require explicit inventory evidence when
+  Wizard omits their rubric contract. Exclusive publication protects concurrent
+  output files. A supported synthetic course completes the full
+  package → Wizard → authoring → package → Wizard cycle; unsupported semantics
+  stop conversion. Direct Wizard review-DOCX interoperability is not claimed.
+- Guided-runner title/count improvements, reviewed editable week boundaries,
+  clearer draft/ready choices, and revised path handling. Native Windows UI
+  execution remains a separate evidence requirement.
+- Updated authoring guide, roadmap, capability records, and test instructions.
+
 ## 0.2.2 — 2026-10-09
 
 - The blank blueprint's panels and links are coloured the way Blueprint Wizard colours them in an export blueprint, so the two documents look alike: dropdowns lavender, callouts blue, the gold callout in the composite's warm colours, internal links underlined in link blue; the key at the top shows each in its colour. Week 1's overview now carries all four examples: a dropdown, a blue callout, a gold callout, and a link. The opening guide is rewritten in plain, specific language: what the document is, what to do in order, how to read what is already on the page, four rules that save a round of fixes, and the key.

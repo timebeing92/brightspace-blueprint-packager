@@ -1,0 +1,118 @@
+{
+  "scope": "Synthetic UNE Google authoring and local package verification; no tenant import or playback",
+  "baseline_commit": "ecee5cd2eabff870ba7cf8c8205084561e715f5c",
+  "workbench_pin": "2c967f914c352c64e77a1bfb3611bddfc0671d8f",
+  "draft_package_results": [
+    {
+      "source": "/tmp/bpk-implementation-20261009/google/minimal-pageless.docx",
+      "sha256": "48f1d98dc1b5451d98bc7feebc71b6085eecff5d6903c034bc190e052096362c",
+      "build_dir": "/tmp/bpk-implementation-20261009/google/minimal-pageless-build",
+      "read_errors": [],
+      "verification_exit": 0,
+      "authoring_state": "draft",
+      "readiness_findings": 125,
+      "summary": {
+        "passed": 13,
+        "failed": 0,
+        "not_run": 0,
+        "not_applicable": 3
+      },
+      "failed_checks": []
+    },
+    {
+      "source": "/tmp/bpk-implementation-20261009/google/populated-pageless.docx",
+      "sha256": "c1db086a9041a95cb496046a60b9527fa15d70f8e0c70228a2a53df6f19f103a",
+      "build_dir": "/tmp/bpk-implementation-20261009/google/populated-pageless-build",
+      "read_errors": [],
+      "verification_exit": 0,
+      "authoring_state": "draft",
+      "readiness_findings": 79,
+      "summary": {
+        "passed": 14,
+        "failed": 0,
+        "not_run": 0,
+        "not_applicable": 1
+      },
+      "failed_checks": []
+    },
+    {
+      "source": "/tmp/bpk-implementation-20261009/google/populated-edited.docx",
+      "sha256": "2b7afcf14d7e59e4d3a94d1300504350f01f30ee115fdbf72dcdae55fd289096",
+      "build_dir": "/tmp/bpk-implementation-20261009/google/populated-edited-build",
+      "read_errors": [],
+      "verification_exit": 0,
+      "authoring_state": "draft",
+      "readiness_findings": 76,
+      "summary": {
+        "passed": 14,
+        "failed": 0,
+        "not_run": 0,
+        "not_applicable": 1
+      },
+      "failed_checks": []
+    }
+  ],
+  "guided_runner_results": [
+    {
+      "case": "populated-edited",
+      "authoring_state": "draft",
+      "readiness_findings": 76,
+      "summary": {
+        "passed": 14,
+        "failed": 0,
+        "not_run": 0,
+        "not_applicable": 1
+      },
+      "passed": true,
+      "build": "/tmp/bpk-implementation-20261009/google/populated-edited-runner/build"
+    },
+    {
+      "case": "ready-pageless",
+      "authoring_state": "ready",
+      "readiness_findings": 0,
+      "summary": {
+        "passed": 14,
+        "failed": 0,
+        "not_run": 0,
+        "not_applicable": 1
+      },
+      "passed": true,
+      "build": "/tmp/bpk-implementation-20261009/google/ready-pageless-runner/build"
+    }
+  ],
+  "semantic_comparison": {
+    "excluded_fields": [
+      "source",
+      "src",
+      "source_accounting",
+      "diagnostics",
+      "list_id",
+      "title_lines[].style"
+    ],
+    "differences": {
+      "minimal_pageless": [],
+      "populated_pageless": [],
+      "native_edits": []
+    },
+    "all_match": true,
+    "files": {
+      "ready-pageless.docx": "46215befd531889d724b88f18e76398d3f05b759d1286358ce7bd6874c1818be",
+      "ready-source.docx": "95eba7bd54921d053ca77b77003b5542fb365ac3722b255bbee73f61900d6f9f",
+      "populated-pageless.docx": "c1db086a9041a95cb496046a60b9527fa15d70f8e0c70228a2a53df6f19f103a",
+      "minimal-pageless.docx": "48f1d98dc1b5451d98bc7feebc71b6085eecff5d6903c034bc190e052096362c",
+      "populated-edited.docx": "2b7afcf14d7e59e4d3a94d1300504350f01f30ee115fdbf72dcdae55fd289096"
+    }
+  },
+  "ready_semantic_comparison": {
+    "differences": [],
+    "readiness": {
+      "schema": "blueprint_packager.readiness/1",
+      "state": "ready",
+      "ready": true,
+      "findings": []
+    },
+    "read_errors": [],
+    "join_errors": [],
+    "source_accounting_complete": true
+  }
+}

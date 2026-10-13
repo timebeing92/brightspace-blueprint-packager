@@ -26,11 +26,15 @@ import shutil
 import subprocess
 import sys
 import unicodedata
+from collections import Counter
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
 from . import workbench as WB
 from .joins import TYPE_LABEL
+from .html_render import INTERNAL_LINK, drop_query_parameters
+from .authoring import absolute_web_url, video_player_url, walk_blocks
 from .render_text import plain
 
 
@@ -54,15 +58,24 @@ def squash(text: str) -> str:
     return re.sub(r"\s+", "", text)
 
 
+def visible_text(text: str) -> str:
+    """Internal link brackets are authoring syntax; compare their rendered label."""
+    return INTERNAL_LINK.sub(lambda match: (match.group(3) or match.group(2)).strip(), text)
+
+
 def paragraphs(blocks: list[dict[str, Any]]) -> list[str]:
     out: list[str] = []
     for block in blocks:
         if block.get("runs"):
             text = plain(block["runs"])
             if text:
-                out.append(text)
+                out.append(visible_text(text))
+        if block["kind"] == "placeholder" and block.get("text"):
+            out.append(block["text"])
+        if block["kind"] == "video" and block.get("placeholder"):
+            out.append(block.get("title", ""))
         if block["kind"] == "dropdown":
-            out.append(block["title"])
+            out.append(visible_text(block["title"]))
         if block["kind"] in ("dropdown", "visual"):
             out.extend(paragraphs(block["blocks"]))
         if block["kind"] == "table":
@@ -76,19 +89,178 @@ def _reader_identity(scripts: Path) -> dict[str, Any]:
     """Which reader code looked at the package: commit when known, file hashes always."""
     identity: dict[str, Any] = {"checkout": scripts.parent.name, "files": {}, **WB.describe(scripts)}
     for name in ("check_package_conformance.py", "build_blueprint_bundle.py", "reconstruct_course_structure.py",
-                 "extract_course_activities.py", "extract_rubrics_to_workbook.py"):
+                 "extract_course_activities.py", "extract_rubrics_to_workbook.py", "course_qa_report.py", "check_page_conformance.py"):
         path = scripts / name
         if path.is_file():
             identity["files"][name] = hashlib.sha256(path.read_bytes()).hexdigest()
-    try:
-        commit = subprocess.run(["git", "-C", str(scripts.parent), "rev-parse", "--short", "HEAD"],
-                                capture_output=True, text=True, check=False)
-        if commit.returncode == 0:
-            identity["commit"] = commit.stdout.strip()
-    except OSError:
-        pass
+    if identity.get("pinned_commit"):
+        # A vendored directory is inside the Packager's Git repository. Asking
+        # Git for HEAD here would incorrectly label the Packager commit as the
+        # Workbench commit.
+        identity["commit"] = identity["pinned_commit"]
+    else:
+        try:
+            root = subprocess.run(["git", "-C", str(scripts.parent), "rev-parse", "--show-toplevel"],
+                                  capture_output=True, text=True, check=False)
+            if root.returncode == 0 and Path(root.stdout.strip()).resolve() == scripts.parent.resolve():
+                commit = subprocess.run(["git", "-C", str(scripts.parent), "rev-parse", "HEAD"],
+                                        capture_output=True, text=True, check=False)
+                if commit.returncode == 0:
+                    identity["commit"] = commit.stdout.strip()
+        except OSError:
+            pass
     return identity
 
+
+
+def _check_record(name: str, passed: bool, detail: str, *, status: str | None = None) -> dict[str, Any]:
+    status = status or ("passed" if passed else "failed")
+    if status not in {"passed", "failed", "not_run", "not_applicable"}:
+        raise ValueError(f"Unknown verification status: {status}")
+    # Retain the original boolean for consumers, but never call a skipped test
+    # a pass. The overall result separately permits genuinely inapplicable checks.
+    return {"check": name, "passed": status == "passed", "status": status, "detail": detail}
+
+
+_PAGE_CHROME_BREAK = re.compile(
+    r"Page chrome: [1-9][0-9]* element\(s\) with a skip-link or course-label class left out of the blueprint")
+
+
+def _wizard_qa_check(qa: Any, missing_refs: int) -> tuple[dict[str, Any], list[str]]:
+    name = "Blueprint Wizard QA finds no unclassified breaks"
+    if not isinstance(qa, dict) or "breaks" not in qa:
+        return _check_record(name, False, "required top-level breaks evidence is missing", status="not_run"), []
+    breaks = qa["breaks"]
+    if not isinstance(breaks, list) or not all(isinstance(item, str) for item in breaks):
+        return _check_record(name, False, "top-level breaks must be a list of findings"), []
+    excluded = [item for item in breaks if _PAGE_CHROME_BREAK.fullmatch(item)]
+    unexpected = [item for item in breaks if not _PAGE_CHROME_BREAK.fullmatch(item)]
+    notes = []
+    if excluded:
+        notes.append(f"Wizard QA: {len(excluded)} exact page-chrome findings classified as expected omissions of "
+                     "generated skip-link/course-label elements from the extracted blueprint; those elements remain in the package.")
+    result = _check_record(name, not unexpected and missing_refs == 0,
+                           f"{len(breaks)} findings; {len(excluded)} expected generated page-chrome exclusions; "
+                           f"{len(unexpected)} unclassified breaks; {missing_refs} broken relative references"
+                           + (f"; {unexpected[:4]}" if unexpected else ""))
+    result["classified_findings"] = [{"finding": finding, "classification": "generated_page_chrome"} for finding in excluded]
+    result["unclassified_findings"] = unexpected
+    return result, notes
+
+
+class _Anchors(HTMLParser):
+    def __init__(self, markup: str):
+        super().__init__(convert_charrefs=True)
+        self.anchors: list[tuple[str, str]] = []
+        self.active: tuple[str, list[str]] | None = None
+        self.feed(markup)
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "a":
+            self.active = (dict(attrs).get("href") or "", [])
+
+    def handle_data(self, data: str) -> None:
+        if self.active is not None:
+            self.active[1].append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "a" and self.active is not None:
+            href, words = self.active
+            self.anchors.append((squash(" ".join(words)), href))
+            self.active = None
+
+
+class _Media(HTMLParser):
+    def __init__(self, markup: str):
+        super().__init__(convert_charrefs=True)
+        self.frames: Counter = Counter()
+        self.placeholders: Counter = Counter()
+        self.feed(markup)
+
+    def handle_starttag(self, tag, attributes):
+        attrs = dict(attributes)
+        if tag == "iframe":
+            self.frames[(attrs.get("src", ""), attrs.get("title", ""))] += 1
+        if "data-blueprint-video-pending" in attrs:
+            self.placeholders[attrs["data-blueprint-video-pending"]] += 1
+
+
+def _media_check(blocks, markup, rules, where):
+    actual = _Media(markup)
+    anchors = Counter(_Anchors(markup).anchors)
+    expected_frames, expected_placeholders = Counter(), Counter()
+    issues, count = [], 0
+    for block in walk_blocks(blocks):
+        if block.get("kind") != "video":
+            continue
+        count += 1
+        title = block.get("title", "")
+        href = drop_query_parameters(block.get("href", ""), rules)
+        if block.get("placeholder"):
+            expected_placeholders[title] += 1
+            continue
+        player = video_player_url(href)
+        if player:
+            expected_frames[(player, title)] += 1
+        elif absolute_web_url(href):
+            key = squash(title), href
+            if anchors[key] < 1:
+                issues.append(f"{where}: missing video fallback link '{title}'")
+            else:
+                anchors[key] -= 1
+        elif title not in markup:
+            issues.append(f"{where}: missing draft video label '{title}'")
+    for key, expected in expected_frames.items():
+        if actual.frames[key] != expected:
+            issues.append(f"{where}: video player/title differs for '{key[1]}'")
+    if actual.frames != expected_frames:
+        issues.append(f"{where}: unexpected or missing iframe destination")
+    if actual.placeholders != expected_placeholders:
+        issues.append(f"{where}: video placeholders differ")
+    return count, issues
+
+
+def _link_markers(blocks: list[dict[str, Any]]) -> list[tuple[str, str, str]]:
+    found: list[tuple[str, str, str]] = []
+    for block in blocks:
+        texts = [plain(block.get("runs", []))]
+        if block.get("kind") == "dropdown":
+            texts.append(block.get("title", ""))
+        for text in texts:
+            found.extend((m.group(1).lower(), m.group(2).strip(), (m.group(3) or m.group(2)).strip())
+                         for m in INTERNAL_LINK.finditer(text))
+        found.extend(_link_markers(block.get("blocks", [])))
+        for row in block.get("rows", []):
+            for cell in row:
+                found.extend(_link_markers(cell))
+    return found
+
+
+def _internal_link_check(blocks: list[dict[str, Any]], markup: str, objects: list[dict[str, Any]],
+                         surface: str, where: str) -> tuple[int, list[str]]:
+    """Check labels and independently derive destinations from the planned object IDs."""
+    targets = {(obj["kind"], obj["title"]): obj for obj in objects}
+    anchors = Counter(_Anchors(markup).anchors)
+    problems: list[str] = []
+    markers = _link_markers(blocks)
+    quicklink_types = {"assignment": "dropbox", "discussion": "discuss", "quiz": "quiz", "checklist": "checklist"}
+    for kind, title, words in markers:
+        target = targets.get((kind, title))
+        if target is None:
+            problems.append(f"{where}: unresolved {kind} '{title}'")
+            continue
+        if kind == "page":
+            href = Path(target.get("file", "")).name if surface == "page" else ""
+        else:
+            code = target.get("resource_code")
+            href = (f"/d2l/common/dialogs/quickLink/quickLink.d2l?ou={{orgUnitId}}&type={quicklink_types[kind]}&rCode={code}"
+                    if code else "")
+        anchor = (squash(words), href)
+        if not href or not anchors[anchor]:
+            problems.append(f"{where}: {kind} '{title}' has no matching link label and destination")
+        else:
+            anchors[anchor] -= 1
+    return len(markers), problems
 
 def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path | None = None,
                  label: str | None = None) -> int:
@@ -106,13 +278,42 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
     object_map = json.loads((build_dir / "object_map.json").read_text(encoding="utf-8"))
     receipt = json.loads((build_dir / "component_package_receipt.json").read_text(encoding="utf-8"))
     zip_path = build_dir / receipt["zip"]["path"]
-    settings_restorations = [n for n in object_map.get("notes", [])]
     checks: list[dict[str, Any]] = []
 
     notes: list[str] = []  # observations that are not failures, kept in the report
 
-    def check(name: str, passed: bool, detail: str) -> None:
-        checks.append({"check": name, "passed": bool(passed), "detail": detail})
+    def check(name: str, passed: bool, detail: str, *, status: str | None = None) -> None:
+        checks.append(_check_record(name, passed, detail, status=status))
+
+    model_errors = [d for d in model.get("diagnostics", []) if d.get("severity") == "error"]
+    check("source model has no unresolved errors", not model_errors,
+          f"{len(model_errors)} errors" + (f"; {[d.get('code', '') for d in model_errors[:5]]}" if model_errors else ""))
+    accounting = model.get("source_accounting")
+    accounting_valid = (isinstance(accounting, dict)
+                        and accounting.get("schema") == "blueprint_packager.source_accounting/1"
+                        and isinstance(accounting.get("entries"), list)
+                        and isinstance(accounting.get("unresolved"), list))
+    if accounting_valid:
+        entries = accounting["entries"]
+        dispositions = {"content", "structure", "authoring_guidance", "authoring_metadata", "retired", "notes", "empty"}
+        unknown = [entry.get("id", "?") if isinstance(entry, dict) else "?" for entry in entries
+                   if not isinstance(entry, dict) or entry.get("disposition") not in dispositions]
+        ids = [entry.get("id") for entry in entries if isinstance(entry, dict)]
+        valid_ids = all(isinstance(identifier, str) and identifier for identifier in ids)
+        duplicate_ids = valid_ids and len(ids) != len(set(ids))
+        complete = (bool(entries) and accounting.get("complete") is True and not accounting["unresolved"]
+                    and not unknown and valid_ids and not duplicate_ids)
+        check("every source paragraph has an explicit disposition", complete,
+              f"{len(entries)} paragraph dispositions; {len(accounting['unresolved'])} unresolved; "
+              f"{len(unknown)} unknown dispositions" + ("; duplicate paragraph IDs" if duplicate_ids else "")
+              + ("; paragraph IDs missing or malformed" if not valid_ids else ""))
+    else:
+        complete = False
+        check("every source paragraph has an explicit disposition", False,
+              "source accounting is missing or malformed; re-read the DOCX with the current reader", status="not_run")
+    if model_errors or not complete:
+        check("package readers", False, "not run because source diagnostics or accounting need resolution", status="not_run")
+        return _finish(build_dir, checks, suffix, _reader_identity(scripts), notes)
 
     # 1. conformance gate
     result = subprocess.run([sys.executable, "-B", str(scripts / "check_package_conformance.py"), str(package_dir)],
@@ -133,10 +334,29 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
           f"exit {result.returncode}" + (f"; {result.stderr.strip()[-200:]}" if result.returncode else ""))
     if not bundle.is_dir():
         return _finish(build_dir, checks, suffix, _reader_identity(scripts), notes)
-    activities = json.loads((bundle / "readback__course_activities.json").read_text(encoding="utf-8"))
-    structure = json.loads((bundle / "readback__course_structure.json").read_text(encoding="utf-8"))
-    rubrics_back = json.loads((bundle / "readback__rubrics.json").read_text(encoding="utf-8")) if (bundle / "readback__rubrics.json").exists() else {"rubrics": []}
-    qa = json.loads((bundle / "readback__course_qa.json").read_text(encoding="utf-8")) if (bundle / "readback__course_qa.json").exists() else {}
+    evidence: dict[str, dict[str, Any]] = {}
+    required_lists = {"course_activities": ("dropbox_folders", "discussions", "quizzes", "grade_items", "joins"),
+                      "course_structure": ("tree", "html_topics"), "rubrics": ("rubrics",), "course_qa": ()}
+    for name in ("course_activities", "course_structure", "rubrics", "course_qa"):
+        path = bundle / f"readback__{name}.json"
+        if name == "rubrics" and not path.exists() and not any(r.get("grid") for r in model["rubrics"]) and not any(o["kind"] == "rubric" for o in object_map["objects"]):
+            evidence[name] = {"rubrics": []}
+            check("required rubrics evidence", False, "no rubrics were planned or packaged", status="not_applicable")
+            continue
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(value, dict):
+                raise ValueError("expected a JSON object")
+            for field in required_lists[name]:
+                if not isinstance(value.get(field), list):
+                    raise ValueError(f"{name}: required {field} list is missing or malformed")
+            evidence[name] = value
+        except (OSError, ValueError) as exc:
+            check(f"required {name} evidence", False, str(exc), status="not_run")
+    if len(evidence) != 4:
+        return _finish(build_dir, checks, suffix, _reader_identity(scripts), notes)
+    activities, structure = evidence["course_activities"], evidence["course_structure"]
+    rubrics_back, qa = evidence["rubrics"], evidence["course_qa"]
 
     # joins traced by the extractor
     states = [str(j.get("resolved", "")).lower() for j in activities.get("joins", [])]
@@ -242,6 +462,27 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
     removed = [squash(n) for n in _removed_texts(build_dir)]
     missing: list[str] = []
     compared = 0
+    link_count = 0
+    link_problems: list[str] = []
+    media_count = 0
+    media_problems: list[str] = []
+    settings = json.loads((build_dir / "build_settings.json").read_text(encoding="utf-8"))
+    page_objects = {o["title"]: o for o in object_map["objects"] if o["kind"] == "page"}
+
+    def compare_links(blocks: list[dict[str, Any]], markup: str, surface: str, where: str) -> None:
+        nonlocal link_count, media_count
+        count, problems = _internal_link_check(blocks, markup, object_map["objects"], surface, where)
+        link_count += count
+        link_problems.extend(problems)
+        count, problems = _media_check(blocks, markup, settings.get("link_cleanup", {}).get("drop_query_parameters", []), where)
+        media_count += count
+        media_problems.extend(problems)
+
+    def compare_page_links(title: str, blocks: list[dict[str, Any]]) -> None:
+        relative = page_objects.get(title, {}).get("file")
+        path = package_dir / relative if relative else None
+        markup = path.read_text(encoding="utf-8") if path is not None and path.is_file() else ""
+        compare_links(blocks, markup, "page", title)
 
     def compare(expected: list[str], haystack: str, where: str) -> None:
         nonlocal compared
@@ -255,9 +496,12 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
 
     for page in model["pages"]:
         compare(paragraphs(page["blocks"]), topic_text.get(page["title"], ""), page["title"])
+        compare_page_links(page["title"], page["blocks"])
     for week in model["weeks"]:
         page = week["overview_page"]
-        compare(paragraphs(page["blocks"]) + paragraphs(week["objectives"]) + paragraphs(week["resources"]), topic_text.get(page["title"], ""), page["title"])
+        blocks = page["blocks"] + week["objectives"] + week["resources"]
+        compare(paragraphs(blocks), topic_text.get(page["title"], ""), page["title"])
+        compare_page_links(page["title"], blocks)
     for activity in model_activities:
         row = back.get((activity["type"], activity["title"]), {})
         text = squash(row.get("instructions_text") or row.get("description_text") or "")
@@ -265,8 +509,16 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
             # the title heading inside a description is left to the object's title (item 31, 2026-10-08):
             # it is present as the title, so the haystack includes it
             compare(paragraphs(activity["blocks"]), squash(activity["title"]) + " " + text, f"{activity['type']} {activity['title']}")
+            compare_links(activity["blocks"], row.get("instructions_html") or row.get("description_html") or "",
+                          "fragment", f"{activity['type']} {activity['title']}")
     check("every authored paragraph is present in the package as read back", not missing,
           f"{compared} paragraphs compared; {len(missing)} not found {missing[:4]}")
+    check("every internal link has the expected label and destination", not link_problems,
+          f"{link_count} links compared; {len(link_problems)} problems {link_problems[:4]}",
+          status=None if link_count else "not_applicable")
+    check("every video has its expected player title and destination or explicit placeholder", not media_problems,
+          f"{media_count} videos compared; {len(media_problems)} problems {media_problems[:4]}",
+          status=None if media_count or media_problems else "not_applicable")
 
     # checklists
     checklist_back = {c["name"]: [plain(b["runs"]) for b in c.get("blocks", []) if b.get("kind") == "li"] for c in activities.get("checklists", [])}
@@ -332,21 +584,30 @@ def verify_build(build_dir: Path, model: dict[str, Any], workbench_scripts: Path
         gate_out = readback_root / "page_gate.json"
         result = subprocess.run([sys.executable, "-B", str(gate_script), str(pages_dir), "--mode", "learner", "--json-output", str(gate_out)],
                                 capture_output=True, text=True, check=False, env=child_env)
-        gate = json.loads(gate_out.read_text(encoding="utf-8")) if gate_out.is_file() else {"diagnostics": [], "files": [], "status": "not written"}
-        gate_errors = [d for d in gate["diagnostics"] if d.get("severity") == "error"]
-        gate_warnings = [d for d in gate["diagnostics"] if d.get("severity") == "warning"]
-        check("Page Kit page gate finds no errors in the pages", result.returncode == 0 and not gate_errors,
+        try:
+            gate = json.loads(gate_out.read_text(encoding="utf-8"))
+            gate_available = isinstance(gate.get("diagnostics"), list) and isinstance(gate.get("files"), list) and bool(gate["files"])
+        except (OSError, ValueError, AttributeError):
+            gate, gate_available = {}, False
+        if not gate_available:
+            gate = {}
+        gate_errors = [d for d in gate.get("diagnostics", []) if d.get("severity") == "error"]
+        gate_warnings = [d for d in gate.get("diagnostics", []) if d.get("severity") == "warning"]
+        check("Page Kit page gate finds no errors in the pages", result.returncode == 0 and gate_available and not gate_errors,
               f"{len(gate.get('files', []))} pages; {len(gate_errors)} errors; {len(gate_warnings)} warnings"
-              + (": " + "; ".join(f"{d['code']} in {d.get('page_id', '')}" for d in (gate_errors + gate_warnings)[:4]) if gate_errors or gate_warnings else ""))
+              + (": " + "; ".join(f"{d['code']} in {d.get('page_id', '')}" for d in (gate_errors + gate_warnings)[:4]) if gate_errors or gate_warnings else "")
+              + ("; required gate output missing or malformed" if not gate_available else ""),
+              status="not_run" if not gate_available else None)
+    elif not page_objects:
+        check("Page Kit page gate finds no errors in the pages", False, "no HTML pages were planned", status="not_applicable")
     else:
-        check("Page Kit page gate finds no errors in the pages", True, "not run: this Workbench checkout has no page gate script, or the package has no pages")
+        check("Page Kit page gate finds no errors in the pages", False,
+              "required page gate script or planned pages directory is missing", status="not_run")
 
-    # wizard QA
-    summary = qa.get("summary", qa)
-    breaks = summary.get("breaks", summary.get("break_count"))
-    check("Blueprint Wizard QA finds no breaks", breaks in (0, [], None) or breaks == 0,
-          f"breaks: {breaks if not isinstance(breaks, list) else len(breaks)}; broken relative references: "
-          f"{sum(len(t.get('missing_refs') or []) for t in structure.get('html_topics', []))}")
+    # QA findings are top-level, not inside the count-only summary.
+    qa_check, qa_notes = _wizard_qa_check(qa, sum(len(t.get("missing_refs") or []) for t in structure.get("html_topics", [])))
+    checks.append(qa_check)
+    notes.extend(qa_notes)
     return _finish(build_dir, checks, suffix, _reader_identity(scripts), notes)
 
 
@@ -360,25 +621,34 @@ def _removed_texts(build_dir: Path) -> list[str]:
 
 
 def _finish(build_dir: Path, checks: list[dict[str, Any]], suffix: str = "", readers: dict[str, Any] | None = None, notes: list[str] | None = None) -> int:
-    passed = all(c["passed"] for c in checks)
+    passed = bool(checks) and all(c.get("status") == "not_applicable" or c["passed"] for c in checks)
     report = {
         "schema": "blueprint_packager.verification/0.1",
-        "evidence_level": "L1: local build read back by the Workbench extractors and Blueprint Wizard. Nothing was imported.",
+        "evidence_level": ("L1: local package verification passed using Workbench extractors and Blueprint Wizard. Nothing was imported."
+                           if passed else "L1 verification failed or is incomplete; see individual check statuses. Nothing was imported."),
         "readers": readers or {},
         "passed": passed,
         "checks": checks,
+        "summary": {status: sum(c.get("status", "passed" if c["passed"] else "failed") == status for c in checks)
+                    for status in ("passed", "failed", "not_run", "not_applicable")},
         "notes": notes or [],
     }
+    readiness_file = build_dir / "readiness_report.json"
+    if readiness_file.is_file():
+        readiness_report = json.loads(readiness_file.read_text(encoding="utf-8"))
+        report["authoring_state"] = readiness_report.get("state", "unknown")
+        if not readiness_report.get("ready"):
+            report["notes"].append("Draft preview: structural verification does not resolve unfinished authoring fields; see readiness_report.json.")
     (build_dir / f"verification_report{suffix}.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     reader_line = ""
     if readers:
-        reader_line = f"Readers: Workbench checkout `{readers.get('checkout', '')}`" + (f" at commit `{readers['commit']}`" if readers.get("commit") else "") + "."
+        reader_line = f"Readers: {readers.get('source', 'checkout')} Workbench `{readers.get('checkout', '')}`" + (f" at commit `{readers['commit']}`" if readers.get("commit") else " (commit not established)") + "."
     lines = ["# Pre-import verification", "", report["evidence_level"], "", reader_line, "", "| Check | Result | Detail |", "|---|---|---|"]
     if notes:
         lines[4:4] = ["Notes: " + " ".join(notes), ""]
     for c in checks:
-        lines.append(f"| {c['check']} | {'pass' if c['passed'] else 'FAIL'} | {c['detail'].replace('|', '/')} |")
+        lines.append(f"| {c['check']} | {c.get('status', 'passed' if c['passed'] else 'failed')} | {c['detail'].replace('|', '/')} |")
     (build_dir / f"verification_report{suffix}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     for c in checks:
-        print(f"  [{'pass' if c['passed'] else 'FAIL'}] {c['check']}: {c['detail']}")
+        print(f"  [{c.get('status', 'passed' if c['passed'] else 'failed')}] {c['check']}: {c['detail']}")
     return 0 if passed else 1

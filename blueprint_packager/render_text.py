@@ -52,6 +52,8 @@ def blocks_markdown(blocks: list[dict[str, Any]], depth: int = 0, show_src: bool
             lines.append(f"{pad}> **[End visual cue]**")
         elif kind == "video":
             lines.append(f"{pad}**[Video embed]** [{block['title']}]({block.get('href', '')}){src}")
+        elif kind == "placeholder":
+            lines.append(f"{pad}**[Draft]** {block['text']}{src}")
         elif kind == "image":
             lines.append(f"{pad}**[Embedded image]** {block.get('text', '')}{src}")
         elif kind == "table":

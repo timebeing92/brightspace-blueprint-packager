@@ -45,6 +45,7 @@ H_COURSE_ACTIVITIES = "Unplaced Activities"  # wizard wording, kept
 H_RUBRICS = "Rubric Appendix"
 H_RETIRED_RUBRICS = "Retired Rubrics (not built)"
 H_NOTES = "Extraction Notes"
+H_AUTHORING_REFERENCE = "Authoring reference"
 WEEK_HEADING_RE = re.compile(r"^Week\s+(\d{1,2})\s*[-–—:]\s*(.*)$")
 
 # --- week table row labels (matched by prefix, wizard wording kept) -------------

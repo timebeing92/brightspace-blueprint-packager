@@ -10,18 +10,22 @@ Blueprint Packager turns a course blueprint, a Word document written in a
 small, fixed layout, into a Brightspace (D2L) import package: modules, pages,
 assignment folders, discussions, checklists, quizzes, rubrics, grade items,
 due dates, and the links between them. It works in inspectable stages, writes
-a receipt at every one, and reads its own package back to prove the course
-came through whole before anyone imports it.
+a receipt at every one, accounts for source content, and reads its own package
+back to check the supported content and relationships before operator review.
 
-It is the forward half of a round trip. The reverse half is **Blueprint
-Wizard**, which reads a Brightspace export back into the same blueprint
-layout. Together they let a course move between a Word document and a
-Brightspace course without hand assembly in either direction.
+**Blueprint Wizard** supplies the extraction half of a supported round trip.
+Use `bpk.py from-wizard` to convert its immutable JSON bundle into an editable
+Packager blueprint. The Wizard's review DOCX is not directly interchangeable
+with the authoring DOCX. The adapter checks exact identities and refuses
+unsupported evidence; see [supported conversion shapes](docs/WIZARD_AUTHORING_CONVERSION.md).
 
-**Status:** version 0.1.1, October 2026. One whole course (eight weeks, 16
-graded activities, 10 rubrics) has been built with it, imported into a
-Brightspace sandbox, re-exported, and read back with every structural check
-passing. See [Evidence and provenance](#evidence-and-provenance).
+**Status:** released version **0.2.2**; this checkout contains an **unreleased
+authoring and verification update**. Earlier MBA 620 sandbox rounds provide
+L4 evidence for their named packages and shapes. The new multiple-activity
+authoring, video markers, readiness gates, and Wizard conversion have local
+test evidence; they have not received a new tenant import/re-export round.
+See [Evidence and provenance](#evidence-and-provenance) and the
+[implementation log](docs/IMPLEMENTATION_LOG_2026-10-09.md).
 
 ---
 
@@ -66,18 +70,21 @@ version (see [The vendored engine](#the-vendored-engine)).
    (SME + designer)      normalize · read ·        + receipts, object map,
                          build · verify            page-refresh zip, runbook
 
-   Brightspace export  ──►  Blueprint Wizard  ──►  Word blueprint      (the reverse half)
+   Brightspace export  ──►  Blueprint Wizard JSON bundle
+                                      │
+                              from-wizard adapter
+                                      │
+                              Authoring DOCX + ledger
 ```
 
-The two tools read and write one layout, so a course can go round: write it,
-build it, teach it, export it, read it back as a document, revise, build
-again.
+The adapter supports an explicit subset of extracted course structures and
+stops when a conversion would discard unsupported content or settings.
 
 ## What you need
 
 - **Python 3.11 or later** and the packages in `requirements.txt`.
 - **A blueprint** in the packager's layout. Start one with `bpk.py blank`
-  (below), or read a Brightspace export into one with Blueprint Wizard, or
+  (below), convert a Blueprint Wizard extraction bundle with `from-wizard`, or
   convert an existing document with a course map (see
   [How it works](#how-it-works)).
 - **A Brightspace course to import into**, ideally an empty sandbox for the
@@ -127,18 +134,21 @@ deleted, and the old folder's launcher forwards to the current version.
    can be an existing file (drag it in), the last one used, or made for
    you from a few questions: package title, the course label above each
    page title, a manifest identifier, the page template, and an optional
-   term calendar from the first day of Week 1 and a week count. Answers
+   term calendar from the first day of Week 1 and a week count. Review the
+   displayed week boundaries and edit partial weeks, breaks, or the final
+   week before accepting that calendar. Answers
    are remembered in `.last_run.json`, and a summary card can be edited by
    number before anything runs.
 5. **The build.** The stages run one after another with their output
-   dimmed beneath and the time each took. Verification shows its twelve
+   dimmed beneath and the time each took. Verification shows its applicable
    checks as a live checklist. The first stage that fails stops the run and
    shows its last lines and the log.
 6. **The results.** A card with the ZIP and its SHA-256, the pages-refresh
    ZIP, the object map, the verification report with its pass count, and a
-   "What to do next" card: import once into an empty course, importing
-   again duplicates everything but pages, page text can be refreshed
-   through Manage Files. Then an offer to open the folder.
+   "What to do next" card. A ready package proceeds to operator review of the
+   verification evidence before any import into an empty course; a draft preview
+   reports its unfinished fields. Re-import duplicates objects, while page text
+   can be refreshed through Manage Files. Then an offer to open the folder.
 
 Every run writes a log under `logs/`. Ctrl-C cancels cleanly. Flags:
 `--plain` (no colour, art, or animation; also automatic when output is not a
@@ -162,9 +172,9 @@ is cut.
 # once
 python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
 
-# 1. a blank blueprint to fill in (eight weeks, every row the reader knows)
+# 1. a minimal blank to fill in; Week 2 has two assignments and one discussion
 python3 bpk.py blank MY_COURSE.docx --course-number "NEW 101" --course-title "Course Title" \
-        --term "Spring A 2027" --weeks 8
+        --term "Spring A 2027" --weeks 8 --week-count 2:2:1
 
 # 2. read the filled-in blueprint into a course model (reports every problem it finds)
 python3 bpk.py read MY_COURSE.docx --output-dir out --label my_course
@@ -173,16 +183,40 @@ python3 bpk.py read MY_COURSE.docx --output-dir out --label my_course
 python3 bpk.py build out/my_course__course_model.json --settings build_settings.json \
         --output-dir build --force
 
-# 4. read the package back and compare it with the model: twelve checks
+# 4. read the package back and compare the evidence with the model
 python3 bpk.py verify build --model out/my_course__course_model.json
 ```
 
-Then import `build/<package>.zip` into Brightspace as a course package. The
+Review the readiness and verification reports before an operator imports
+`build/<package>.zip` into Brightspace as a course package. The
 build folder's `object_map.md` says what to expect to find, and a course's
 own runbook, when it supplies one, says what to check by eye.
 
 Exit codes: 0 success; 1 the step ran and found errors; 2 usage or refusal;
 130 interrupted.
+
+The blank is an authoring draft. Replace its plain writing prompts in full
+before a normal build. Use `--worked-example` when generating a separate
+example with panels and sample rubrics. Set `--assignments-per-week` and
+`--discussions-per-week` for common counts; repeat `--week-count W:A:D` for
+weekly overrides, including zero. Existing blank destinations are protected;
+an explicit `blank --force` backs up the existing document before replacing it.
+
+Review the [updated eight-week blank](docs/examples/blank_blueprint__8_weeks__ux_review.docx)
+and [SME/ID design review](docs/DESIGN_REVIEW_2026-10-09.md). Optional design tokens
+and connection shortcuts can be deferred for manual completion in Brightspace;
+the [authoring guide](docs/AUTHORING_GUIDE.md#optional-features-and-manual-completion-in-brightspace)
+explains how to remove unused declarations and record the remaining work.
+
+To inspect unfinished output, add `--preview` to `build`. A preview permits
+pending authoring fields and is labelled as a draft; structural errors and
+unaccounted source content still stop the build. An intentional video placeholder
+or link fallback can be retained by its exact title using
+`--retain-video-placeholder TITLE` or `--video-link-fallback TITLE`.
+
+**Compatibility:** re-run `read` on existing DOCX files to regenerate cached
+models. Builds now require a source-accounting ledger and current input-contract
+validation. This requirement does not rewrite the source DOCX.
 
 ## How it works
 
@@ -191,12 +225,14 @@ can be found where it happened.
 
 | Stage | Command | What it does |
 |---|---|---|
-| Blank | `bpk.py blank` | Writes a blank blueprint with every row and the lines each needs. It reads back with no errors as it stands. |
+| Blank | `bpk.py blank` | Writes a minimal authoring draft with configurable weekly activity counts and visible writing areas; worked examples are optional. |
+| Wizard conversion | `bpk.py from-wizard` | Converts a supported immutable extraction bundle into an authoring DOCX with source hashes, dispositions, and unresolved diagnostics. |
 | Ingest | `bpk.py ingest` | Dumps a Word file as a stream of paragraphs with stable ids, the ids every later record refers to. |
 | Normalize | `bpk.py normalize` | For a document not yet in the layout: applies a **course map** of structural decisions (move, restyle, mark a panel, make a list, carry a title into a line) and writes a normalized copy. A fidelity proof shows every authored word is still there. Wording changes happen only as recorded entries that name who authorized them and why. |
-| Read | `bpk.py read` | Turns the blueprint into a course model: weeks, pages, activities, rubrics, checklists, and the joins between them, with diagnostics for anything that does not line up (a rubric no activity names, points that disagree with the points table, a heading level that jumps, a link that says "click here"). |
+| Read | `bpk.py read` | Writes the course model, source-accounting ledger, readiness report, relationship report, and diagnostics. Unknown or unplaced authored content is blocking. |
+| Rename | `bpk.py rename` | Previews an exact activity rename and its structural references; `--apply` writes an authorized new copy and ledger. |
 | Build | `bpk.py build` | Writes the Brightspace package from the model and a settings file: page HTML from a template, activity descriptions, dates from a term calendar and due-day rules, checklists built from each week's activities, grade items, rubrics. Deterministic: the same inputs give a byte-identical ZIP. |
-| Verify | `bpk.py verify` | Reads the package back with independent readers and compares it with the model: structure, joins, points, rubrics cell by cell, every authored paragraph, checklists, dates, and an accessibility gate on every page. |
+| Verify | `bpk.py verify` | Checks source accounting, authored content, link text/targets, structure, joins, points, rubrics, checklists, applicable dates, page conformance, and Wizard QA evidence. Missing evidence is not a pass. |
 | Re-sync | `bpk.py rebase-map` | When the source document changes, carries a course map from the old export to the new one and reports what moved, was added, or was removed. |
 
 A blueprint written in the layout from the start skips Normalize.
@@ -210,7 +246,7 @@ A blueprint written in the layout from the start skips Normalize.
 | `course_pages_refresh.zip` | Just the HTML pages. Uploading its folder through Manage Files refreshes page content in a course that is already built, with no new objects (see the next section). |
 | `object_map.json`, `object_map.md` | Every object the build made, its resource code, its placement, its dates, which paragraphs went where, and every build note. |
 | `component_package_receipt.json` | The receipt: what was read (with hashes), what was written, which engine files were used, which engine commit they came from. |
-| `verification_report.md`, `.json` | The twelve read-back checks and their evidence. |
+| `verification_report.md`, `.json` | Read-back checks and their evidence, including failed or unavailable checks. |
 | `build_settings.json` | A copy of the settings the build used. |
 
 Every page's HTML opens with a one-line comment naming the tool version, the
@@ -219,10 +255,12 @@ in a course can be traced to the build that made it.
 
 ## Importing, and updating a course later
 
-These are facts from the sandbox rounds, not assumptions.
+The named MBA 620 sandbox rounds established the following behaviour for the
+tested packages. They do not certify every future package or tenant.
 
-- **First import into an empty course:** everything arrives, and a re-export
-  reads back identical to the build.
+- **First import into an empty course:** the tested package's objects arrived,
+  and its re-export matched the expected content and structure under the
+  documented date/quotation normalization.
 - **Importing the same package again into a course that already holds it
   duplicates every object** except the HTML pages: modules, folders, forums,
   checklists, quizzes, rubrics, and grade items all double, and the new
@@ -259,7 +297,18 @@ The ones that matter most:
   Assigned Reading and Multimedia, Assignments, Discussions, Checklist. A
   checklist can list its items or carry one line, `Items: From this week's
   activities`, and the build makes the list.
-- **Dates are never typed.** The blueprint says "due Sunday"; the build
+- **A week may contain multiple activities.** Each assignment or discussion is
+  a complete declaration-and-instructions block within its appropriate row.
+  Counts may differ by week. Update its grading row and rubric references when
+  adding or removing an activity; the relationship report identifies them.
+- **Writing areas are explicit.** Replace a prompt such as “Write the assignment
+  instructions here.” with ordinary paragraphs. `Author note:` paragraphs and
+  the final `Authoring reference` section stay out of learner content. Older
+  bracketed guidance and placeholder forms remain supported.
+- **Video brackets:** `[video: Title | URL]` produces a supported player;
+  `[video placeholder: Title]` produces a visible placeholder in preview or
+  after explicit retention. The title becomes the iframe's accessible label.
+- **Term dates come from settings.** The blueprint can say "due Sunday"; the build
   settings carry the term's week table and the program's due-day rules.
 - **Activities say what they are** on one line (`Assignment: Week 2
   Deliverable: …`, `Points: 10 pts`, `Rubric: …`), and the points table at
@@ -267,6 +316,12 @@ The ones that matter most:
   until someone records which is right.
 
 Real bullets, real numbering, bold and italic all come through as typed.
+
+The live UNE Google Docs checks covered native upload, pageless mode, editing,
+Word export, and the guided runner on draft and ready synthetic courses. See
+the [Google authoring QA record](docs/evidence/GOOGLE_AUTHORING_QA_2026-10-09.md)
+for exact comparisons, retained test documents, and the limits of API-based
+editing evidence.
 
 ## Page styling
 
@@ -284,9 +339,11 @@ style set derived from the same template, or none, by setting
 **Evidence levels.** Every shape the tool can build is listed in
 `CAPABILITIES.json` with how well it is proven, on a ladder from L1 (the tool
 reads its own output back) to L4 (a package was imported into Brightspace,
-re-exported, and read back). The whole-course package is at L4 as of
-2026-10-08; `docs/IMPORT_RECEIPTS.md` holds the receipts, each with the
-package hash, the sandbox, the counts, and what Brightspace changed.
+re-exported, and read back). The named historical whole-course packages reached
+L4 in October 2026; `docs/IMPORT_RECEIPTS.md` holds those receipts, each with the
+package hash, the sandbox, the counts, and what Brightspace changed. New candidate
+features retain L1/local evidence until an appropriate operator-led tenant round
+is recorded. Live Google Docs conversion is separate from tenant evidence.
 
 **What every run records.** The receipt names the producer and version, the
 input file and its hash, every engine file used and its hash, the settings,
@@ -377,20 +434,22 @@ If you fork this repository to build your own courses, two things to know.
 | `scripts/update_check.py`, `launcher/install_release.py` | The once-a-day release check, and the verified side-by-side installer it offers. |
 | `scripts/make_release_bundle.py`, `RELEASING.md` | Cut a release ZIP with its manifest; the steps. |
 | `bpk.py` | The command line. `python3 bpk.py --help` lists the stages. |
-| `blueprint_packager/` | One module per stage: `docx_ingest`, `normalize`, `fidelity`, `reader`, `joins`, `calendar`, `html_render`, `build`, `verify`, `rebase`, `blank`; `vocabulary` holds the blueprint layout's words; `workbench` decides where the engine files come from. |
+| `blueprint_packager/` | Pipeline stages plus `authoring` (readiness/media), `contracts` (input validation), `relationships` (reports/renames), and `wizard_authoring` (explicit conversion). `vocabulary` holds structural words; `workbench` resolves the pinned engine. |
 | `blueprint_packager/templates/` | Page templates: `composite_navy` (default), `bumk515_classic`. |
 | `vendor/coursecraft_workbench/` | The pinned engine files and schemas, with their manifest. |
 | `scripts/check_vendor_drift.py` | Compares the vendored files with a Workbench checkout; re-pins on request. |
 | `scripts/render_readme_art.py` | Draws the picture at the top of this page from a text grid; the splash uses the same grid. |
 | `INSTALL_AND_TROUBLESHOOT.md` | When the launcher or the runner does not start. |
 | `docs/AUTHORING_GUIDE.md` | How to write a blueprint. Start here if you will edit one. |
+| `docs/WIZARD_AUTHORING_CONVERSION.md` | Supported extraction-to-authoring conversion shapes and limitations. |
+| `docs/IMPLEMENTATION_PLAN_2026-10-09.md`, `docs/IMPLEMENTATION_LOG_2026-10-09.md` | Approved candidate scope, decisions, deviations, and evidence. |
 | `docs/DESIGN.md` | Why the tool is shaped as it is, and the open directions. |
 | `docs/IMPORT_RECEIPTS.md` | The sandbox receipts behind the evidence level. |
 | `docs/TEMPLATE_COMPOSITE_NAVY.md` | The default template and where each part came from. |
 | `docs/PROMOTION_MANIFEST.md` | Which parts belong to the shared engine and where that stands. |
 | `docs/examples/` | A generated eight-week blank blueprint. |
 | `docs/records/` | Survey reports and work records. |
-| `tests/` | Synthetic fixtures end to end; `pytest -q`. |
+| `tests/` | Synthetic fixtures end to end; `.venv/bin/python -m pytest tests -q`. |
 | `CAPABILITIES.json`, `CHANGELOG.md`, `ROADMAP.md`, `AGENTS.md` | What it builds and how well, what changed, what is next, what it must never do. |
 
 ## Questions and changes
@@ -398,8 +457,8 @@ If you fork this repository to build your own courses, two things to know.
 - Something in a build looks wrong: open the build's `verification_report.md`
   and `object_map.md` first; they say what was read and what was checked.
 - A blueprint will not read: the diagnostics name the paragraph and say what
-  to change. The authoring guide's last section lists what the tool will not
-  guess.
+  to change. The authoring guide explains structural rules, readiness, and
+  unsupported content.
 - A problem in a vendored file: report it; it is fixed in the Workbench and
   re-pinned here, never patched in place. `AGENTS.md` says what this
   repository owns.

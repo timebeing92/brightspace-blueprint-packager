@@ -29,6 +29,8 @@ from typing import Any
 from . import __version__
 from . import identity as I
 from . import workbench as WB
+from .authoring import readiness
+from .contracts import ContractError, validate_inputs
 from .calendar import Calendar, CalendarError, WEEKDAYS, utc_parts
 from .html_render import LinkRestoration, Template, render_course_page, render_fragment, render_week_page
 from .joins import TYPE_LABEL
@@ -101,8 +103,11 @@ def cell_html(blocks: list[dict[str, Any]]) -> str:
     """Rubric cell text as simple paragraphs (no styling; Brightspace styles rubric cells itself)."""
     parts = []
     for block in blocks:
-        if not block.get("runs"):
+        if block.get("kind") == "placeholder":
+            parts.append(f'<p data-blueprint-pending="true">{html.escape(block["text"])}</p>')
             continue
+        if not block.get("runs"):
+            raise BuildError(f"Rubric cells cannot package a {block.get('kind', 'unknown')} block; use authored text, lists, or headings.")
         text = "".join(html.escape(run["text"], quote=False) for run in block["runs"]).replace("\n", "<br>").strip()
         if text:
             parts.append(f"<p>{text}</p>")
@@ -111,6 +116,10 @@ def cell_html(blocks: list[dict[str, Any]]) -> str:
 
 class Builder:
     def __init__(self, model: dict[str, Any], settings: dict[str, Any], settings_dir: Path) -> None:
+        try:
+            validate_inputs(model, settings)
+        except ContractError as exc:
+            raise BuildError(str(exc)) from exc
         self.model = model
         self.settings = settings
         self.settings_dir = settings_dir
@@ -177,8 +186,18 @@ class Builder:
     def plan(self) -> None:
         model = self.model
         errors = [d for d in model.get("diagnostics", []) if d["severity"] == "error"]
-        if errors and not self.settings.get("allow_model_errors"):
+        if errors:
             raise BuildError(f"Course model has {len(errors)} error(s); fix the blueprint before building. First: {errors[0]['message']}")
+        accounting = model.get("source_accounting", {})
+        if accounting.get("complete") is not True or accounting.get("unresolved"):
+            raise BuildError("Source accounting is missing or incomplete. Re-read the DOCX and resolve all unassigned content.")
+        self.readiness = readiness(model, self.settings)
+        self.build_mode = self.settings.get("build_mode", "ready")
+        if not self.readiness["ready"] and self.build_mode != "preview":
+            pending = [f for f in self.readiness["findings"] if f["status"] == "unresolved"]
+            raise BuildError(f"Blueprint is a draft: {len(pending)} unresolved authoring item(s). First: {pending[0]['message']} [{pending[0]['where']}]. Use preview mode to inspect unfinished content.")
+        if self.build_mode == "preview":
+            self.note("warning", "DRAFT_PREVIEW", "Preview output may contain unfinished authoring fields; review readiness_report.json before any import.")
 
         # grade items, in points-table order. The points-table row is the join.
         # The name shown in the gradebook follows the activity it grades unless
@@ -338,7 +357,7 @@ class Builder:
 
     def _register_link_targets(self) -> None:
         """Tell the renderer which objects "[link to ...]" may name, and how to reach each one."""
-        targets: dict[tuple[str, str], dict[str, str | None]] = {}
+        targets: dict[tuple[str, str], dict[str, str | None]] = dict(self.template.link_targets)
         for (kind, title), key in self.activity_key.items():
             link_type, _type_key = QUICKLINKS[kind]
             targets[(kind, title)] = {"page": None, "quicklink": f"/d2l/common/dialogs/quickLink/quickLink.d2l?ou={{orgUnitId}}&type={link_type}&rCode={self.codes[key]}"}
@@ -776,11 +795,13 @@ class Builder:
                                        "use": "upload the folder inside through Manage Files at the same path to refresh page content in a built course; nothing else changes"}
                                       if refresh_name else None),
                 "extensions": {
+                    "authoring_state": self.readiness["state"],
+                    "build_mode": self.build_mode,
                     "live_brightspace_operations": "not_performed",
                     "producer": {"tool": I.TOOL, "version": __version__},
                     "template": {"id": self.template.id, "version": self.template.manifest.get("version")},
                     "beyond_workbench_library": sorted(self.extensions_used),
-                    "evidence_level": "L1 (local build and read-back); not imported",
+                    "evidence_level": "Local generation only; see verification_report for read-back evidence. Not imported.",
                 },
             }
             (temp_root / "component_package_receipt.json").write_text(json.dumps(receipt, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
@@ -802,6 +823,7 @@ class Builder:
             (temp_root / "object_map.json").write_text(json.dumps(object_map, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             (temp_root / "object_map.md").write_text(self._object_map_markdown(), encoding="utf-8")
             (temp_root / "build_settings.json").write_text(json.dumps(self.settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            (temp_root / "readiness_report.json").write_text(json.dumps(self.readiness, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             if out_dir.exists():
                 shutil.rmtree(out_dir)
             temp_root.rename(out_dir)

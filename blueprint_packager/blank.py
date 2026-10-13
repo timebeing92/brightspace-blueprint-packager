@@ -1,23 +1,19 @@
-"""A blank blueprint in the current convention, for writing a course from nothing.
+"""Generate a reviewable authoring blueprint with explicit guidance and placeholders.
 
-Every row the reader knows is present, with the prompts an author needs and
-nothing else that would be built. The frame is Heading 1; content starts at
-Heading 2; each week carries a Checklist row pre-filled with the "Items: From
-this week's activities" line, which the author may replace with typed items
-(owner's decision, 2026-10-08). The result reads with zero errors as it
-stands, so a course can be built from it the moment it has content.
-
-Presentation (2026-10-09, on the owner's notes): a short guide and key at the
-top as plain paragraphs, which the reader keeps as title lines and never
-builds; live examples of a dropdown, a callout, and an internal link inside
-Week 1 where they read as real content; room to breathe in the tables; label
-rows shaded; prompts in grey italics so they are told apart from structure
-lines; the course's navy for headings.
+The minimal form contains writing areas and selected activity scaffolds. The worked
+example adds clearly named sample rubrics and sample content. Every structural cue
+is text-based so it survives a Word / Google Docs round trip.
 """
 
 from __future__ import annotations
 
+import io
+import os
 import re
+import shutil
+import tempfile
+from datetime import datetime, timezone
+from copy import deepcopy
 from pathlib import Path
 
 from docx import Document
@@ -27,6 +23,7 @@ from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
 from . import vocabulary as V
+from .authoring import AUTHOR_NOTE_PREFIX, WRITING_PROMPTS
 
 NAVY = RGBColor(0x10, 0x39, 0x45)
 BRAND = RGBColor(0x17, 0x4B, 0x5C)
@@ -48,77 +45,25 @@ PANELS = {
 _LINK_RE = re.compile(r"\[link to [^\]]+\]")
 _OPENER_RE = re.compile(r"^\[\s*([a-z]+)((?:\s+[a-z_]+=[^\s\]:]+)*)")
 
-# Prompt lines are italic grey; structure lines (a keyword, a colon, a value) stay upright.
-ROW_PROMPTS = {
-    "overview": ["Page: Week {n} Overview", "Page heading: Week {n} – {topic}",
-                 "(Introduce the week here. Headings inside a page start at Heading 2.)"],
-    "objectives": [V.OBJECTIVES_SUBLABEL, "(One objective per bullet.)"],
-    "resources": ["(Readings, media, and links. Use a Heading 2 for each group if you group them.)"],
-    "assignments": ["Assignment: Week {n} Assignment: (title)", "Points: 10 pts",
-                    "Gradebook item: Week {n} Assignment: (title)", "Rubric: Standard Assignment Rubric",
-                    "(Instructions. Headings inside an activity start at Heading 2. Change the points here and in the points table together.)"],
-    "discussions": ["Discussion: Week {n} Discussion: (title)", "Points: 5 pts",
-                    "Gradebook item: Week {n} Discussion: (title)", "Rubric: Standard Discussion Rubric", "Forum: Discussions",
-                    "(Prompt. Say when the first post and the responses are due by day of the week, not by date.)"],
-    "checklist": ["Checklist: Week {n} Checklist", f"{V.D_ITEMS}: {V.ITEMS_FROM_ACTIVITIES}",
-                  "(Leave the Items line to build the list from this week's activities, or replace it with typed items.)"],
-}
-
-# Week 1's overview carries worked examples of the three forms authors ask about most.
-WEEK_1_OVERVIEW_EXAMPLES = [
-    "Page: Week 1 Overview", "Page heading: Week 1 – {topic}",
-    "(Introduce the week here. The four examples below are real: keep, change, or delete them.)",
-    "[dropdown: Example dropdown – a panel the reader opens]",
-    "(Anything between the bracket lines is inside the panel: paragraphs, bullets, links.)",
-    "[/dropdown]",
-    "[callout]",
-    "(A callout: a highlighted box for a note, a reminder, or a short aside. Shaded blue on the page.)",
-    "[/callout]",
-    "[callout tone=gold]",
-    "(The warm callout, for something to keep in mind. The tone word is the only difference.)",
-    "[/callout]",
-    "(An internal link reads like this:) Start with the [link to assignment: Week 1 Assignment: (title) | first assignment] before the discussion.",
-]
-
+# Guidance is explicitly excluded by the reader; placeholders remain visible and
+# are reported by readiness checks. Both forms survive ordinary document conversion.
 GUIDE = [
-    ("What this document is", [
-        "This Word file is the whole plan for one course. When it is finished, a tool reads it and builds the Brightspace "
-        "course from it: the weekly pages, assignments, discussions, checklists, rubrics, and gradebook. You only write here.",
-    ]),
-    ("What to do, in order", [
-        "At the top, fill the three shaded boxes (catalog description, required materials, learning outcomes) and the points table.",
-        "For each week, write in the six rows of its table: the overview page, the learning objectives, the readings and media, the assignments, the discussions, and the checklist.",
-        "At the end, under Rubric Appendix, give each rubric its name and fill in its table. Two standard rubrics are already there to adapt.",
-        "When you are done, save the file and hand it back. The build happens from this file as it is.",
-    ]),
-    ("How to read what is already on the page", [
-        "A line in bold navy with a colon (Assignment:, Points:, Rubric:, Page heading:) is an instruction to the builder. Keep the word before the colon exactly as it is; change what comes after it. "
-        "For example, Assignment: Week 2 Assignment: (title) becomes Assignment: Week 2 Assignment: Market Analysis Memo.",
-        "Grey italic text in parentheses, like (Introduce the week here), tells you what belongs in that spot. Replace it with your text, or delete it.",
-        "The large Heading 1 lines (Course Introduction, Week 1 – …, Rubric Appendix) are the document's skeleton. Leave them where they are; you may change a week's title after its dash.",
-        "Shaded blocks are panels: a lavender block is a dropdown the student opens, a blue block is a callout, a warm block is a callout for something to keep in mind. The bracket lines at their top and bottom mark where they start and end; write between them.",
-        "Underlined blue [link to …] text becomes a working link to another part of the course.",
-    ]),
-    ("Four rules that save a round of fixes", [
-        "Use Word's own bullets, numbering, bold, italic, and links; they all come through. Inside a page or an assignment, start your own headings at Heading 2.",
-        "Never type a calendar date. Write 'due Sunday' or 'post by Friday'; the dates for each term are added when the course is built.",
-        "Names must match. The title on an Assignment line, its Gradebook item line, and its row in the points table are the same words, and the points agree.",
-        "You may delete this guide and the key below once you know the layout; the builder never reads them.",
-    ]),
-    ("Key: the lines that make structure", [
-        "Page: Title  /  Page heading: Title — a content page and the title shown at its top.",
-        "Placement: Module name — where a page goes when it is not part of its week.",
-        "Assignment: Title  /  Discussion: Title — an activity. Under it: Points: 10 pts, Gradebook item: Title, Rubric: Rubric name, and for a discussion Forum: Discussions.",
-        "Checklist: Title — the week's checklist. The line Items: From this week's activities builds it from the week's activities; or type the items yourself, one per line.",
-        "Module: Name — before Week 1, a module of its own; its pages and links follow on the lines below it.",
-        "Link: Title  /  URL: https://… — an external link placed in a module.",
-        "Used by: Assignment: Title — under a rubric, one line for each activity that uses it.",
-        "[dropdown: Title] … [/dropdown] — a panel the student clicks open. Shaded lavender.",
-        "[callout] … [/callout] — a highlighted box. Shaded blue. [callout tone=gold] … [/callout] — the warm version, for something to keep in mind.",
-        "[timeline] … [/timeline] — a sequence of stages; [box] … [/box] — a plain framed section.",
-        "[link to assignment: Title | words] — a link to the course's own object. Also link to discussion, link to quiz, link to checklist, link to page. The words after the bar are what the reader sees and clicks; without them, the title is shown.",
+    ("Start with one week", [
+        ("Draft the learning experience.", "Confirm the course outcomes and assessment plan with your instructional designer. Then complete one week's overview, objectives, resources, and student instructions before repeating the pattern."),
+        ("Replace a writing prompt.", "Select and replace the entire prompt sentence. Type or paste your text in its place, then press Enter to continue with more paragraphs. The writing area grows with your content."),
+        ("Keep the structure in place.", "Keep shaded section labels and field names such as Page: and Points:. Change the values after the colon with your designer. Use Heading 2 or deeper for headings within student content."),
+        ("Return your draft for review.", "Save or download as Word (.docx) and send it to your instructional designer. Review the learner preview together after checking activity names, points, rubrics, links, and dates."),
     ]),
 ]
+
+SECTION_TITLES = {
+    "overview": "Overview:",
+    "objectives": "Learning Objectives:",
+    "resources": "Assigned Reading and Multimedia:",
+    "assignments": "Assignment(s) and Instructions:",
+    "discussions": "Discussion Board Prompts:",
+    "checklist": "Checklist",
+}
 
 
 # ------------------------------------------------------------------ styling helpers
@@ -169,7 +114,7 @@ def _write_text_with_links(para, text: str, colour=None) -> None:
             run.font.color.rgb = colour
 
 
-def _cell_margins(table, top: int = 100, bottom: int = 100, left: int = 140, right: int = 140) -> None:
+def _cell_margins(table, top: int = 80, bottom: int = 80, left: int = 140, right: int = 140) -> None:
     """Breathing room inside every cell, in twentieths of a point."""
     tbl_pr = table._tbl.tblPr
     margins = OxmlElement("w:tblCellMar")
@@ -207,9 +152,29 @@ def _write_line(para, line: str, panel: str | None = None) -> None:
 
     Prompts are grey italic; structure keywords bold navy; bracket lines take their panel's
     ink; a line inside a panel is shaded with the panel's fill; [link to …] is link blue."""
-    para.paragraph_format.space_after = Pt(4)
+    para.paragraph_format.space_after = Pt(3)
     if panel:
         _shade_paragraph(para, PANELS[panel]["fill"])
+    if line.startswith(("[authoring:", AUTHOR_NOTE_PREFIX)):
+        if line.startswith(AUTHOR_NOTE_PREFIX):
+            lead = para.add_run(AUTHOR_NOTE_PREFIX)
+            lead.bold = True
+            run = para.add_run(line[len(AUTHOR_NOTE_PREFIX):])
+            lead.font.size = Pt(9)
+            lead.font.color.rgb = GREY
+        else:
+            run = para.add_run(line)
+        run.font.size = Pt(9)
+        run.font.color.rgb = GREY
+        return
+    if line.startswith("[placeholder:") or line in WRITING_PROMPTS.values():
+        run = para.add_run(line)
+        run.font.color.rgb = RGBColor(0, 0, 0)
+        run.italic = False
+        run.bold = False
+        para.paragraph_format.space_before = Pt(5)
+        para.paragraph_format.space_after = Pt(8)
+        return
     if line.startswith("["):
         run = para.add_run(line)
         key = _panel_for(line) or panel or "callout"
@@ -222,6 +187,9 @@ def _write_line(para, line: str, panel: str | None = None) -> None:
         run.font.color.rgb = GREY
         return
     if _is_structure(line) and ":" in line:
+        if line.startswith(("Assignment:", "Discussion:")):
+            para.paragraph_format.space_before = Pt(4)
+            para.paragraph_format.keep_with_next = True
         keyword, rest = line.split(":", 1)
         lead = para.add_run(keyword + ":")
         lead.bold = True
@@ -240,6 +208,7 @@ def _write_line(para, line: str, panel: str | None = None) -> None:
 
 def _fill(cell, lines: list[str], label: bool = False) -> None:
     first = True
+    activities = 0
     panel: str | None = None  # the panel we are inside, so its lines take its fill
     for line in lines:
         para = cell.paragraphs[0] if first else cell.add_paragraph()
@@ -254,9 +223,21 @@ def _fill(cell, lines: list[str], label: bool = False) -> None:
         opened = _panel_for(line)
         if opened:
             panel = opened
+        if (line.startswith("[placeholder: Learning objective") or line.startswith("[placeholder: Course learning outcome")
+                or line in (WRITING_PROMPTS["learning_objective"], WRITING_PROMPTS["course_learning_outcome"])):
+            para.style = "List Bullet"
+            # Direct numbering survives readers that do not resolve style inheritance.
+            num_pr = para.style.element.xpath("./w:pPr/w:numPr")
+            if num_pr:
+                para._p.get_or_add_pPr().append(deepcopy(num_pr[0]))
         _write_line(para, line, panel)
+        if line.startswith(("Assignment:", "Discussion:")):
+            if activities:
+                para.paragraph_format.space_before = Pt(14)
+            activities += 1
         if line.startswith("[/"):
             panel = None
+
 
 
 def _no_split(row) -> None:
@@ -266,7 +247,7 @@ def _no_split(row) -> None:
     tr_pr.append(cant)
 
 
-def _one_column(doc, rows: list[list[str]], label_rows: set[int] | None = None):
+def _one_column(doc, rows: list[list[str]], label_rows: set[int] | None = None, *, spacer: bool = True):
     table = doc.add_table(rows=len(rows), cols=1)
     table.autofit = True
     _borders(table)
@@ -274,94 +255,284 @@ def _one_column(doc, rows: list[list[str]], label_rows: set[int] | None = None):
     for index, lines in enumerate(rows):
         is_label = index in (label_rows or set())
         row = table.rows[index]
-        _no_split(row)
         cell = row.cells[0]
         if is_label:
+            _no_split(row)
             _shade(cell, LABEL_FILL)
         _fill(cell, lines, label=is_label)
         if is_label:
             for para in cell.paragraphs:
                 para.paragraph_format.keep_with_next = True
-    doc.add_paragraph().paragraph_format.space_after = Pt(6)
+    if spacer:
+        gap = doc.add_paragraph()
+        gap.paragraph_format.space_after = Pt(4)
+        gap.paragraph_format.space_before = Pt(0)
+        gap.paragraph_format.line_spacing = Pt(1)
+        gap.add_run().font.size = Pt(1)
     return table
 
 
 def _style_document(doc) -> None:
     section = doc.sections[0]
     section.left_margin = section.right_margin = Inches(1)
-    section.top_margin = section.bottom_margin = Inches(0.9)
+    section.top_margin = section.bottom_margin = Inches(0.8)
+    section.page_width, section.page_height = Inches(8.5), Inches(11)
     normal = doc.styles["Normal"]
-    normal.font.name = "Lato"
+    normal.font.name = "Arial"
     normal.font.size = Pt(11)
-    normal.element.rPr.rFonts.set(qn("w:eastAsia"), "Lato")
+    normal.element.rPr.rFonts.set(qn("w:eastAsia"), "Arial")
+    defaults = doc.styles.element.xpath("./w:docDefaults/w:rPrDefault/w:rPr/w:rFonts")
+    for fonts in defaults:
+        fonts.attrib.clear()
+        for slot in ("ascii", "hAnsi", "eastAsia", "cs"):
+            fonts.set(qn(f"w:{slot}"), "Arial")
     normal.paragraph_format.space_after = Pt(6)
     normal.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
-    normal.paragraph_format.line_spacing = 1.15
+    normal.paragraph_format.line_spacing = 1.1
     for name, size, before, after in (("Title", 26, 0, 6), ("Heading 1", 18, 20, 8), ("Heading 2", 14, 12, 4), ("Heading 3", 12, 10, 3)):
         style = doc.styles[name]
-        style.font.name = "Lato"
+        style.font.name = "Arial"
         style.font.size = Pt(size)
         style.font.bold = True
         style.font.color.rgb = NAVY
         style.paragraph_format.space_before = Pt(before)
         style.paragraph_format.space_after = Pt(after)
+        style.paragraph_format.keep_with_next = True
+    # Remove the Word default Title border, including inherited direct style residue.
+    for name in ("Title", "Subtitle"):
+        for border in doc.styles[name].element.xpath("./w:pPr/w:pBdr"):
+            border.getparent().remove(border)
 
 
 def _guide(doc) -> None:
+    doc.add_paragraph("Use this document to draft the content students will read and to agree the course setup with your instructional designer.")
     for heading, lines in GUIDE:
-        para = doc.add_paragraph()
-        run = para.add_run(heading)
-        run.bold = True
-        run.font.color.rgb = BRAND
-        run.font.size = Pt(12)
-        para.paragraph_format.space_before = Pt(10)
-        para.paragraph_format.space_after = Pt(4)
-        for line in lines:
-            item = doc.add_paragraph(style="List Number" if heading.startswith("What to do") else "List Bullet")
-            item.paragraph_format.space_after = Pt(3)
-            if " — " in line and heading.startswith("Key"):
-                term, rest = line.split(" — ", 1)
-                panel = _panel_for(term) if term.startswith("[") else None
-                lead = item.add_run(term)
-                lead.bold = True
-                if term.startswith("[link to"):
-                    lead.font.color.rgb = LINK
-                    lead.underline = True
-                elif panel:
-                    lead.font.color.rgb = PANELS[panel]["ink"]
-                    _shade_paragraph(item, PANELS[panel]["fill"])
-                else:
-                    lead.font.color.rgb = NAVY
-                _write_text_with_links(item, " — " + rest)
-            else:
-                item.add_run(line)
+        doc.add_paragraph(heading, style="Heading 2")
+        for lead, text in lines:
+            item = doc.add_paragraph(style="List Number")
+            item.paragraph_format.space_after = Pt(7)
+            item.add_run(lead + " ").bold = True
+            item.add_run(text)
+    doc.add_paragraph("What writing looks like", style="Heading 2")
+    p = doc.add_paragraph()
+    p.add_run("Prompt to replace   ").bold = True
+    p.add_run(WRITING_PROMPTS["week_introduction"])
+    p = doc.add_paragraph()
+    p.add_run("Your replacement   ").bold = True
+    p.add_run("This week, you will compare two ways to evaluate a source.")
+    doc.add_paragraph("Continue with as many paragraphs, lists, links, and headings as needed. Your prose is ordinary document text; brackets are only used for optional features such as videos and expandable sections.")
+    doc.add_paragraph("A few useful distinctions", style="Heading 2")
+    for lead, text in (
+        ("Author notes", "help you complete the document and stay out of the course."),
+        ("Course reference fields", "record the description, materials and course outcomes; they do not automatically create student pages."),
+        ("Authoring reference", "at the end contains separate examples to copy when you need another activity, a video, a panel, or a link."),
+    ):
+        p = doc.add_paragraph(style="List Bullet")
+        p.paragraph_format.space_after = Pt(3)
+        p.add_run(lead + " ").bold = True
+        p.add_run(text)
+
+    doc.add_paragraph("Choose the features that help you", style="Heading 2")
+    doc.add_paragraph("Designers and SMEs are welcome to use the optional design tokens (dropdowns, callouts, and videos) and shortcuts that connect course objects such as assignments, grade items, and rubrics. If you are more comfortable, use ordinary text and defer styling or connections for manual completion in Brightspace. Record deferred work in Extraction Notes; your designer can remove any unused connection settings.")
+
+
+def _reference_example(doc, heading: str, purpose: str, lines: list[str], after: str = "") -> None:
+    doc.add_paragraph(heading, style="Heading 3")
+    doc.add_paragraph(purpose)
+    label = doc.add_paragraph("Copy the following lines")
+    label.paragraph_format.keep_with_next = True
+    label.runs[0].bold = True
+    for index, line in enumerate(lines):
+        p = doc.add_paragraph()
+        p.paragraph_format.left_indent = Inches(0.18)
+        _write_line(p, line)
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(2)
+        p.paragraph_format.keep_with_next = index < len(lines) - 1
+    if after:
+        doc.add_paragraph(after)
+
+
+def _reference(doc) -> None:
+    heading = doc.add_paragraph(V.H_AUTHORING_REFERENCE, style="Heading 1")
+    heading.paragraph_format.page_break_before = True
+    doc.add_paragraph("This section is for authors and stays out of the course. Copy only the example lines into the relevant writing area. Replace the example titles and writing prompts; keep the field names and functional brackets.")
+    doc.add_paragraph("Add or change activities", style="Heading 2")
+    _reference_example(doc, "Add an assignment", "Paste into the week's Assignment(s) and Instructions cell, after the preceding activity.", [
+        "Assignment: Week 2 Assignment: Source comparison", "Points: 20", "Gradebook item: Week 2 Assignment: Source comparison",
+        WRITING_PROMPTS["assignment_instructions"]],
+        "Designer: add a grading-plan row with that exact name and 20 points. If using a rubric, add Rubric: followed by its exact name above the instructions, and add the activity to that rubric's Used by list.")
+    _reference_example(doc, "Add a discussion", "Paste into the week's Discussion Board Prompts cell. The next Discussion: line begins a separate activity.", [
+        "Discussion: Week 2 Discussion: Comparing evidence", "Points: 10", "Gradebook item: Week 2 Discussion: Comparing evidence",
+        "Forum: Discussions", WRITING_PROMPTS["discussion_prompt"]],
+        "Designer: add a matching 10-point grading-plan row. For an ungraded activity, omit Points: and Gradebook item: and do not add a grading-plan row.")
+    doc.add_paragraph("Rename or remove an activity", style="Heading 3")
+    doc.add_paragraph("Copy or delete from the Assignment: or Discussion: line through the final instruction paragraph, stopping before the next activity. Leave the shaded weekly section label in place. Have your designer update the grading row, rubric references, checklist wording and links. Use the Packager's rename preview when changing an established title.")
+    doc.add_paragraph("Prefer to finish setup in Brightspace?", style="Heading 3")
+    doc.add_paragraph("Design tokens and connection shortcuts are optional. You can style content and connect course objects by hand in Brightspace after import. Record that work in Extraction Notes. Your designer should remove unused connection settings and matching references before packaging; any connection left in the blueprint must still match a real target exactly. See the Authoring Guide for the grading and rubric details.")
+
+    heading = doc.add_paragraph("Expandable sections and callouts", style="Heading 2")
+    heading.paragraph_format.page_break_before = True
+    doc.add_paragraph("Optional page elements. Put each bracket line in its own paragraph. Write ordinary content between the opening and closing lines; you can use multiple paragraphs, lists and links.")
+    _reference_example(doc, "Expandable section", "Students open this section to reveal the text. Change Additional detail to the title they should see.", [
+        "[dropdown: Additional detail]", WRITING_PROMPTS["panel_content"], "[/dropdown]"])
+    _reference_example(doc, "Blue callout", "Use a short callout for a note or reminder that supports the surrounding content.", [
+        "[callout]", WRITING_PROMPTS["panel_content"], "[/callout]"])
+    _reference_example(doc, "Warm callout", "The same kind of note, with the alternative warm colour treatment.", [
+        "[callout tone=gold]", WRITING_PROMPTS["panel_content"], "[/callout]"])
+
+    heading = doc.add_paragraph("Videos and links", style="Heading 2")
+    heading.paragraph_format.page_break_before = True
+    doc.add_paragraph("Use these forms only where you want the feature to appear. Each video bracket occupies one paragraph; an internal-link bracket can sit inside a sentence.")
+    _reference_example(doc, "Video with a known URL", "Replace Weekly introduction with an accessible title and replace VIDEO_ID with the video's YouTube ID, or paste a supported Vimeo URL.", [
+        "[video: Weekly introduction | https://www.youtube.com/watch?v=VIDEO_ID]"])
+    _reference_example(doc, "Video to add later", "Reserve a visible place for a video when its URL is not yet available.", [
+        "[video placeholder: Weekly introduction]"], "Before packaging, add the URL or have your designer explicitly retain the named video placeholder.")
+    _reference_example(doc, "Link to an activity", "Replace the target title with the activity's exact title. Words after the vertical bar are the link text students see.", [
+        "[link to assignment: Week 2 Assignment: Source comparison | Open the assignment]"],
+        "The same form accepts discussion, checklist, page, or quiz when that target exists.")
+    doc.add_paragraph("Before the designer builds", style="Heading 3")
+    doc.add_paragraph("Review outcome alignment, student workload, task and submission clarity, accessibility, materials access, and assessment criteria. Confirm points deliberately, including any intended zero-point or ungraded work. The generated checklist covers activities; add reading, viewing or practice tasks when needed. Technical readiness alone does not establish instructional completeness or approval.")
+
+
+def _repeat_header(row) -> None:
+    _no_split(row)
+    header = OxmlElement("w:tblHeader")
+    row._tr.get_or_add_trPr().append(header)
+
+
+def _table_widths(table, widths: tuple[float, ...]) -> None:
+    table.autofit = False
+    for column, width in zip(table.columns, widths):
+        column.width = Inches(width)
+    for row in table.rows:
+        for cell, width in zip(row.cells, widths):
+            cell.width = Inches(width)
+
+
+def _activity_counts(weeks: int, assignments: int, discussions: int,
+                     overrides: dict[int, dict[str, int]] | None) -> dict[int, dict[str, int]]:
+    def count(value, label):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValueError(f"{label} must be a non-negative integer")
+        return value
+
+    if isinstance(weeks, bool) or not isinstance(weeks, int) or not 1 <= weeks <= 52:
+        raise ValueError("weeks must be an integer from 1 to 52")
+    defaults = {"assignments": count(assignments, "assignments_per_week"),
+                "discussions": count(discussions, "discussions_per_week")}
+    result = {n: dict(defaults) for n in range(1, weeks + 1)}
+    for n, values in (overrides or {}).items():
+        if isinstance(n, bool) or not isinstance(n, int) or n not in result:
+            raise ValueError(f"week_counts key {n!r} must identify a week from 1 to {weeks}")
+        if not isinstance(values, dict) or set(values) - set(defaults):
+            raise ValueError(f"week_counts[{n}] accepts only assignments and discussions")
+        for key, value in values.items():
+            result[n][key] = count(value, f"week_counts[{n}][{key}]")
+    return result
+
+
+def _activity_title(n: int, kind: str, index: int, count: int) -> str:
+    sequence = f" {index}" if count > 1 else ""
+    return f"Week {n} {kind}{sequence}: (title)"
+
+
+def _activity_lines(n: int, kind: str, titles: list[str], worked_example: bool) -> list[str]:
+    points = (10 if kind == "Assignment" else 5) if worked_example else 0
+    lines = [] if titles else [f"Author note: Optional. Add a {kind}: block here if needed; see Authoring reference."]
+    for title in titles:
+        lines += [f"{kind}: {title}", f"Points: {points} pts", f"Gradebook item: {title}"]
+        if worked_example:
+            lines.append(f"Rubric: Sample {kind} Rubric")
+        if kind == "Discussion":
+            lines.append("Forum: Discussions")
+        lines.append("Author note: Explain the task, what to submit, and how success will be judged." if kind == "Assignment" else
+                     "Author note: State the prompt and expectations for the initial post and replies.")
+        lines.append(WRITING_PROMPTS["assignment_instructions" if kind == "Assignment" else "discussion_prompt"])
+    return lines
+
+
+def _save_document(doc, path: Path, *, force: bool) -> None:
+    """Write safely; an explicit overwrite retains a unique copy of the old file."""
+    data = io.BytesIO()
+    doc.save(data)
+    if not force:
+        # Exclusive creation also protects against a file appearing after the initial check.
+        with path.open("xb") as target:
+            target.write(data.getvalue())
+        return
+    if path.exists():
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        backup = path.with_name(f"{path.stem}.backup-{stamp}{path.suffix}")
+        with path.open("rb") as source, backup.open("xb") as target:
+            shutil.copyfileobj(source, target)
+        shutil.copystat(path, backup)
+    fd, temp_name = tempfile.mkstemp(prefix=f".{path.stem}-", suffix=path.suffix, dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as target:
+            target.write(data.getvalue())
+        os.replace(temp_name, path)
+    finally:
+        Path(temp_name).unlink(missing_ok=True)
 
 
 def write_blank(path: Path, *, course_number: str, course_title: str, term: str, weeks: int = 8,
-                topics: list[str] | None = None) -> Path:
+                topics: list[str] | None = None, assignments_per_week: int = 1,
+                discussions_per_week: int = 1, week_counts: dict[int, dict[str, int]] | None = None,
+                worked_example: bool = False, force: bool = False) -> Path:
+    """Create a new authoring blueprint; refuse replacement unless ``force`` is explicit.
+
+    ``week_counts={2: {"assignments": 3, "discussions": 0}}`` overrides common
+    defaults for that week. The minimal form uses zero-point placeholders and
+    no rubric assumptions. ``worked_example`` adds sample 10/5-point activities,
+    two example rubrics, and demonstrative content blocks in the first week.
+    """
+    path = Path(path)
+    if path.exists() and not force:
+        raise FileExistsError(f"Blueprint already exists: {path}. Choose another filename or use force to retain a backup and replace it.")
+    counts = _activity_counts(weeks, assignments_per_week, discussions_per_week, week_counts)
     topics = list(topics or [])
+    titles = {n: {kind: [_activity_title(n, kind, i, counts[n][key])
+                         for i in range(1, counts[n][key] + 1)]
+                  for key, kind in (("assignments", "Assignment"), ("discussions", "Discussion"))}
+              for n in counts}
     doc = Document()
     _style_document(doc)
-    doc.add_paragraph("Blueprint", style="Title")
+    footer = doc.sections[0].footer.paragraphs[0]
+    footer.paragraph_format.space_after = Pt(0)
+    run = footer.add_run(f"{course_number}  |  {term}  |  Page ")
+    run.font.size = Pt(8)
+    run.font.color.rgb = GREY
+    field = OxmlElement("w:fldSimple")
+    field.set(qn("w:instr"), "PAGE")
+    footer._p.append(field)
+    doc.add_paragraph("Course blueprint", style="Title")
     sub = doc.add_paragraph(f"{course_number} {course_title} – {term} Blueprint")
     sub.runs[0].font.size = Pt(13)
     sub.runs[0].font.color.rgb = GREY
+    mode = "Worked example with sample activities and rubrics" if worked_example else "Blank for collaborative course authoring"
+    _write_line(doc.add_paragraph(), mode)
     _guide(doc)
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+    doc.add_paragraph().paragraph_format.page_break_before = True
 
-    # front matter, in the labelled one-column tables the reader expects
-    _one_column(doc, [[V.FRONT_LABELS["course_description"] + " (catalog)"], ["(Catalog description.)"]], {0})
-    _one_column(doc, [[V.FRONT_LABELS["required_materials"]], ["(Textbook or required materials, with citations.)"]], {0})
-    _one_column(doc, [[V.FRONT_LABELS["course_learning_outcomes"]], ["(One outcome per paragraph.)"]], {0})
-    intro = doc.add_paragraph("Points table. One row per graded activity; the names must match the activity lines below, and the points must agree.")
-    intro.runs[0].font.color.rgb = GREY
-    intro.runs[0].italic = True
-    grade_rows = []
-    for n in range(1, weeks + 1):
-        grade_rows += [(f"Week {n} Assignment: (title)", 10), (f"Week {n} Discussion: (title)", 5)]
+    doc.add_paragraph("Course reference and assessment plan", style="Heading 2")
+    _write_line(doc.add_paragraph(), "Author note: These course reference fields stay in the blueprint. To show this material to students, your designer must also place it in an explicit course page. Delete a writing prompt when an optional field is not needed.")
+    _one_column(doc, [[V.FRONT_LABELS["course_description"] + " (catalog)"],
+                     [WRITING_PROMPTS["course_description"]]], {0})
+    _one_column(doc, [[V.FRONT_LABELS["required_materials"]],
+                     [WRITING_PROMPTS["required_materials"]]], {0})
+    _one_column(doc, [[V.FRONT_LABELS["course_learning_outcomes"]],
+                     ["Author note: Use one course outcome per bullet.",
+                      WRITING_PROMPTS["course_learning_outcome"]]], {0})
+    doc.add_paragraph("Grading plan for designer review", style="Heading 2")
+    _write_line(doc.add_paragraph(), "Author note: The Assignment column lists all graded activities, including discussions. Set points deliberately; the starter 0 values are not a grading recommendation. Keep names and points identical in this table and the activity settings.")
+    grade_rows = [(title, (10 if kind == "Assignment" else 5) if worked_example else 0)
+                  for n in titles for kind in ("Assignment", "Discussion") for title in titles[n][kind]]
     table = doc.add_table(rows=len(grade_rows) + 2, cols=2)
     _borders(table)
     _cell_margins(table, top=60, bottom=60)
+    _table_widths(table, (5.25, 1.25))
+    _repeat_header(table.rows[0])
     for cell, text in zip(table.rows[0].cells, V.GRADE_PLAN_HEADER):
         _shade(cell, LABEL_FILL)
         run = cell.paragraphs[0].add_run(text)
@@ -370,62 +541,83 @@ def write_blank(path: Path, *, course_number: str, course_title: str, term: str,
     for index, (name, points) in enumerate(grade_rows, start=1):
         table.rows[index].cells[0].paragraphs[0].add_run(name)
         table.rows[index].cells[1].paragraphs[0].add_run(str(points))
+        _no_split(table.rows[index])
     total = table.rows[-1]
-    _shade(total.cells[0], LABEL_FILL)
-    _shade(total.cells[1], LABEL_FILL)
+    for cell in total.cells:
+        _shade(cell, LABEL_FILL)
     total.cells[0].paragraphs[0].add_run(V.GRADE_PLAN_TOTAL).bold = True
     total.cells[1].paragraphs[0].add_run(str(sum(p for _n, p in grade_rows))).bold = True
-    doc.add_paragraph().paragraph_format.space_after = Pt(6)
+    _no_split(total)
 
     doc.add_paragraph(V.H_COURSE_INTRO, style="Heading 1")
     for line in ("Page: Welcome", f"Page heading: Welcome to {course_number}", "Placement: Getting Started",
-                 "(Welcome text. Add more pages with their own Page: and Page heading: lines.)"):
+                 WRITING_PROMPTS["welcome"]):
         _write_line(doc.add_paragraph(), line)
-
     doc.add_paragraph(V.H_BEFORE_WEEK_1, style="Heading 1")
-    note = doc.add_paragraph("One row per module. The first line of a row names the module; the rest are its pages and links.")
-    note.runs[0].italic = True
-    note.runs[0].font.color.rgb = GREY
-    _one_column(doc, [
-        ["Getting Started"],
+    _one_column(doc, [["Getting Started"],
         [f"{V.D_MODULE}: Getting Started", "Page: Student Resources", "Page heading: Student and Course Resources",
-         "(Resources text.)", "Link: Syllabus", "URL: https://", "Placement: Getting Started"],
-    ], {0})
+         WRITING_PROMPTS["student_resources"],
+         "Author note: To add a syllabus link, insert Link: Syllabus, then URL: followed by its full address on the next line."]], {0})
 
     for n in range(1, weeks + 1):
         topic = topics[n - 1] if n - 1 < len(topics) else "(topic)"
-        doc.add_paragraph(f"Week {n} - {topic}", style="Heading 1")
+        week_heading = doc.add_paragraph(f"Week {n} - {topic}", style="Heading 1")
+        week_heading.paragraph_format.page_break_before = True
+        week_heading.paragraph_format.space_before = Pt(0)
+        overview = [f"Page: Week {n} Overview", f"Page heading: Week {n} – {topic}",
+                    "Author note: Introduce the week's purpose and connect its ideas and activities.",
+                    WRITING_PROMPTS["week_introduction"]]
+        if worked_example and n == 1:
+            overview += ["Author note: These sample panels become course content; adapt or delete each complete block.",
+                         "[dropdown: Sample optional detail]", WRITING_PROMPTS["panel_content"], "[/dropdown]",
+                         "[callout]", WRITING_PROMPTS["panel_content"], "[/callout]",
+                         "[callout tone=gold]", WRITING_PROMPTS["panel_content"], "[/callout]",
+                         "[video placeholder: Week 1 introduction]"]
+        sources = {
+            "overview": overview,
+            "objectives": [V.OBJECTIVES_SUBLABEL,
+                           "Author note: Use one observable objective per bullet. Press Enter to add another.",
+                           WRITING_PROMPTS["learning_objective"]],
+            "resources": ["Author note: Identify required or optional resources and their purpose. Delete the prompt if unused.",
+                          WRITING_PROMPTS["readings_multimedia"]],
+            "assignments": _activity_lines(n, "Assignment", titles[n]["Assignment"], worked_example),
+            "discussions": _activity_lines(n, "Discussion", titles[n]["Discussion"], worked_example),
+            "checklist": [f"Checklist: Week {n} Checklist", f"{V.D_ITEMS}: {V.ITEMS_FROM_ACTIVITIES}",
+                          "Author note: This lists activities automatically. Add reading or practice tasks as extra paragraphs if needed."],
+        }
         rows = []
-        for key, _prefix, label in V.SECTION_LABELS:
-            rows.append([label])
-            source = WEEK_1_OVERVIEW_EXAMPLES if (n == 1 and key == "overview") else ROW_PROMPTS[key]
-            rows.append([line.format(n=n, topic=topic) for line in source])
-        _one_column(doc, rows, {i for i in range(0, len(rows), 2)})
+        for key, _prefix, _label in V.SECTION_LABELS:
+            rows.extend([[SECTION_TITLES[key]], sources[key]])
+        _one_column(doc, rows, set(range(0, len(rows), 2)), spacer=False)
 
     doc.add_paragraph(V.H_COURSE_ACTIVITIES, style="Heading 1")
-    _write_line(doc.add_paragraph(), "(Activities that belong to no week, such as a course questions forum. Delete if none.)")
+    _write_line(doc.add_paragraph(), "Author note: Optional. Add complete activity blocks here only for activities that belong to no week.")
     doc.add_paragraph(V.H_RUBRICS, style="Heading 1")
-    rub_note = doc.add_paragraph("One rubric per Heading 2: its name, then one 'Used by:' line per activity, then its table. "
-                                 "Level headers carry a percentage; criterion labels carry a weight in percent; weights add to 100.")
-    rub_note.runs[0].italic = True
-    rub_note.runs[0].font.color.rgb = GREY
-    for name, kind in (("Standard Assignment Rubric", "Assignment"), ("Standard Discussion Rubric", "Discussion")):
-        doc.add_paragraph(name, style="Heading 2")
-        for n in range(1, weeks + 1):
-            _write_line(doc.add_paragraph(), f"Used by: {kind}: Week {n} {kind}: (title)")
-        grid = doc.add_table(rows=3, cols=4)
-        _borders(grid)
-        _cell_margins(grid, top=60, bottom=60)
-        for cell, text in zip(grid.rows[0].cells, ("Criterion", "Exemplary — 100%", "Proficient — 80%", "Developing — 50%")):
-            _shade(cell, LABEL_FILL)
-            run = cell.paragraphs[0].add_run(text)
-            run.bold = True
-            run.font.color.rgb = NAVY
-        for row, first in zip(grid.rows[1:], ("(first criterion) (50%)", "(second criterion) (50%)")):
-            for cell, text in zip(row.cells, (first, "(descriptor)", "(descriptor)", "(descriptor)")):
-                _write_line(cell.paragraphs[0], text)
-        doc.add_paragraph().paragraph_format.space_after = Pt(6)
+    _write_line(doc.add_paragraph(), "Author note: Designer setup. Leave this section empty if no rubrics are needed. Otherwise use one Heading 2 per rubric, followed by its Used by: lines and rubric table. Level headers carry percentages; criterion weights total 100%.")
+    if worked_example:
+        _write_line(doc.add_paragraph(), "Author note: These two-criterion rubrics are samples. Replace their criteria, levels, weights and descriptors with the agreed assessment criteria.")
+        for kind in ("Assignment", "Discussion"):
+            users = [title for n in titles for title in titles[n][kind]]
+            if not users:
+                continue
+            doc.add_paragraph(f"Sample {kind} Rubric", style="Heading 2")
+            for title in users:
+                _write_line(doc.add_paragraph(), f"Used by: {kind}: {title}")
+            grid = doc.add_table(rows=3, cols=4)
+            _borders(grid)
+            _cell_margins(grid, top=60, bottom=60)
+            _table_widths(grid, (1.75, 1.58, 1.58, 1.59))
+            _repeat_header(grid.rows[0])
+            for cell, text in zip(grid.rows[0].cells, ("Criterion", "Exemplary — 100%", "Proficient — 80%", "Developing — 50%")):
+                _shade(cell, LABEL_FILL)
+                run = cell.paragraphs[0].add_run(text)
+                run.bold = True
+                run.font.color.rgb = NAVY
+            for row, first in zip(grid.rows[1:], ("(first criterion) (50%)", "(second criterion) (50%)")):
+                for cell, text in zip(row.cells, (first, *(WRITING_PROMPTS["rubric_descriptor"],) * 3)):
+                    _write_line(cell.paragraphs[0], text)
     doc.add_paragraph(V.H_NOTES, style="Heading 1")
-    _write_line(doc.add_paragraph(), "(Notes to the builder that are not course content.)")
-    doc.save(str(path))
+    _write_line(doc.add_paragraph(), "Author note: Optional notes for your instructional designer. This section stays out of the course.")
+    _reference(doc)
+    _save_document(doc, path, force=force)
     return path

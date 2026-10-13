@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from .render_text import plain
+from .authoring import video_player_url, absolute_web_url
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 EMBEDDABLE = re.compile(r"^https://(player\.vimeo\.com/video/|www\.youtube(-nocookie)?\.com/embed/)")
@@ -323,6 +324,9 @@ def render_blocks(blocks: list[dict[str, Any]], ctx: RenderContext) -> str:
             out.append(_render_visual(block, ctx))
         elif kind == "video":
             out.append(_render_video(block, ctx))
+        elif kind == "placeholder":
+            text = html.escape(block["text"], quote=False)
+            out.append(f'<p{ctx.style("p")} data-blueprint-pending="true"><strong>Draft:</strong> {text}</p>')
         elif kind == "table":
             out.append(_render_table(block, ctx))
         elif kind == "image":
@@ -409,12 +413,17 @@ def _render_visual(block: dict[str, Any], ctx: RenderContext) -> str:
 def _render_video(block: dict[str, Any], ctx: RenderContext) -> str:
     href = ctx.template.clean(block.get("href", ""), ctx.where)
     title = html.escape(block.get("title", "Video"), quote=True)
-    if not EMBEDDABLE.match(href):
+    if block.get("placeholder"):
+        return (f'<div class="video-pending" data-blueprint-video-pending="{title}" '
+                'style="border: 1px dashed #567682; padding: 1.25rem; margin: 1rem 0;">'
+                f'<p{ctx.style("p")}>Video to be added: {title}</p></div>')
+    player = video_player_url(href)
+    if not player:
         ctx.warn("VIDEO_NOT_EMBEDDABLE", f"Video '{block.get('title')}' has no embeddable player URL; rendered as a link")
-        if not href:
+        if not absolute_web_url(href):
             return f"<p{ctx.style('p')}>{title}</p>"
         return f'<p{ctx.style("p")}><a href="{html.escape(href, quote=True)}" target="_blank" rel="noopener">{title}</a></p>'
-    src = html.escape(href, quote=True)
+    src = html.escape(player, quote=True)
     frame = f'<iframe src="{src}" title="{title}" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>'
     if ctx.surface == "fragment":
         return ('<div style="position: relative; padding-top: 56.25%; margin-bottom: 1rem;">'

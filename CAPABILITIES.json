@@ -1,7 +1,7 @@
 {
   "schema": "blueprint_packager.capabilities/0.1",
-  "note": "What this tool can put into a package, and how well each shape is proven. Levels follow docs/IMPORT_TEST_LOG.md: L1 local read-back, L2 shape matches a real export, L3 imports, L4 survives import and re-export. A level names the best evidence that exists anywhere for the shape, and who holds it.",
-  "this_tool_evidence": "L4 for the MBA 620 Fall B 2026 sandbox package of 2026-10-07: imported into sandbox course 52145, re-exported, and read back by this tool's verifier with every structural check passing (workspace/review/mba_620/sandbox_2026-10/SANDBOX_ROUND_1.md)",
+  "note": "Evidence is scoped to the named artifact and tested shape. Levels follow docs/IMPORT_RECEIPTS.md: L1 local read-back, L2 matches a real export, L3 imports, L4 survives import/re-export. Historical tenant evidence does not certify the current unreleased candidate.",
+  "this_tool_evidence": "Historical L4: MBA 620 sandbox packages in docs/IMPORT_RECEIPTS.md Receipts 10-13 (2026-10-07/08). New candidate authoring and verification changes have local synthetic evidence; no new tenant round has been performed.",
   "capabilities": [
     {
       "shape": "module with HTML topics",
@@ -10,8 +10,10 @@
       "best_evidence": "L4",
       "evidence_holder": "Workbench component library",
       "receipt_refs": [
-        "docs/IMPORT_TEST_LOG.md Receipt 3"
-      ]
+        "docs/IMPORT_RECEIPTS.md Receipt 10 (integrated course package)"
+      ],
+      "historical_reference_note": "Earlier Workbench/downstream receipts were referenced by the original registry; those receipts are external to this repository.",
+      "this_tool_evidence": "Historical L4 for the integrated MBA 620 package in Receipt 10; not a fresh candidate import."
     },
     {
       "shape": "grade items",
@@ -20,8 +22,10 @@
       "best_evidence": "L4",
       "evidence_holder": "Workbench component library",
       "receipt_refs": [
-        "docs/IMPORT_TEST_LOG.md Receipt 3"
-      ]
+        "docs/IMPORT_RECEIPTS.md Receipt 10 (integrated course package)"
+      ],
+      "historical_reference_note": "Earlier Workbench/downstream receipts were referenced by the original registry; those receipts are external to this repository.",
+      "this_tool_evidence": "Historical L4 for the integrated MBA 620 package in Receipt 10; not a fresh candidate import."
     },
     {
       "shape": "assignment folder joined to a grade item",
@@ -30,8 +34,10 @@
       "best_evidence": "L4",
       "evidence_holder": "Workbench component library",
       "receipt_refs": [
-        "docs/IMPORT_TEST_LOG.md Receipt 3"
-      ]
+        "docs/IMPORT_RECEIPTS.md Receipt 10 (integrated course package)"
+      ],
+      "historical_reference_note": "Earlier Workbench/downstream receipts were referenced by the original registry; those receipts are external to this repository.",
+      "this_tool_evidence": "Historical L4 for the integrated MBA 620 package in Receipt 10; not a fresh candidate import."
     },
     {
       "shape": "discussion forum with graded topics",
@@ -40,8 +46,10 @@
       "best_evidence": "L4",
       "evidence_holder": "Workbench component library",
       "receipt_refs": [
-        "docs/IMPORT_TEST_LOG.md Receipt 3"
-      ]
+        "docs/IMPORT_RECEIPTS.md Receipt 10 (integrated course package)"
+      ],
+      "historical_reference_note": "Earlier Workbench/downstream receipts were referenced by the original registry; those receipts are external to this repository.",
+      "this_tool_evidence": "Historical L4 for the integrated MBA 620 package in Receipt 10; not a fresh candidate import."
     },
     {
       "shape": "checklist with a module link",
@@ -50,18 +58,22 @@
       "best_evidence": "L4",
       "evidence_holder": "Workbench component library",
       "receipt_refs": [
-        "docs/IMPORT_TEST_LOG.md Receipt 3"
-      ]
+        "docs/IMPORT_RECEIPTS.md Receipt 10 (integrated course package)"
+      ],
+      "historical_reference_note": "Earlier Workbench/downstream receipts were referenced by the original registry; those receipts are external to this repository.",
+      "this_tool_evidence": "Historical L4 for the integrated MBA 620 package in Receipt 10; not a fresh candidate import."
     },
     {
       "shape": "analytic rubric with named levels and weighted criteria",
       "status": "builds",
       "built_with": "rubric_package_lib.build_rubrics_xml",
-      "best_evidence": "L4 as a rubric-only package",
-      "evidence_holder": "Workbench rubric library",
+      "best_evidence": "L4 for the historical integrated course package",
+      "evidence_holder": "MBA 620 sandbox evidence copied in docs/IMPORT_RECEIPTS.md",
       "receipt_refs": [
-        "docs/IMPORT_TEST_LOG.md Receipt 5"
-      ]
+        "docs/IMPORT_RECEIPTS.md Receipt 10 (integrated course package)"
+      ],
+      "historical_reference_note": "Earlier Workbench/downstream receipts were referenced by the original registry; those receipts are external to this repository.",
+      "this_tool_evidence": "Historical L4 for the integrated MBA 620 package in Receipt 10; not a fresh candidate import."
     },
     {
       "shape": "analytic rubric attached to an assignment folder",
@@ -141,8 +153,13 @@
     },
     {
       "shape": "dates and calendar",
-      "status": "not built",
-      "reason": "the blueprint states due days in prose only"
+      "status": "builds",
+      "built_with": "Calendar plus term week table and explicit due-day rules",
+      "best_evidence": "Historical L4 for named date shapes",
+      "receipt_refs": [
+        "docs/IMPORT_RECEIPTS.md Receipt 10"
+      ],
+      "limit": "Assignment-folder due dates, checklist-item end dates, and carried-quiz dates; no automatic native discussion-topic dates."
     },
     {
       "shape": "release conditions, intelligent agents, groups, surveys, LTI links, Creator+ practices",
@@ -169,16 +186,16 @@
     },
     {
       "rule": "activity title",
-      "source": "the activity's own heading in the body, with its week in front when the heading lacks it",
-      "fallback": "the points table row, when the map gives no heading",
+      "source": "Exact title in the Assignment/Discussion/Quiz declaration; normalization may carry an explicitly mapped heading into that declaration.",
+      "fallback": "No inferred prefix or fuzzy match in direct authoring; mapped legacy behavior is explicit in the course map.",
       "decided": "owner, 2026-10-06"
     },
     {
       "rule": "activity points",
       "source": "the activity body",
-      "fallback": "the points table, when the body states none",
-      "on_disagreement": "the tool stops at normalization and at build until a determination is recorded",
-      "decided": "owner, 2026-10-06"
+      "fallback": "None for a grade-linked activity: missing activity points are an error even when the grading plan states a value.",
+      "on_disagreement": "The join check reports POINTS_DIFFER_FROM_GRADE_ROW as a warning. The build blocks until points_determinations explicitly selects activity or points_table; the determination is recorded.",
+      "decided": "owner, 2026-10-06; behavior and missing-points policy clarified 2026-10-09"
     },
     {
       "rule": "grade item name",
@@ -198,8 +215,8 @@
     },
     {
       "rule": "wording changes",
-      "source": "only entries in the course map (addition, edit, rubric clone), each naming authorizer and reason",
-      "note": "listed apart from authored text in the fidelity proof"
+      "source": "Authorized course-map entries for authored wording; explicit activity rename writes only structural references and link targets to a new copy, with authorizer and reason.",
+      "note": "Narrative wording and body headings are not rewritten by structural rename."
     }
   ],
   "source_change_handling": {
@@ -213,21 +230,21 @@
       "built_with": "d2l_package_lib (date_due)",
       "best_evidence": "L4",
       "evidence_holder": "MBA 630 course build: survived import and re-export",
-      "this_tool_evidence": "L4 (docs/IMPORT_TEST_LOG.md Receipt 10, MBA 620 sandbox round 1, 2026-10-07)"
+      "this_tool_evidence": "L4 (docs/IMPORT_RECEIPTS.md Receipt 10, MBA 620 sandbox round 1, 2026-10-07)"
     },
     {
       "shape": "end date on a checklist item",
       "built_with": "d2l_package_lib (date_end)",
       "best_evidence": "L4",
       "evidence_holder": "MBA 630 course build",
-      "this_tool_evidence": "L4 (docs/IMPORT_TEST_LOG.md Receipt 10, MBA 620 sandbox round 1, 2026-10-07)"
+      "this_tool_evidence": "L4 (docs/IMPORT_RECEIPTS.md Receipt 10, MBA 620 sandbox round 1, 2026-10-07)"
     },
     {
       "shape": "due date on a carried quiz, nested timestamp form",
       "built_with": "local rewrite of the source payload",
       "best_evidence": "L2 (matches the form Brightspace exports)",
       "evidence_holder": "none for import; MBA 630's flat form was lost on import",
-      "this_tool_evidence": "L4 (docs/IMPORT_TEST_LOG.md Receipt 10, MBA 620 sandbox round 1, 2026-10-07)"
+      "this_tool_evidence": "L4 (docs/IMPORT_RECEIPTS.md Receipt 10, MBA 620 sandbox round 1, 2026-10-07)"
     },
     {
       "shape": "dates on discussion topics",
@@ -248,5 +265,62 @@
     "severity": "warning",
     "decided": "owner, 2026-10-08 (item 13a)",
     "note": "the page gate still runs at verification; these give the same facts earlier, with paragraph ids"
-  }
+  },
+  "candidate_status": {
+    "base_release": "0.2.2",
+    "status": "unreleased",
+    "implementation_log": "docs/IMPLEMENTATION_LOG_2026-10-09.md",
+    "vendor_pin_source": "vendor/coursecraft_workbench/MANIFEST.json",
+    "tenant_validation": "not performed for this candidate"
+  },
+  "candidate_capabilities": [
+    {
+      "shape": "multiple assignments and discussions per week",
+      "evidence": "L1 synthetic closed cycle",
+      "evidence_ref": "tests/test_wizard_authoring.py",
+      "limit": "No new tenant import of the candidate."
+    },
+    {
+      "shape": "explicit video brackets and retained placeholders",
+      "evidence": "L1 local rendering and readiness tests",
+      "evidence_ref": "tests/test_authoring_boundaries.py",
+      "limit": "YouTube/Vimeo URL forms only; provider permissions and tenant playback not established."
+    },
+    {
+      "shape": "source accounting and build readiness",
+      "evidence": "local synthetic regression tests",
+      "evidence_ref": "tests/test_authoring_boundaries.py",
+      "limit": "Known guidance/placeholder markers are explicit; unknown authored content blocks the build; old cached models require re-read."
+    },
+    {
+      "shape": "Wizard bundle to authoring DOCX",
+      "evidence": "L1 synthetic package-extraction-authoring-repackage cycle",
+      "evidence_ref": "tests/test_wizard_authoring.py",
+      "limit": "Supported subset in docs/WIZARD_AUTHORING_CONVERSION.md; unsupported evidence blocks conversion; no source contracts modified."
+    },
+    {
+      "shape": "relationship-aware structural activity rename",
+      "evidence": "local synthetic regression tests",
+      "evidence_ref": "tests/test_authoring_boundaries.py",
+      "limit": "Preview first; explicit apply needs authorizer/reason; narrative text unchanged."
+    },
+    {
+      "shape": "revised Word authoring template",
+      "evidence": "local read/build tests and bundled LibreOffice render review",
+      "evidence_ref": "tests/test_blank_authoring.py, tests/test_plain_authoring.py and docs/IMPLEMENTATION_LOG_2026-10-09.md",
+      "limit": "Google conversion and native Word layout are separate checks; consult the implementation log."
+    },
+    {
+      "shape": "UNE Google Docs pageless authoring round trip",
+      "evidence": "Live native conversion and revision-guarded API editing; exported DOCX read/build/verification",
+      "evidence_ref": "docs/evidence/GOOGLE_AUTHORING_QA_2026-10-09.md",
+      "limit": "Evidence applies to the earlier template recorded in that QA note; the subsequent readable-prompt/reference revision has local checks only. No Google canvas/manual interaction audit and no new Brightspace tenant round."
+    }
+  ],
+  "refusals": [
+    "Native image runs and Embedded image markers: IMAGE_UNSUPPORTED; no silent omission.",
+    "Authored body text under module/link declarations: use an explicit Page or authoring guidance.",
+    "Missing source accounting or unsupported model/settings schema: regenerate model with read.",
+    "Unresolved readiness fields in normal build: use explicit preview or complete the authoring fields."
+  ]
 }

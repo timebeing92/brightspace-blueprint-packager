@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from . import vocabulary as V
+from .authoring import marker
 from .docx_ingest import Cell, Document, Para, Table, read_docx
 
 MODEL_SCHEMA = "blueprint_packager.course_model/0.1"
@@ -51,6 +52,60 @@ class Reader:
         self.frame_level = V.FRAME_LEVEL
         self.doc = doc
         self.diag = Diagnostics()
+        self.accounted: dict[str, tuple[str, str]] = {}
+
+    def account(self, node: Para | Table | Cell, disposition: str, where: str = "") -> None:
+        paras = [node] if isinstance(node, Para) else node.paras()
+        for para in paras:
+            self.accounted[para.id] = (disposition, where)
+
+    def guidance(self, node: Para | Table, where: str = "") -> bool:
+        parsed = marker(node.text()) if isinstance(node, Para) else None
+        legacy = {
+            V.H_BEFORE_WEEK_1: "One row per module. The first line of a row names the module; the rest are its pages and links.",
+            V.H_COURSE_ACTIVITIES: "(Activities that belong to no week, such as a course questions forum. Delete if none.)",
+        }
+        known_legacy = isinstance(node, Para) and node.text().strip() == legacy.get(where)
+        if (parsed and parsed[0] == "authoring") or known_legacy:
+            self.account(node, "authoring_guidance", where)
+            return True
+        return False
+
+    def label_cell(self, cell: Cell, allowed: set[str], where: str,
+                   sublabels: tuple[str, ...] = ()) -> str:
+        """Account only known label paragraphs; authored additions stay unresolved."""
+        label = ""
+        for node in cell.children:
+            if self.guidance(node, where):
+                continue
+            text = node.text().strip()
+            if not text:
+                continue
+            if not label:
+                label = text
+                if isinstance(node, Para) and " ".join(text.split()) in allowed:
+                    self.account(node, "structure", where)
+                else:
+                    self.diag.error("LABEL_CONTENT", "Label text is not an exact recognized label; put authored text in the content row.", node.id)
+            elif isinstance(node, Para) and text in sublabels:
+                self.account(node, "authoring_guidance", where)
+            else:
+                self.diag.error("LABEL_CONTENT", "Extra content in a label cell must be moved to its content row.", node.id)
+        return label
+
+    def source_accounting(self) -> dict[str, Any]:
+        entries, unresolved = [], []
+        for para in self.doc.paras():
+            text = para.text()
+            disposition, where = self.accounted.get(para.id, ("unresolved", para.container))
+            if not text.strip() and not any(r.image for r in para.visible_runs()):
+                disposition = "empty"
+            if disposition == "unresolved":
+                unresolved.append(para.id)
+                self.diag.error("SOURCE_UNACCOUNTED", f"Content was not assigned a role: {text[:100]}", para.id)
+            entries.append({"id": para.id, "text": text, "disposition": disposition, "where": where})
+        return {"schema": "blueprint_packager.source_accounting/1", "complete": not unresolved,
+                "entries": entries, "unresolved": unresolved}
 
     # ------------------------------------------------------------------ blocks
     def runs(self, para: Para) -> list[dict[str, Any]]:
@@ -68,6 +123,9 @@ class Reader:
         text = para.text()
         if not text.strip() and not any(run.image for run in para.runs):
             return None
+        self.account(para, "content", para.container)
+        if any(r.image for r in para.visible_runs()):
+            self.diag.error("IMAGE_UNSUPPORTED", "An embedded image needs an explicit supported packaging path; it cannot be dropped.", para.id)
         block: dict[str, Any] = {"runs": self.runs(para), "src": para.id}
         level = para.heading_level
         if level is not None:
@@ -99,15 +157,33 @@ class Reader:
                 target().append(self.table_block(node))
                 continue
             text = node.text().strip()
+            explicit = marker(text)
+            if self.guidance(node, where):
+                continue
+            if explicit and explicit[0] == "placeholder":
+                self.account(node, "content", where)
+                target().append({"kind": "placeholder", "text": explicit[1], "src": node.id,
+                                 "list_item": node.list_num_id is not None})
+                continue
+            if explicit and explicit[0] in ("video", "video placeholder"):
+                self.account(node, "content", where)
+                title, sep, href = explicit[1].partition("|")
+                if explicit[0] == "video" and not sep:
+                    self.diag.error("VIDEO_SYNTAX", "Use [video: Title | URL], or [video placeholder: Title].", node.id)
+                target().append({"kind": "video", "title": title.strip(), "href": href.strip(), "src": node.id,
+                                 "placeholder": explicit[0] == "video placeholder"})
+                continue
             parsed = V.parse_directive(text)
             if parsed:
                 keyword, value = parsed
                 if keyword == V.D_DROPDOWN:
+                    self.account(node, "structure", where)
                     block = {"kind": "dropdown", "title": value, "blocks": [], "src": node.id}
                     target().append(block)
                     stack.append(("dropdown", block))
                     continue
                 if keyword == V.D_VISUAL:
+                    self.account(node, "structure", where)
                     block = {"kind": "visual", "cue": value, "blocks": [], "src": node.id}
                     attrs = V.parse_bracket_attrs(text)
                     if attrs:
@@ -116,6 +192,7 @@ class Reader:
                     stack.append(("visual", block))
                     continue
                 if keyword in (V.D_DROPDOWN_END, V.D_VISUAL_END):
+                    self.account(node, "structure", where)
                     expected = "dropdown" if keyword == V.D_DROPDOWN_END else "visual"
                     if not stack or stack[-1][0] != expected:
                         self.diag.error("BLOCK_END_UNMATCHED", f"'{keyword}' without a matching opener", where or node.id)
@@ -123,11 +200,17 @@ class Reader:
                         stack.pop()
                     continue
                 if keyword == V.D_VIDEO:
+                    self.account(node, "content", where)
                     link = next((run.href for run in node.visible_runs() if run.href), "")
+                    if "|" in value:
+                        value, _, link = value.partition("|")
+                        value, link = value.strip(), link.strip()
                     target().append({"kind": "video", "title": value, "href": link, "src": node.id,
                                      "list_item": node.list_num_id is not None})
                     continue
                 if keyword == V.D_IMAGE:
+                    self.account(node, "unresolved", where)
+                    self.diag.error("IMAGE_UNSUPPORTED", "This image declaration has no supported packaging path.", node.id)
                     target().append({"kind": "image", "text": value, "src": node.id})
                     continue
             block = self.para_block(node)
@@ -161,6 +244,8 @@ class Reader:
             current, current_nodes = None, []
 
         for node in nodes:
+            if self.guidance(node, where):
+                continue
             if isinstance(node, Para):
                 parsed = V.parse_directive(node.text().strip())
                 if parsed and parsed[0] in (V.D_DROPDOWN, V.D_VISUAL):
@@ -168,11 +253,13 @@ class Reader:
                 elif parsed and parsed[0] in V.BLOCK_END_MARKERS:
                     depth = max(0, depth - 1)
                 if parsed and parsed[0] in allowed and depth == 0:
+                    self.account(node, "structure", where)
                     close()
                     current = {"type": OPENER_TYPES[parsed[0]], "title": parsed[1], "src": node.id}
                     in_header = True
                     continue
                 if parsed and parsed[0] in ATTR_KEYS and current is not None and in_header:
+                    self.account(node, "structure", f"object {current['src']}")
                     key = ATTR_KEYS[parsed[0]]
                     if key in MULTI_VALUE:
                         current.setdefault(key, []).append(parsed[1])
@@ -190,6 +277,8 @@ class Reader:
                 current_nodes.append(node)
         close()
         for obj in objects:
+            if obj["type"] in ("module", "link") and obj.get("blocks"):
+                self.diag.error("OBJECT_BODY_UNSUPPORTED", f"A {obj['type']} declaration cannot carry page content; declare a Page or mark guidance explicitly.", obj["src"])
             if "points" in obj:
                 value = V.parse_points(obj["points"])
                 if value is None:
@@ -199,10 +288,12 @@ class Reader:
 
     # ------------------------------------------------------------------ tables
     def grade_plan(self, table: Table) -> dict[str, Any]:
+        self.account(table, "structure", "grading plan")
         items = []
         total_stated = None
         for row in table.rows[1:]:
-            if len(row) < 2:
+            if len(row) != 2:
+                self.diag.error("GRADE_PLAN_SHAPE", "Each grading-plan row must have exactly two cells.", table.id)
                 continue
             name = row[0].text().strip()
             raw = row[1].text().strip()
@@ -226,6 +317,10 @@ class Reader:
 
     def rubric_grid(self, table: Table, name: str) -> dict[str, Any]:
         where = f"rubric '{name}'"
+        self.account(table, "structure", where)
+        if not table.rows:
+            self.diag.error("RUBRIC_SHAPE", "Rubric grid is empty.", table.id)
+            return {"levels": [], "criteria": [], "criterion_header": "", "src": table.id}
         header = [cell.text().strip() for cell in table.rows[0]]
         levels = []
         for cell_text in header[1:]:
@@ -241,6 +336,8 @@ class Reader:
             cells = list(row)
             label = " ".join(cells[0].text().split())
             if not label:
+                if any(c.text().strip() for c in cells[1:]):
+                    self.diag.error("RUBRIC_CRITERION_MISSING", "Rubric descriptors have no criterion name.", table.id)
                 continue
             weight_match = self.WEIGHT_RE.search(label)
             weight = float(weight_match.group(1)) if weight_match else None
@@ -298,11 +395,11 @@ class Reader:
                     if isinstance(block.get(key), list):
                         walk(block[key], where, previous)
 
-        for page in model.get("course_pages", []):
+        for page in model.get("pages", []):
             walk(page.get("blocks", []), f"Page: {page['title']}", [])
         for week in model.get("weeks", []):
             previous: list[int] = []
-            walk(week["overview_page"].get("blocks", []), f"Week {week['number']} page", previous)
+            walk((week.get("overview_page") or {}).get("blocks", []), f"Week {week['number']} page", previous)
             for key in ("assignments", "discussions", "quizzes"):
                 for activity in week.get(key, []):
                     walk(activity.get("blocks", []), f"Week {week['number']} / {activity['title']}", [])
@@ -349,17 +446,33 @@ class Reader:
                 regions[-1][2].append(node)
 
         for name, heading, nodes in regions:
+            if heading is not None and (name in (V.H_COURSE_INTRO, V.H_BEFORE_WEEK_1, V.H_COURSE_ACTIVITIES,
+                                                V.H_RUBRICS, V.H_RETIRED_RUBRICS, V.H_NOTES)
+                                        or V.WEEK_HEADING_RE.match(name)):
+                self.account(heading, "structure", name)
             if name == "front":
                 self._front(nodes, model)
+            elif name == V.H_AUTHORING_REFERENCE:
+                # This explicitly named reference section contains copyable
+                # examples, including tables and otherwise valid object lines.
+                # Account for them as guidance without interpreting the samples.
+                if heading is not None:
+                    self.account(heading, "authoring_guidance", name)
+                for node in nodes:
+                    self.account(node, "authoring_guidance", name)
             elif name == V.H_COURSE_INTRO:
                 objects, loose = self.objects(nodes, V.H_COURSE_INTRO, V.SCOPE_COURSE_PAGES)
                 self._collect(objects, model, context=V.H_COURSE_INTRO)
                 if loose:
-                    self.diag.warn("LOOSE_CONTENT", f"{len(loose)} block(s) under '{name}' belong to no object", name)
+                    self.diag.error("LOOSE_CONTENT", f"{len(loose)} block(s) under '{name}' belong to no object", name)
             elif name == V.H_BEFORE_WEEK_1:
                 for node in nodes:
                     if isinstance(node, Table):
                         self._pre_week_table(node, model)
+                    elif node.text().strip() == "Course Content:":
+                        self.account(node, "structure", "legacy course-content divider")
+                    else:
+                        self.guidance(node, name)
             elif V.WEEK_HEADING_RE.match(name):
                 self._week(name, nodes, model)
             elif name == V.H_COURSE_ACTIVITIES:
@@ -368,11 +481,14 @@ class Reader:
                     obj["scope"] = "course"
                     model["course_activities"].append(obj)
                 model["course_activities_notes"] = loose
+                if loose:
+                    self.diag.error("LOOSE_CONTENT", "Content appears outside an activity declaration.", name)
             elif name == V.H_RUBRICS:
                 self._rubrics(nodes, model)
             elif name == V.H_RETIRED_RUBRICS:
                 retired = model["retired_rubrics"]
                 for node in nodes:
+                    self.account(node, "retired", name)
                     if isinstance(node, Table):
                         retired["tables"] += 1
                     elif node.text().strip():
@@ -380,19 +496,25 @@ class Reader:
                         if node.is_heading:
                             retired["names"].append(node.text().strip())
             elif name == V.H_NOTES:
+                for node in nodes:
+                    self.account(node, "notes", name)
                 model["notes"] = [n.text().strip() for n in nodes if isinstance(n, Para) and n.text().strip()]
-            elif heading is not None and heading.style == "Title":
-                continue  # e.g. the "Rubrics" tab title
+            elif heading is not None and heading.style == "Title" and not any(n.text().strip() for n in nodes):
+                self.account(heading, "authoring_metadata", "document tab title")
             else:
-                self.diag.warn("UNKNOWN_SECTION", f"Heading '{name}' at Heading {self.frame_level} is not part of the structure vocabulary. "
+                self.diag.error("UNKNOWN_SECTION", f"Heading '{name}' at Heading {self.frame_level} is not part of the structure vocabulary. "
                                f"Heading {self.frame_level} is reserved for the frame; content inside a page starts at Heading {V.content_top(self.frame_level)}", name)
         self._page_checks(model)
+        model["source_accounting"] = self.source_accounting()
         model["diagnostics"] = self.diag.items
         return model
 
     def _front(self, nodes: list[Para | Table], model: dict[str, Any]) -> None:
         for node in nodes:
+            if self.guidance(node, "front matter"):
+                continue
             if isinstance(node, Para):
+                self.account(node, "authoring_metadata", "title and authoring guide")
                 if node.text().strip():
                     model["title_lines"].append({"text": node.text().strip(), "style": node.style, "src": node.id})
                 continue
@@ -403,15 +525,23 @@ class Reader:
                 continue
             for key, prefix in V.FRONT_LABELS.items():
                 if first.startswith(prefix):
+                    allowed = {prefix}
+                    if key == "course_description":
+                        allowed.add(prefix + " (catalog)")
+                    self.label_cell(node.rows[0][0], allowed, f"front matter: {key}")
+                    if any(len(row) != 1 for row in node.rows):
+                        self.diag.error("FRONT_TABLE_SHAPE", "Front-matter tables need one cell per row.", node.id)
                     body_cells = [cell for row in node.rows[1:] for cell in row]
                     model["front_matter"][key] = {
                         "label": first,
                         "blocks": [b for cell in body_cells for b in self.blocks(cell.children, where=key)],
                         "src": node.id,
                     }
+                    for cell in body_cells:
+                        self.account(cell, "authoring_metadata", f"front matter retained in model: {key}")
                     break
             else:
-                self.diag.warn("FRONT_TABLE_UNKNOWN", f"Front-matter table starting '{first[:40]}' was not recognized", node.id)
+                self.diag.error("FRONT_TABLE_UNKNOWN", f"Front-matter table starting '{first[:40]}' was not recognized", node.id)
         if model["grade_plan"] is None:
             self.diag.error("GRADE_PLAN_MISSING", "No 'Assignment | Points' table found", "front matter")
 
@@ -429,14 +559,17 @@ class Reader:
                 model["course_activities"].append(obj)
 
     def _pre_week_table(self, table: Table, model: dict[str, Any]) -> None:
+        if any(len(row) != 1 for row in table.rows) or len(table.rows) % 2:
+            self.diag.error("MODULE_TABLE_SHAPE", "Module table needs pairs of one-cell label and content rows.", table.id)
         rows = [row[0] for row in table.rows if row]
         for index in range(0, len(rows) - 1, 2):
             label = rows[index].text().strip()
             objects, loose = self.objects(rows[index + 1].children, f"{V.H_BEFORE_WEEK_1} / {label}", V.SCOPE_PRE_WEEK)
+            self.label_cell(rows[index], {objects[0]["title"]} if objects else set(), V.H_BEFORE_WEEK_1)
             if not objects:
                 self.diag.warn("ROW_WITHOUT_OBJECT", f"Row '{label}' declares no object", V.H_BEFORE_WEEK_1)
             if loose:
-                self.diag.warn("LOOSE_CONTENT", f"Row '{label}' has content before any object directive", V.H_BEFORE_WEEK_1)
+                self.diag.error("LOOSE_CONTENT", f"Row '{label}' has content before any object directive", V.H_BEFORE_WEEK_1)
             # a module row: the objects under the Module line belong to that module, and a
             # Placement line adds a further module rather than replacing this one
             modules = [obj for obj in objects if obj["type"] == "module"]
@@ -462,20 +595,27 @@ class Reader:
         tables = [n for n in nodes if isinstance(n, Table)]
         stray = [n for n in nodes if isinstance(n, Para) and n.text().strip()]
         if stray:
-            self.diag.warn("STRAY_PARAGRAPH", f"{len(stray)} paragraph(s) sit between the heading and the table", heading_text)
+            stray = [n for n in stray if not self.guidance(n, heading_text)]
+            if stray:
+                self.diag.error("STRAY_PARAGRAPH", f"{len(stray)} paragraph(s) sit between the heading and the table", heading_text)
         if len(tables) != 1:
             self.diag.error("WEEK_TABLE", f"Expected one week table, found {len(tables)}", heading_text)
             model["weeks"].append(week)
             return
         cells = [row[0] for row in tables[0].rows if row]
+        if any(len(row) != 1 for row in tables[0].rows) or len(cells) % 2:
+            self.diag.error("WEEK_TABLE_SHAPE", "Week table needs pairs of one-cell label and content rows.", heading_text)
         seen: list[str] = []
         for index in range(0, len(cells) - 1, 2):
-            label_text = cells[index].text().strip()
+            label_text = next((p.text().strip() for p in cells[index].paras() if p.text().strip()), "")
             key = V.section_for_label(label_text)
             where = f"{heading_text} / {label_text.split(':')[0]}"
             if key is None:
                 self.diag.error("SECTION_LABEL", f"Row label '{label_text[:50]}' is not a known section", heading_text)
                 continue
+            labels = {" ".join(text.split()) for k, prefix, full in V.SECTION_LABELS if k == key for text in (prefix, full)}
+            self.label_cell(cells[index], labels, where,
+                            (V.OBJECTIVES_SUBLABEL,) if key == "objectives" else ())
             seen.append(key)
             body = cells[index + 1].children
             if key == "overview":
@@ -509,6 +649,8 @@ class Reader:
                     if len(objects) > 1 or objects[0]["type"] != "checklist":
                         self.diag.error("CHECKLIST", "Checklist row must hold one Checklist object", where)
                     week["checklist"] = objects[0]
+                    if any(b["kind"] not in ("li", "p", "heading") for b in objects[0]["blocks"]):
+                        self.diag.error("CHECKLIST_BLOCK_UNSUPPORTED", "Checklist items must be plain paragraphs or list items; move panels or media into a page.", objects[0]["src"])
                     week["checklist"]["items"] = [b for b in objects[0]["blocks"] if b["kind"] in ("li", "p", "heading")]
                     source = objects[0].get("items_source")
                     if source and source != V.ITEMS_FROM_ACTIVITIES:
@@ -526,11 +668,14 @@ class Reader:
         pending_notes: list[str] = []
         intro: list[str] = []
         for node in nodes:
+            if self.guidance(node, "rubric appendix"):
+                continue
             if isinstance(node, Para):
                 text = node.text().strip()
                 if not text:
                     continue
                 if node.heading_level == V.content_top(self.frame_level):
+                    self.account(node, "structure", "rubric name")
                     current = {"name": text, "used_by": [], "description": [], "grid": None, "notes_before": pending_notes, "src": node.id}
                     pending_notes = []
                     model["rubrics"].append(current)
@@ -538,12 +683,16 @@ class Reader:
                 parsed = V.parse_directive(text)
                 if current is not None and current["grid"] is None:
                     if parsed and parsed[0] == V.D_RUBRIC_USED_BY:
+                        self.account(node, "structure", f"rubric {current['name']} relationship")
                         current["used_by"].append(parsed[1])
                     else:
+                        self.account(node, "notes", f"rubric {current['name']} authoring description")
                         current["description"].append(text)
                 elif current is None:
+                    self.account(node, "notes", "rubric appendix introduction")
                     intro.append(text)
                 else:
+                    self.account(node, "notes", "rubric appendix trailing notes")
                     pending_notes.append(text)
             else:
                 if current is None or current["grid"] is not None:

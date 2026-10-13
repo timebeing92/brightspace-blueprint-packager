@@ -734,7 +734,7 @@ def test_a_blank_blueprint_reads_clean_with_a_checklist_row_in_every_week(tmp_pa
     from blueprint_packager.blank import write_blank
 
     path = write_blank(tmp_path / "blank.docx", course_number="NEW 101", course_title="Course Title", term="Spring A 2027",
-                       weeks=3, topics=["Foundations", "Second Topic"])
+                       weeks=3, topics=["Foundations", "Second Topic"], worked_example=True)
     model = model_with_joins(path)
     assert errors(model) == []
     assert model["conventions"]["frame_level"] == 1
@@ -743,7 +743,7 @@ def test_a_blank_blueprint_reads_clean_with_a_checklist_row_in_every_week(tmp_pa
         assert week["checklist"]["derive"] is True  # the Items line is pre-filled in every week
         assert week["overview_page"]["page_heading"].startswith(f"Week {week['number']} – ")
         assert len(week["assignments"]) == 1 and len(week["discussions"]) == 1
-    assert sorted(r["name"] for r in model["rubrics"]) == ["Standard Assignment Rubric", "Standard Discussion Rubric"]
+    assert sorted(r["name"] for r in model["rubrics"]) == ["Sample Assignment Rubric", "Sample Discussion Rubric"]
 
 
 @pytest.mark.skipif(not HAS_WORKBENCH, reason="Workbench building blocks not present")
@@ -751,8 +751,8 @@ def test_a_blank_blueprint_builds_a_package(tmp_path):
     from blueprint_packager.blank import write_blank
     from blueprint_packager.build import Builder
 
-    model = model_with_joins(write_blank(tmp_path / "blank.docx", course_number="NEW 101", course_title="Course Title", term="Spring A 2027", weeks=2))
-    result = Builder(model, SETTINGS, REPO_ROOT).run(tmp_path / "out", force=True)
+    model = model_with_joins(write_blank(tmp_path / "blank.docx", course_number="NEW 101", course_title="Course Title", term="Spring A 2027", weeks=2, worked_example=True))
+    result = Builder(model, {**SETTINGS, "build_mode": "preview"}, REPO_ROOT).run(tmp_path / "out", force=True)
     assert result["errors"] == []
     names = set(zipfile.ZipFile(result["zip"]).namelist())
     assert {"imsmanifest.xml", "grades_d2l.xml", "rubrics_d2l.xml", "dropbox_d2l.xml", "checklist_d2l.xml"} <= names

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from collections import Counter
+from .authoring import absolute_web_url
 
 from .render_text import plain
 
@@ -52,6 +54,15 @@ def resolve(model: dict[str, Any]) -> dict[str, Any]:
     activities = all_activities(model)
     labels: dict[str, dict[str, Any]] = {}
     used_grade_items: dict[str, str] = {}
+    for label, names in (
+        ("GRADE_ITEM", [i["name"] for i in (model.get("grade_plan") or {}).get("items", [])]),
+        ("RUBRIC", [r["name"] for r in model["rubrics"]]),
+        ("MODULE", modules),
+        ("PAGE", [p["title"] for p in model["pages"]] + [w["overview_page"]["title"] for w in model["weeks"] if w["overview_page"]]),
+    ):
+        for name, count in Counter(names).items():
+            if count > 1:
+                diag("error", f"{label}_TITLE_DUPLICATE", f"{count} {label.lower().replace('_', ' ')} entries share the title '{name}'; give each object an exact unique title.", name)
 
     for activity in activities:
         label = f"{TYPE_LABEL[activity['type']]}: {activity['title']}"
@@ -74,9 +85,9 @@ def resolve(model: dict[str, Any]) -> dict[str, Any]:
                     diag("error", "POINTS_MISSING", f"Graded activity states no points; points table says {plan[grade_item]:g}", where)
                     join("activity→grade item", label, grade_item, "points missing", f"{plan[grade_item]:g} in the points table")
                 elif abs(points - plan[grade_item]) > 1e-9:
-                    # the activity is the authority for its own points; the row stays visible as a disagreement
+                    # Keep both values visible; the builder requires a recorded determination.
                     diag("warning", "POINTS_DIFFER_FROM_GRADE_ROW",
-                         f"Activity says {points:g} pts; its points table row says {plan[grade_item]:g}. The build uses the activity's {points:g}.", where)
+                         f"Activity says {points:g} pts; its points table row says {plan[grade_item]:g}. Reconcile the values or record a points determination before building.", where)
                     join("activity→grade item", label, grade_item, "resolved", f"{points:g} pts (points table row says {plan[grade_item]:g})")
                 else:
                     join("activity→grade item", label, grade_item, "resolved", f"{plan[grade_item]:g} pts")
@@ -154,7 +165,7 @@ def resolve(model: dict[str, Any]) -> dict[str, Any]:
                 join("object→module", label, placement, "unresolved")
             else:
                 join("object→module", label, placement, "resolved")
-        if obj["type"] == "link" and not re.match(r"^https?://", obj.get("url", "")):
+        if obj["type"] == "link" and not absolute_web_url(obj.get("url", "")):
             diag("error", "LINK_URL", "Link has no absolute URL", label)
     for week in model["weeks"]:
         if week["overview_page"]:

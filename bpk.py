@@ -45,9 +45,40 @@ def cmd_blank(args: argparse.Namespace) -> int:
     from blueprint_packager.blank import write_blank
 
     out = write_blank(Path(args.output), course_number=args.course_number, course_title=args.course_title, term=args.term,
-                      weeks=args.weeks, topics=args.topic)
+                      weeks=args.weeks, topics=args.topic, assignments_per_week=args.assignments_per_week,
+                      discussions_per_week=args.discussions_per_week, week_counts=_week_counts(args.week_count),
+                      worked_example=args.worked_example, force=args.force)
     print(f"blank blueprint: {out} ({args.weeks} weeks)")
     return 0
+
+
+def _week_counts(values: list[str]) -> dict[int, dict[str, int]]:
+    result = {}
+    for value in values:
+        try:
+            week, assignments, discussions = map(int, value.split(":"))
+        except ValueError as exc:
+            raise ValueError("Use --week-count WEEK:ASSIGNMENTS:DISCUSSIONS, for example 2:2:3") from exc
+        if week in result:
+            raise ValueError(f"Week {week} has two count overrides.")
+        result[week] = {"assignments": assignments, "discussions": discussions}
+    return result
+
+
+def cmd_from_wizard(args: argparse.Namespace) -> int:
+    from blueprint_packager.wizard_authoring import convert_bundle
+
+    result = convert_bundle(Path(args.bundle), Path(args.output), force=args.force)
+    print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
+    return 0 if result["status"] == "converted" else 1
+
+
+def cmd_rename(args: argparse.Namespace) -> int:
+    from blueprint_packager.relationships import rename_activity
+    result = rename_activity(Path(args.source), Path(args.output), kind=args.kind, old=args.old, new=args.new,
+                             apply=args.apply, authorized_by=args.authorized_by or "", reason=args.reason or "")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 1 if any(d.get("severity") == "error" for d in result.get("diagnostics", [])) else 0
 
 
 REMEDIATION = {
@@ -79,7 +110,13 @@ def _read_and_resolve(docx: Path, out_dir: Path, stem: str) -> tuple[dict, dict]
         for index, d in enumerate(raw, start=1)
     ]
     model["provenance"] = "authored"
+    from blueprint_packager.authoring import readiness
+    from blueprint_packager.relationships import relationship_report
+    model["readiness"] = readiness(model)
     _write_json(out_dir / f"{stem}__course_model.json", model)
+    _write_json(out_dir / f"{stem}__readiness.json", model["readiness"])
+    _write_json(out_dir / f"{stem}__source_accounting.json", model["source_accounting"])
+    _write_json(out_dir / f"{stem}__relationships.json", relationship_report(model))
     (out_dir / f"{stem}__normalized.md").write_text(model_markdown(model), encoding="utf-8")
     return model, resolved
 
@@ -92,6 +129,8 @@ def _summarize(model: dict) -> int:
           f"{len(model['joins'])} joins; {len(errors)} errors, {len(warnings)} warnings, {len(infos)} notes")
     for d in errors:
         print(f"  ERROR {d['code']}: {d['message']} [{d['location']}]")
+    ready = model.get("readiness", {})
+    print(f"authoring: {ready.get('state', 'not checked')}; {sum(f.get('status') == 'unresolved' for f in ready.get('findings', []))} unresolved authoring items")
     return 1 if errors else 0
 
 
@@ -157,6 +196,12 @@ def cmd_build(args: argparse.Namespace) -> int:
     started = I.utc_now()
     model = json.loads(Path(args.model).read_text(encoding="utf-8"))
     settings = json.loads(Path(args.settings).read_text(encoding="utf-8"))
+    if args.preview:
+        settings["build_mode"] = "preview"
+    if args.retain_video_placeholder:
+        settings["retain_video_placeholders"] = args.retain_video_placeholder
+    if args.video_link_fallback:
+        settings["video_link_fallbacks"] = args.video_link_fallback
     status = build_package(model, settings, Path(args.out_dir), settings_dir=Path(args.settings).resolve().parent, force=args.force)
     if status in (0, 1):
         lineage = settings.get("lineage", {})
@@ -226,7 +271,29 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--term", required=True)
     p.add_argument("--weeks", type=int, default=8)
     p.add_argument("--topic", action="append", default=[], help="a week's topic, in order; repeatable")
+    p.add_argument("--assignments-per-week", type=int, default=1)
+    p.add_argument("--discussions-per-week", type=int, default=1)
+    p.add_argument("--week-count", action="append", default=[], help="override one week: WEEK:ASSIGNMENTS:DISCUSSIONS")
+    p.add_argument("--worked-example", action="store_true", help="include sample panels and sample rubrics")
+    p.add_argument("--force", action="store_true", help="back up an existing DOCX before replacing it")
     p.set_defaults(func=cmd_blank)
+
+    p = sub.add_parser("from-wizard", help="convert an immutable Wizard extraction bundle into an authoring DOCX")
+    p.add_argument("bundle")
+    p.add_argument("--output", required=True)
+    p.add_argument("--force", action="store_true")
+    p.set_defaults(func=cmd_from_wizard)
+
+    p = sub.add_parser("rename", help="preview an exact activity rename and its structural references; --apply writes an authorized copy")
+    p.add_argument("source")
+    p.add_argument("--output", required=True)
+    p.add_argument("--kind", required=True, choices=["assignment", "discussion", "quiz"])
+    p.add_argument("--old", required=True)
+    p.add_argument("--new", required=True)
+    p.add_argument("--apply", action="store_true")
+    p.add_argument("--authorized-by")
+    p.add_argument("--reason")
+    p.set_defaults(func=cmd_rename)
 
     p = sub.add_parser("normalize", help="apply a course map and write the normalized blueprint")
     p.add_argument("source")
@@ -246,6 +313,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--settings", required=True)
     p.add_argument("--output-dir", "--out-dir", dest="out_dir", required=True)
     p.add_argument("--force", action="store_true")
+    p.add_argument("--preview", action="store_true", help="explicitly build a draft preview with unresolved authoring fields")
+    p.add_argument("--retain-video-placeholder", action="append", default=[], metavar="TITLE")
+    p.add_argument("--video-link-fallback", action="append", default=[], metavar="TITLE")
     p.set_defaults(func=cmd_build)
 
     p = sub.add_parser("rebase-map", help="carry a course map from one export of a blueprint to a later export")
@@ -268,6 +338,9 @@ def main(argv: list[str] | None = None) -> int:
         return args.func(args)
     except KeyboardInterrupt:
         return 130
+    except (ValueError, FileExistsError, FileNotFoundError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

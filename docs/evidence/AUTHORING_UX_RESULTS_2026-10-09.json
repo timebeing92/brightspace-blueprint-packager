@@ -1,0 +1,45 @@
+{
+  "template": {
+    "artifact": "docs/examples/blank_blueprint__8_weeks__ux_review.docx",
+    "sha256": "146de613752829526801974b471e74a52846351e884ff09887e9ae8470e9163d",
+    "weeks": 8,
+    "assignments": 8,
+    "discussions": 8,
+    "source_accounting_complete": true,
+    "errors": 0,
+    "joins": 58,
+    "note": "Generated blank remains a draft; this is local source validation, not a package or tenant result."
+  },
+  "manual_connections_probe": {
+    "probe": "manual grading and rubric attachment after import",
+    "errors": 0,
+    "warnings": [
+      "RUBRIC_UNATTACHED",
+      "RUBRIC_UNATTACHED"
+    ],
+    "verify_exit": 0,
+    "verification_summary": {
+      "passed": 13,
+      "failed": 0,
+      "not_run": 0,
+      "not_applicable": 2
+    },
+    "evidence_level": "local synthetic read/build/read-back; no tenant action"
+  },
+  "local_validation": {
+    "test_command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests -q",
+    "tests_passed": 184,
+    "duration_seconds": 41.65,
+    "rendered_pages": 15,
+    "all_pages_visually_inspected": true,
+    "renderer": "bundled LibreOffice via documents render_docx.py",
+    "vendor_files_unchanged": 33,
+    "git_diff_check": "clean",
+    "limits": [
+      "No fresh Google round trip for this template revision",
+      "No new-user usability study",
+      "No native screen-reader check",
+      "No new tenant import or playback evidence"
+    ]
+  }
+}

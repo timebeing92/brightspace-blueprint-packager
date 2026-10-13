@@ -1,33 +1,60 @@
 # Roadmap
 
-Ordered by what unblocks the next piece of evidence.
+Updated 2026-10-09. This is an unreleased candidate based on v0.2.2. The approved
+scope and implementation decisions are recorded in
+[the plan](docs/IMPLEMENTATION_PLAN_2026-10-09.md) and
+[the implementation log](docs/IMPLEMENTATION_LOG_2026-10-09.md).
 
-## Next
+## Implemented in the current candidate
 
-1. **Sandbox import of the MBA 620 package.** Follow `LIVE_RUNBOOK.md` in the build folder. Record the result as an L3 receipt.
-2. **Re-export and compare.** Run the wizard on the sandbox re-export and compare it with the course model. That is the L4 evidence for the six local extensions.
-3. **Feed results back.** Each extension that survives becomes a promotion candidate for `d2l_package_lib`; each that fails is fixed or dropped.
+- Blocking source accounting, input-contract checks, accurate missing-evidence
+  handling, internal-link verification, and corrected reader provenance.
+- Protected blank generation, configurable weekly activity counts, minimal and
+  worked-example forms, clearer writing areas, and revised table pagination.
+- Guidance/placeholders, draft readiness, video embeds/placeholders, and
+  deliberate retention/link-fallback choices.
+- Relationship reports and previewable, authorized structural activity renames.
+- Calendar review and editing in the guided runner.
+- Explicit Wizard JSON-bundle to authoring DOCX conversion, with source hashes,
+  a ledger, and refusal of unsupported shapes.
+- Synthetic boundary and complete-cycle regressions. Consult the log for the
+  current rendered-document and Google round-trip evidence.
 
-## Then
+## Next evidence and handoff
 
-4. **Re-base the decisions themselves.** `rebase-map` translates a map to a later export, but the script that authors MBA 620's map still speaks in the first export's ids. Once edits pile up, rewrite the decisions against a new base using the translation table.
-5. **Structure fixes in Blueprint Wizard's Word writer.** Real heading styles, explicit dropdown and callout endings, module names before Week 1, forum and submission type on activity lines. These five let a Word blueprint say enough by itself. They are Workbench changes, proposed in the MBA 620 review lane, and need the owner's determination first.
-6. **Automatic course map for wizard-fresh blueprints.** A blueprint straight from Blueprint Wizard has regular wizard lines. Its map can be generated instead of written by hand.
-7. **`--preflight` and progress events.** A plan-only run that writes nothing, and `coursecraft.progress/1` events without new `run_end.outputs` keys.
-8. **Dates, next step.** A calendar and due-day rules now set dates on assignment folders, checklist items, and a carried quiz. Still to do: confirm the quiz date form on import, and decide whether a due rule gets a line in the blueprint.
-9. **A second page template.** Proves template selection. The natural candidate is a Page Kit kit, so page rendering converges on the upstream compiler.
+1. Review the candidate, updated blank, diagnostics, and implementation evidence.
+2. Prepare a release only after that review; this checkout is not a new
+   published version.
+3. If approved for tenant validation, the operator imports a representative
+   synthetic package into an empty sandbox, checks media and multiple activities,
+   re-exports it, and records a new receipt. The tool itself does not access a
+   live tenant.
+4. Promote borrowed-behaviour fixes upstream when a concrete Workbench issue is
+   established, then review the diff before re-pinning the vendor.
 
-10. **Receipts in the second run-receipt shape.** Upstream's blueprint pipeline now writes `coursecraft.run/2`, whose lineage key joins the org unit number and the manifest identifier. A package built from a blueprint has no org unit until it is imported, so lineage needs its own answer here first.
-11. **Course-settings section for a blank blueprint.** Tool defaults, conditional release of modules or items, and the term calendar, asked once and applied by the packager. Owner note of 2026-10-06.
-12. **Authorized edits, paste-back list.** A list of the build's wording changes in a form a person can apply to the source document, so the two can be brought back together.
+## Follow-on work requiring its own evidence
 
-13. **Page links from inside activity descriptions.** Needs the page topic's resource code before the manifest is written: mint topic codes at plan time.
-14. **Decide the shared form for panel ends and internal links** with the owner, then have the wizard write it. The packager already reads both forms.
+- Expand Wizard conversion beyond its documented subset: quiz carry-forward
+  sources, nested modules, dates/settings, files/images, and other unsupported
+  structures need explicit representations and tests.
+- Add institutional video providers using representative URLs, an embedding
+  contract, and tenant playback evidence.
+- Broaden native Windows interaction evidence beyond path parsing tests.
+- Align page design with an upstream Page Kit compiler when its contract is
+  settled; two current templates already demonstrate template selection.
+- Evaluate structured progress events and receipt evolution against current
+  CourseCraft contracts before adopting a new shape.
 
-## Later, and not this tool's call
+## Historical work already evidenced
 
-- How page design enters the packager: one template applied broadly, granular choices, or a separate building surface. Deferred by the owner on 2026-10-06; it needs its own consolidation effort. Page Kit is the likely home.
+The initial MBA 620 sandbox import, re-export comparison, repeated-import
+experiment, and pages-only refresh are in
+[Import receipts 10–13](docs/IMPORT_RECEIPTS.md). These are completed historical
+rounds, applying to their named packages and shapes. Dates on assignment
+folders, checklist items, and a carried quiz have named evidence there too.
 
-- Promotion upstream as a sibling producer with Blueprint Wizard as the front door.
-- Catalog intake of the course model as an authored layer.
-- Quiz authoring from a blueprint. That belongs to the quiz lane.
+## Separate ownership
+
+Quiz authoring remains in the quiz lane. Catalog intake of an authored model,
+broader page-design surfaces, and live course operations require their own
+scope. Extracted contracts and vendored Workbench files remain immutable here.

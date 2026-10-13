@@ -53,5 +53,5 @@ build receipt and verification report (`blueprint_packager/workbench.py`).
 ## Checks before handing work back
 
 ```bash
-.venv/bin/python -m pytest tools/blueprint-packager/tests -q
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests -q
 ```

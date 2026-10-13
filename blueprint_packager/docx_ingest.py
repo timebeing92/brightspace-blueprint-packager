@@ -315,6 +315,41 @@ def _read_numbering(archive: zipfile.ZipFile) -> dict[tuple[str, int], str]:
     return out
 
 
+def _read_list_styles(archive: zipfile.ZipFile) -> dict[str, tuple[str | None, int | None]]:
+    """Resolve explicit numbering inherited through paragraph styles.
+
+    A style's name is never used to guess list membership.
+    """
+    try:
+        root = etree.fromstring(archive.read("word/styles.xml"))
+    except KeyError:
+        return {}
+    styles = {s.get(w("styleId")): s for s in root.findall(w("style"))}
+    result = {}
+
+    def resolve(identifier, visited):
+        if identifier in result:
+            return result[identifier]
+        if identifier in visited or identifier not in styles:
+            return None, None
+        style = styles[identifier]
+        based = style.find(w("basedOn"))
+        num, level = resolve(based.get(w("val")), visited | {identifier}) if based is not None else (None, None)
+        prop = style.find(f"{w('pPr')}/{w('numPr')}")
+        if prop is not None:
+            nid, ilvl = prop.find(w("numId")), prop.find(w("ilvl"))
+            if nid is not None:
+                num = nid.get(w("val"))
+            if ilvl is not None:
+                level = int(ilvl.get(w("val"), "0"))
+        result[identifier] = (num, level or 0) if num else (None, None)
+        return result[identifier]
+
+    for identifier in styles:
+        resolve(identifier, set())
+    return result
+
+
 def _read_comments(archive: zipfile.ZipFile) -> dict[str, dict[str, str]]:
     try:
         root = etree.fromstring(archive.read("word/comments.xml"))
@@ -331,9 +366,10 @@ def _read_comments(archive: zipfile.ZipFile) -> dict[str, dict[str, str]]:
 
 
 class _Ingest:
-    def __init__(self, rels: dict[str, str], style_names: dict[str, str]) -> None:
+    def __init__(self, rels: dict[str, str], style_names: dict[str, str], list_styles=None) -> None:
         self.rels = rels
         self.style_names = style_names
+        self.list_styles = list_styles or {}
         self.n_para = 0
         self.n_table = 0
         self.n_cell = 0
@@ -406,14 +442,15 @@ class _Ingest:
             pstyle = ppr.find(w("pStyle"))
             if pstyle is not None:
                 style = self.style_names.get(pstyle.get(w("val")), pstyle.get(w("val")) or "")
+                num_id, level = self.list_styles.get(pstyle.get(w("val")), (None, None))
             numpr = ppr.find(w("numPr"))
             if numpr is not None:
                 nid = numpr.find(w("numId"))
                 ilvl = numpr.find(w("ilvl"))
-                num_id = nid.get(w("val")) if nid is not None else "0"
-                level = int(ilvl.get(w("val"))) if ilvl is not None else 0
-                if num_id == "0":  # numId 0 means "no list"
-                    num_id, level = None, None
+                num_id = nid.get(w("val")) if nid is not None else num_id
+                level = int(ilvl.get(w("val"))) if ilvl is not None else (level or 0)
+            if num_id == "0":  # numId 0 explicitly cancels inherited list membership
+                num_id, level = None, None
         runs, comment_ids = self._runs(el)
         return Para(
             id=f"p{self.n_para:05d}",
@@ -460,9 +497,10 @@ def read_docx(path: str | Path) -> Document:
         style_names = _read_styles(archive)
         comments = _read_comments(archive)
         numbering = _read_numbering(archive)
+        list_styles = _read_list_styles(archive)
         tree = etree.ElementTree(etree.fromstring(archive.read("word/document.xml")))
     body_el = tree.getroot().find(w("body"))
-    ingest = _Ingest(rels, style_names)
+    ingest = _Ingest(rels, style_names, list_styles)
     body = ingest.children(body_el, "body")
     return Document(
         path=path,

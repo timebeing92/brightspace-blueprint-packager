@@ -242,7 +242,11 @@ def test_the_runner_builds_a_package_from_scripted_answers(tmp_path):
         "",                        # time zone
         "2026-10-28",              # first day of week 1
         "1",                       # weeks
+        "",                        # assignment due day (Sunday)
+        "",                        # discussion initial day (Friday)
+        "",                        # discussion response day (Sunday)
         "",                        # Return to run
+        "",                        # accept the displayed calendar boundaries
     ]) + "\n"
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "HOME": str(tmp_path)}
     state = REPO / ".last_run.json"
@@ -272,8 +276,16 @@ def test_the_runner_builds_a_package_from_scripted_answers(tmp_path):
 def test_the_runner_dry_run_and_doctor(tmp_path):
     blueprint = synth.canonical(tmp_path / "dry.docx")
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "HOME": str(tmp_path)}
-    proc = subprocess.run([sys.executable, "-B", str(SCRIPTS / "packager_tui.py"), "--plain", "--no-splash", "--no-update-check", "--yes",
-                           "--task", "dry", "--blueprint", str(blueprint), "--output-dir", str(tmp_path / "dry")], capture_output=True, text=True, env=env, check=False)
+    state = REPO / ".last_run.json"
+    saved = state.read_text(encoding="utf-8") if state.is_file() else None
+    try:
+        proc = subprocess.run([sys.executable, "-B", str(SCRIPTS / "packager_tui.py"), "--plain", "--no-splash", "--no-update-check", "--yes",
+                               "--task", "dry", "--blueprint", str(blueprint), "--output-dir", str(tmp_path / "dry")], capture_output=True, text=True, env=env, check=False)
+    finally:
+        if saved is None:
+            state.unlink(missing_ok=True)
+        else:
+            state.write_text(saved, encoding="utf-8")
     assert proc.returncode == 0, proc.stdout[-2000:] + proc.stderr[-2000:]
     assert "The blueprint reads clean" in proc.stdout and (tmp_path / "dry" / "model" / "dry__course_model.json").is_file()
     doctor = subprocess.run([sys.executable, "-B", str(SCRIPTS / "packager_tui.py"), "--doctor", "--plain"], capture_output=True, text=True, env=env, check=False)

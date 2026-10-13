@@ -13,6 +13,7 @@ The shape follows the Blueprint Wizard runner's scripts/blueprint_wizard.py
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime as _dt
 import hashlib
 import json
@@ -62,7 +63,7 @@ TASKS = [
     ("dry", "Read a blueprint and report, without building",
      "A dry run: finds everything the reader can see and writes the course model and its report."),
     ("verify", "Verify an existing build folder",
-     "Reads a built package back and compares it with its course model, twelve checks."),
+     "Reads a built package back and reports passed, failed, and unexecuted checks."),
     ("resync", "Re-sync a course map after the document changed",
      "Carries a course map from the old export of a blueprint to the new one and reports what moved."),
     ("update", "Check for updates and show the version",
@@ -95,13 +96,21 @@ def parse_path(value: str) -> Path:
     raw = value.strip()
     if not raw:
         raise ValueError("empty path")
-    try:
-        parts = shlex.split(raw)
-        if len(parts) == 1:
-            raw = parts[0]
-    except ValueError:
-        raw = raw.strip("\"'")
-    return Path(raw).expanduser().resolve()
+    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in "\"'":
+        raw = raw[1:-1]
+    windows_path = bool(re.match(r"^[A-Za-z]:[\\/]", raw) or raw.startswith("\\\\"))
+    if not windows_path:
+        try:
+            parts = shlex.split(raw)
+            if len(parts) == 1:
+                raw = parts[0]
+        except ValueError:
+            pass
+    # Windows backslashes are path separators, not POSIX shell escapes.
+    # Preserve a Windows path literally when inspecting it on another platform.
+    path = Path(raw).expanduser()
+    return path if windows_path and os.name != "nt" else path.resolve()
+
 
 
 def human_size(num_bytes: int) -> str:
@@ -298,11 +307,13 @@ def update_notice(*, force: bool, offer_install: bool) -> bool:
 # --------------------------------------------------------------------------- peeks
 def peek_blueprint(path: Path) -> dict:
     """A cheap look inside a blueprint: title, weeks, paragraphs, size."""
-    info = {"title": "", "weeks": 0, "paragraphs": 0, "size": 0, "error": ""}
+    info = {"title": "", "weeks": 0, "week_numbers": [], "assignments": 0, "discussions": 0,
+            "paragraphs": 0, "size": 0, "error": ""}
     try:
         info["size"] = path.stat().st_size
-        from blueprint_packager import vocabulary as V
         from blueprint_packager.docx_ingest import read_docx
+        from blueprint_packager.joins import all_activities
+        from blueprint_packager.reader import Reader
 
         doc = read_docx(path)
         paras = list(doc.paras())
@@ -311,19 +322,42 @@ def peek_blueprint(path: Path) -> dict:
             text = p.text().strip()
             if not text:
                 continue
-            if not info["title"] and (p.style or "").lower() == "title":
+            if (p.style or "").lower() == "subtitle":
                 info["title"] = text
-            if p.heading_level in (1, 2) and V.WEEK_HEADING_RE.match(text):
-                info["weeks"] += 1
+            elif not info["title"] and (p.style or "").lower() == "title" and text.lower() not in ("blueprint", "course blueprint"):
+                info["title"] = text
+        if not info["title"]:
+            info["title"] = next((p.text().strip() for p in paras
+                                  if p.text().strip() and p.text().strip().lower() not in ("blueprint", "course blueprint")), "")
         if not info["title"]:
             info["title"] = next((p.text().strip() for p in paras if p.text().strip()), "")
+        # Count interpreted objects, excluding authoring-reference examples and
+        # ordinary prose that happens to contain a directive-looking line.
+        model = Reader(doc).read()
+        info["week_numbers"] = [week["number"] for week in model["weeks"]]
+        info["weeks"] = len(info["week_numbers"])
+        for activity in all_activities(model):
+            if activity["type"] in ("assignment", "discussion"):
+                info["assignments" if activity["type"] == "assignment" else "discussions"] += 1
     except Exception as exc:  # a peek never stops the run
         info["error"] = str(exc).splitlines()[0][:120]
     return info
 
 
+
+def verification_counts(report: dict) -> dict[str, int]:
+    counts = {key: 0 for key in ("passed", "failed", "not_run", "not_applicable")}
+    summary = report.get("summary")
+    if isinstance(summary, dict) and all(isinstance(summary.get(key), int) for key in counts):
+        return {key: summary[key] for key in counts}
+    for check in report.get("checks", []):
+        status = check.get("status", "passed" if check.get("passed") else "failed")
+        counts[status if status in counts else "not_run"] += 1
+    return counts
+
 def peek_build(folder: Path) -> dict:
-    info = {"title": "", "zip": "", "sha256": "", "bytes": 0, "verified": None, "error": ""}
+    info = {"title": "", "zip": "", "sha256": "", "bytes": 0, "verified": None,
+            "verification_passed": False, "preview": False, "authoring_state": "unknown", "error": ""}
     try:
         receipt = json.loads((folder / "component_package_receipt.json").read_text(encoding="utf-8"))
         info["title"] = str(receipt.get("package_title") or "")
@@ -331,10 +365,16 @@ def peek_build(folder: Path) -> dict:
         info["zip"] = str(zip_info.get("path") or "")
         info["sha256"] = str(zip_info.get("sha256") or "")
         info["bytes"] = int(zip_info.get("bytes") or 0)
+        extension = receipt.get("extensions", {})
+        info["preview"] = extension.get("build_mode") == "preview"
+        info["authoring_state"] = extension.get("authoring_state", "unknown")
         report = folder / "verification_report.json"
         if report.is_file():
             data = json.loads(report.read_text(encoding="utf-8"))
-            info["verified"] = f"{sum(1 for c in data.get('checks', []) if c.get('passed'))} of {len(data.get('checks', []))}"
+            counts = verification_counts(data)
+            info["verified"] = "; ".join(f"{counts[key]} {key.replace('_', ' ')}"
+                                           for key in ("passed", "failed", "not_run", "not_applicable") if counts[key])
+            info["verification_passed"] = data.get("passed") is True
     except (OSError, ValueError) as exc:
         info["error"] = str(exc).splitlines()[0][:120]
     return info
@@ -368,6 +408,7 @@ def pick_blueprint(default: str = "", *, revisit: bool = False) -> Path:
             if peek["title"]:
                 rows.append(("Title", TERM.bold(peek["title"][:70])))
             rows.append(("Weeks", str(peek["weeks"]) if peek["weeks"] else TERM.warn("none found; is the frame at Heading 1?")))
+            rows.append(("Activities", f"{peek['assignments']} assignments; {peek['discussions']} discussions"))
             rows.append(("Paragraphs", str(peek["paragraphs"])))
         print()
         print(ui.card(TERM, "A look inside", rows))
@@ -418,6 +459,134 @@ def make_settings(answers: dict) -> dict:
     return settings
 
 
+
+def unique_path(path: Path) -> Path:
+    candidate, index = path, 2
+    while candidate.exists():
+        candidate = path.with_name(f"{path.stem}__{index}{path.suffix}")
+        index += 1
+    return candidate
+
+
+def validate_calendar(spec: dict, week_numbers: list[int] | None = None) -> dict:
+    from blueprint_packager.calendar import Calendar
+
+    if not isinstance(spec, dict) or not isinstance(spec.get("weeks"), dict) or not spec["weeks"]:
+        raise ValueError("Calendar needs a nonempty weeks mapping.")
+    try:
+        calendar = Calendar(spec)
+    except (KeyError, TypeError) as exc:
+        raise ValueError(f"Invalid calendar: {exc}") from exc
+    if any(number < 1 for number in calendar.weeks):
+        raise ValueError("Calendar week numbers must be positive.")
+    if len(calendar.weeks) != len(spec["weeks"]):
+        raise ValueError("Calendar week numbers must be unique.")
+    missing = sorted(set(week_numbers or []) - set(calendar.weeks))
+    if missing:
+        raise ValueError(f"Calendar is missing blueprint weeks: {missing}")
+    previous_end = None
+    for number, (start, end) in sorted(calendar.weeks.items()):
+        if previous_end is not None and start <= previous_end:
+            raise ValueError(f"Week {number} overlaps or precedes the previous week.")
+        previous_end = end
+    return spec
+
+
+def calendar_from_file(path: Path, existing: dict | None = None, timezone: str | None = None) -> dict:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("Calendar file must contain a weeks mapping or a complete calendar object.")
+    payload = payload.get("calendar", payload)
+    if not isinstance(payload, dict):
+        raise ValueError("Calendar must be a JSON object.")
+    if "weeks" in payload:
+        spec = copy.deepcopy(payload)
+    else:
+        spec = copy.deepcopy(existing or {})
+        spec["weeks"] = payload
+    spec.setdefault("timezone", timezone or (existing or {}).get("timezone") or "America/New_York")
+    if timezone:
+        spec["timezone"] = timezone
+    return validate_calendar(spec)
+
+
+def review_calendar(spec: dict, *, interactive: bool, week_numbers: list[int] | None = None) -> dict:
+    """Show every configured boundary; edits never shift other weeks implicitly."""
+    spec = copy.deepcopy(validate_calendar(spec, week_numbers))
+    while True:
+        rows = [("Time zone", spec["timezone"])]
+        for number, dates in sorted(spec["weeks"].items(), key=lambda item: int(item[0])):
+            start, end = map(_dt.date.fromisoformat, dates)
+            rows.append((f"Week {number}", f"{start.isoformat()} ({start:%a}) to {end.isoformat()} ({end:%a}); {(end-start).days + 1} days"))
+        rules = spec.get("rules", {})
+        for role, rule in rules.items():
+            rows.append((role.replace("_", " "), str(rule.get("day", ""))
+                         + (f"; final week: {rule['last_week_day']}" if rule.get("last_week_day") else "")))
+        if not rules:
+            rows.append(("Due rules", "none configured; week boundaries alone do not assign due dates"))
+        print(ui.card(TERM, "Review the term calendar", rows))
+        if not interactive:
+            return spec
+        reply = ui.prompt_text(TERM, "Return accepts these dates; enter a week number to edit", default="").strip()
+        if not reply:
+            return spec
+        if reply not in spec["weeks"]:
+            print(TERM.warn("  Enter a listed week number."))
+            continue
+        candidate = copy.deepcopy(spec)
+        old = spec["weeks"][reply]
+        candidate["weeks"][reply] = [ui.prompt_text(TERM, "First day (YYYY-MM-DD)", default=old[0]),
+                                       ui.prompt_text(TERM, "Last day (YYYY-MM-DD)", default=old[1])]
+        try:
+            validate_calendar(candidate, week_numbers)
+        except (ValueError, TypeError, KeyError) as exc:
+            print(TERM.warn(f"  Calendar unchanged: {exc}"))
+            continue
+        spec = candidate
+
+
+def prepare_calendar_settings(path: Path, args: argparse.Namespace, out_dir: Path, peek: dict) -> Path:
+    original = json.loads(path.read_text(encoding="utf-8"))
+    settings = copy.deepcopy(original)
+    if args.calendar_file:
+        settings["calendar"] = calendar_from_file(parse_path(args.calendar_file), settings.get("calendar"), args.timezone)
+    if settings.get("calendar"):
+        settings["calendar"] = review_calendar(settings["calendar"], interactive=not args.yes,
+                                                week_numbers=peek.get("week_numbers"))
+    if settings == original:
+        return path
+    # Moving a settings copy must not change what relative source paths mean.
+    if settings.get("workbench_scripts") and not Path(settings["workbench_scripts"]).is_absolute():
+        settings["workbench_scripts"] = str((path.parent / settings["workbench_scripts"]).resolve())
+    for quiz in settings.get("carried_quizzes", []):
+        if quiz.get("source_dir") and not Path(quiz["source_dir"]).is_absolute():
+            quiz["source_dir"] = str((path.parent / quiz["source_dir"]).resolve())
+    out_dir.mkdir(parents=True, exist_ok=True)
+    prepared = unique_path(out_dir / "build_settings__reviewed.json")
+    prepared.write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(ui.status_line(TERM, "ok", "Reviewed settings copy", str(prepared)))
+    return prepared
+
+
+def show_readiness(model_path: Path, settings: dict | None = None) -> dict:
+    from blueprint_packager.authoring import readiness
+
+    model = json.loads(model_path.read_text(encoding="utf-8"))
+    report = readiness(model, settings)
+    pending = [finding for finding in report["findings"] if finding["status"] == "unresolved"]
+    retained = [finding for finding in report["findings"] if finding["status"] == "retained"]
+    rows = [("State", "ready for packaging" if report["ready"] else "draft"),
+            ("Unfinished", str(len(pending))), ("Explicitly retained", str(len(retained)))]
+    for finding in pending[:8]:
+        rows.append((finding["where"], finding["message"]))
+    if len(pending) > 8:
+        rows.append(("", f"{len(pending) - 8} more items are listed in the readiness report."))
+    readiness_path = model_path.with_name(model_path.name.replace("__course_model.json", "__readiness.json"))
+    if readiness_path.is_file():
+        rows.append(("Source report", str(readiness_path)))
+    print(ui.card(TERM, "Authoring readiness", rows))
+    return report
+
 def guess_course_label(title: str) -> str:
     """'MBA 620 Marketing - Fall B 2026 ...' -> 'MBA 620 · Marketing'."""
     match = re.match(r"\s*([A-Z]{2,5}\s?\d{3}[A-Z]?)\s*[-–:·]?\s*([A-Za-z][^-–:·(]*)", title or "")
@@ -441,7 +610,7 @@ def ask_settings(blueprint: Path, peek: dict, out_dir: Path, remembered: dict, a
     if choice == "file":
         return ask_path("Settings file (.json)", default=remembered.get("settings", ""), kind="settings file")
     print(TERM.dim("  Return keeps the suggestion. Everything here can be changed in the file later."))
-    title_default = remembered.get("package_title") or peek.get("title") or blueprint.stem
+    title_default = peek.get("title") or remembered.get("package_title") or blueprint.stem
     answers = {
         "package_title": ui.prompt_text(TERM, "Package title (the course title in Brightspace)", default=title_default),
     }
@@ -462,10 +631,15 @@ def ask_settings(blueprint: Path, peek: dict, out_dir: Path, remembered: dict, a
                 print(TERM.dim("    A date like 2026-10-28, please."))
         answers["week1_start"] = start
         answers["weeks"] = int(ui.prompt_text(TERM, "Number of weeks", default=str(remembered.get("weeks") or peek.get("weeks") or 8)) or 8)
-        print(TERM.dim("  Due days: assignments and responses Sunday, first posts Friday. Change them in the file if the program differs."))
+        print(TERM.dim("  Proposed boundaries are consecutive seven-day weeks. Review and edit them before the build."))
+        print(TERM.dim("  Suggested due rules: assignments/responses Sunday; initial posts Friday."))
+        for key, label, default_day in (("assignment_day", "Assignment due day", "Sunday"),
+                                         ("initial_day", "Discussion initial-post day", "Friday"),
+                                         ("response_day", "Discussion response day", "Sunday")):
+            answers[key] = ui.prompt_text(TERM, label + " (weekday, first_day, or last_day)", default=default_day)
     settings = make_settings(answers)
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / "build_settings.json"
+    path = unique_path(out_dir / "build_settings.json")
     path.write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(ui.status_line(TERM, "ok", "Settings written", str(path)))
     save_state({k: v for k, v in answers.items() if k in ("package_title", "course_label", "manifest_identifier", "template", "timezone", "week1_start", "weeks")})
@@ -475,12 +649,12 @@ def ask_settings(blueprint: Path, peek: dict, out_dir: Path, remembered: dict, a
 # --------------------------------------------------------------------------- running stages
 def open_log(task: str) -> tuple[Path, object]:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
-    stamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    stamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     path = LOGS_DIR / f"packager_{stamp}_{task}.log"
-    return path, path.open("w", encoding="utf-8")
+    return path, path.open("x", encoding="utf-8")
 
 
-CHECK_RE = re.compile(r"^\s*\[(pass|FAIL)\]\s+(.*?):\s*(.*)$")
+CHECK_RE = re.compile(r"^\s*\[(pass|FAIL|passed|failed|not_run|not_applicable)\]\s+(.*?):\s*(.*)$")
 
 
 def run_stage(label: str, cmd: list[str], log, *, checklist: bool = False, context: str = "") -> tuple[int, list[str], float]:
@@ -525,7 +699,12 @@ def run_stage(label: str, cmd: list[str], log, *, checklist: bool = False, conte
                 sys.stdout.write("\r\x1b[2K")
             match = CHECK_RE.match(text) if checklist else None
             if match:
-                print(ui.check_line(TERM, match.group(1) == "pass", match.group(2), match.group(3)[:90]))
+                status, name, detail = match.groups()
+                if status in ("not_run", "not_applicable"):
+                    print(ui.status_line(TERM, "bad" if status == "not_run" else "todo", name,
+                                         status.replace("_", " ") + ": " + detail[:90]))
+                else:
+                    print(ui.check_line(TERM, status in ("pass", "passed"), name, detail[:90]))
             elif text.startswith("  ERROR"):
                 print(TERM.bad("  " + text.strip()[:TERM.width - 4]))
             else:
@@ -584,6 +763,8 @@ def task_build(args: argparse.Namespace, *, dry: bool) -> int:
         blueprint = Path(remembered["blueprint"])
         if not blueprint.is_file():
             raise SystemExit("No remembered blueprint to build again; run without --yes.")
+    elif args.yes:
+        raise SystemExit("No blueprint was supplied or remembered; pass --blueprint with --yes.")
     else:
         blueprint = pick_blueprint(remembered.get("blueprint", ""))
     peek = peek_blueprint(blueprint)
@@ -597,6 +778,10 @@ def task_build(args: argparse.Namespace, *, dry: bool) -> int:
     else:
         out_dir = parse_path(ui.prompt_text(TERM, "Output folder", default=out_default))
     settings_path: Path | None = None
+    if dry and args.settings:
+        settings_path = parse_path(args.settings)
+        if not settings_path.is_file():
+            raise SystemExit(f"Settings file not found: {settings_path}")
     if not dry:
         if args.settings:
             settings_path = parse_path(args.settings)
@@ -616,7 +801,7 @@ def task_build(args: argparse.Namespace, *, dry: bool) -> int:
     if not args.yes:
         while True:
             print()
-            print(ui.card(TERM, "Ready" if not dry else "Ready for a dry run", rows))
+            print(ui.card(TERM, "Review run settings" if not dry else "Review dry-run settings", rows))
             try:
                 reply = input(f"  {TERM.accent('?')} Press Return to run, or a number to change: ").strip()
             except EOFError:
@@ -637,6 +822,8 @@ def task_build(args: argparse.Namespace, *, dry: bool) -> int:
                 rows[2] = ("3. Settings", str(settings_path))
             else:
                 print(TERM.dim(f"    Enter 1-{3 if not dry else 2}, or Return to run."))
+    if settings_path is not None and not dry:
+        settings_path = prepare_calendar_settings(settings_path, args, out_dir, peek)
     save_state({"blueprint": str(blueprint), "output_dir": str(out_dir), **({"settings": str(settings_path)} if settings_path else {})})
 
     print(phase_heading("The build" if not dry else "The reading", "Each stage reads the one before it and writes its own records, so a problem is found where it happened."))
@@ -649,6 +836,11 @@ def task_build(args: argparse.Namespace, *, dry: bool) -> int:
         code, recent, elapsed = run_stage("Read the blueprint", [py, str(BPK), "read", str(blueprint), "--output-dir", str(out_dir / "model"), "--label", stem], log,
                                           context="weeks, pages, activities, rubrics, joins, diagnostics")
         total += elapsed
+        effective_settings = json.loads(settings_path.read_text(encoding="utf-8")) if settings_path else {}
+        for key, selected in (("retain_video_placeholders", args.retain_video_placeholder), ("video_link_fallbacks", args.video_link_fallback)):
+            if selected:
+                effective_settings[key] = list(dict.fromkeys(selected))
+        readiness = show_readiness(model, effective_settings) if model.is_file() else None
         if code != 0:
             failure_card("Read the blueprint", code, recent, log_path)
             return code
@@ -659,11 +851,25 @@ def task_build(args: argparse.Namespace, *, dry: bool) -> int:
                 report_rows.insert(0, ("Read", summary[len("model: "):]))
             report_rows.append(("Run log", TERM.dim(str(log_path))))
             print()
-            print(ui.card(TERM, "The blueprint reads clean", report_rows))
-            next_steps(["Open the readable report and look at any warnings or notes.", "When the blueprint is right, run Build a package."], out_dir)
+            print(ui.card(TERM, "The blueprint reads clean" if readiness and readiness["ready"] else "The blueprint is a draft", report_rows))
+            next_steps(["Review readiness findings and the readable report.", "Complete unfinished fields, or use --preview to inspect a draft package."], out_dir)
             return 0
         assert settings_path is not None
-        code, recent, elapsed = run_stage("Build the package", [py, str(BPK), "build", str(model), "--settings", str(settings_path), "--output-dir", str(build_dir), "--force"], log,
+        preview = args.preview or effective_settings.get("build_mode") == "preview"
+        if readiness and not readiness["ready"] and not preview:
+            if args.yes:
+                print(TERM.warn("  Build stopped: complete the readiness findings, or explicitly rerun with --preview."))
+                return 1
+            preview = ui.confirm(TERM, "Build a draft preview for inspection?", default=False)
+            if not preview:
+                return 1
+        build_command = [py, str(BPK), "build", str(model), "--settings", str(settings_path), "--output-dir", str(build_dir), "--force"]
+        if preview:
+            build_command.append("--preview")
+        for flag, titles in (("--retain-video-placeholder", args.retain_video_placeholder), ("--video-link-fallback", args.video_link_fallback)):
+            for title in titles:
+                build_command.extend([flag, title])
+        code, recent, elapsed = run_stage("Build the package", build_command, log,
                                           context="pages from the template, descriptions, dates, checklists, grade items, rubrics")
         total += elapsed
         if code != 0:
@@ -674,11 +880,14 @@ def task_build(args: argparse.Namespace, *, dry: bool) -> int:
         total += elapsed
         if code != 0:
             failure_card("Verify the package", code, recent, log_path)
+            if preview:
+                results_card(build_dir, log_path, total)
+                next_steps(build_next_steps(build_dir), build_dir)
             return code
     finally:
         log.close()
     results_card(build_dir, log_path, total)
-    next_steps(IMPORT_FACTS, build_dir, primary=True)
+    next_steps(build_next_steps(build_dir), build_dir, primary=True)
     return 0
 
 
@@ -689,21 +898,35 @@ def results_card(build_dir: Path, log_path: Path, elapsed: float) -> None:
         rows.append(("Package", TERM.bold(peek["title"])))
     zip_path = build_dir / peek["zip"] if peek["zip"] else None
     if zip_path and zip_path.is_file():
-        rows.append(("ZIP", TERM.bold(zip_path.name) + f"  {TERM.dim(human_size(zip_path.stat().st_size))}  " + TERM.good("← import this")))
+        use = "draft preview — review only" if peek["preview"] or peek["authoring_state"] == "draft" else "local package — review before import"
+        rows.append(("ZIP", TERM.bold(zip_path.name) + f"  {TERM.dim(human_size(zip_path.stat().st_size))}  " + use))
         rows.append(("SHA-256", TERM.supporting(peek["sha256"])))
     refresh = build_dir / "course_pages_refresh.zip"
     if refresh.is_file():
         rows.append(("Pages refresh", f"{refresh.name}  {TERM.dim(human_size(refresh.stat().st_size))}"))
-    for label, name in (("Object map", "object_map.md"), ("Verification", "verification_report.md"), ("Receipt", "component_package_receipt.json")):
+    for label, name in (("Readiness", "readiness_report.json"), ("Object map", "object_map.md"), ("Verification", "verification_report.md"), ("Receipt", "component_package_receipt.json")):
         if (build_dir / name).is_file():
-            detail = f"  {TERM.good(peek['verified'] + ' checks')}" if name.startswith("verification") and peek["verified"] else ""
+            detail = f"  {peek['verified']}" if name.startswith("verification") and peek["verified"] else ""
             rows.append((label, name + detail))
     rows.append(("", ""))
     rows.append(("Folder", str(build_dir)))
     rows.append((TERM.dim("Run log"), TERM.dim(str(log_path))))
     print()
-    print(ui.card(TERM, "The package is built", rows))
+    title = "The draft preview is built" if peek["preview"] or peek["authoring_state"] == "draft" else "The package is built"
+    if (peek["preview"] or peek["authoring_state"] == "draft") and not peek["verification_passed"]:
+        title = "Draft preview built; checks need attention"
+    rows.append(("Evidence", "Local checks only; no Brightspace import performed."))
+    print(ui.card(TERM, title, rows))
 
+
+
+def build_next_steps(build_dir: Path) -> list[str]:
+    peek = peek_build(build_dir)
+    if peek["preview"] or peek["authoring_state"] == "draft":
+        return ["Open the generated pages and inspect the draft presentation.",
+                "Resolve the unfinished items listed in readiness_report.json.",
+                "Build again without --preview when authoring is complete; this preview is for review."]
+    return ["Review the local verification report and package contents before tenant validation.", *IMPORT_FACTS]
 
 def next_steps(steps: list[str], folder: Path, *, primary: bool = False) -> None:
     rows = [("", f"{index}. {text}") for index, text in enumerate(steps, start=1)]
@@ -716,33 +939,70 @@ def next_steps(steps: list[str], folder: Path, *, primary: bool = False) -> None
 
 
 def task_first(args: argparse.Namespace) -> int:
-    print(phase_heading("The commission", "Four facts name the course; the blueprint is written with every row in place."))
+    print(phase_heading("The commission", "Name the course and choose its activity scaffold."))
     remembered = load_state()
-    number = args.course_number or ui.prompt_text(TERM, "Course number, e.g. NEW 101", default=remembered.get("course_number", ""))
-    title = args.course_title or ui.prompt_text(TERM, "Course title", default=remembered.get("course_title", ""))
-    term = args.term or ui.prompt_text(TERM, "Term, e.g. Spring A 2027", default=remembered.get("term", ""))
-    weeks = int(args.weeks or ui.prompt_text(TERM, "Number of weeks", default=str(remembered.get("weeks") or 8)) or 8)
-    label = safe_label(number or title or "course")
+
+    def answer(value, prompt, key, default=""):
+        if value is not None:
+            return value
+        suggestion = remembered.get(key, default)
+        return suggestion if args.yes else ui.prompt_text(TERM, prompt, default=str(suggestion))
+
+    number = answer(args.course_number, "Course number, e.g. NEW 101", "course_number", "NEW 101")
+    title = answer(args.course_title, "Course title", "course_title", "Course Title")
+    term = answer(args.term, "Term, e.g. Spring A 2027", "term", "Term")
+    weeks = int(answer(args.weeks, "Number of weeks", "weeks", 8) or 8)
+    if weeks < 1:
+        raise ValueError("Number of weeks must be positive.")
+    assignments = int(answer(args.assignments_per_week, "Assignments per week (0 or more)", "assignments_per_week", 1))
+    discussions = int(answer(args.discussions_per_week, "Discussions per week (0 or more)", "discussions_per_week", 1))
+    if min(assignments, discussions) < 0:
+        raise ValueError("Activity counts cannot be negative.")
+    overrides = list(args.week_count)
+    if not args.yes and not overrides:
+        value = ui.prompt_text(TERM, "Optional weekly overrides, e.g. 2:3:1 4:0:2 (week:assignments:discussions)", default="")
+        overrides = value.split()
+    for value in overrides:
+        match = re.fullmatch(r"([1-9][0-9]*):([0-9]+):([0-9]+)", value)
+        if not match or not 1 <= int(match[1]) <= weeks:
+            raise ValueError(f"Invalid weekly count '{value}'; use W:A:D with a week from 1 to {weeks}.")
+    worked_example = args.worked_example
+    if not args.yes and not worked_example:
+        worked_example = ui.confirm(TERM, "Include a worked example with sample points and rubrics?", default=False)
+    label = safe_label(number or title or "course") + "__" + safe_label(term or "Term")
     out_default = args.output_dir or remembered.get("blank_dir") or str(Path.home() / "Documents" / "blueprints")
-    out_dir = Path(out_default) if args.yes else parse_path(ui.prompt_text(TERM, "Folder to write it in", default=out_default))
+    out_dir = parse_path(out_default) if args.yes else parse_path(ui.prompt_text(TERM, "Folder to write it in", default=out_default))
     out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / f"{label}__blueprint.docx"
-    save_state({"course_number": number, "course_title": title, "term": term, "weeks": weeks, "blank_dir": str(out_dir)})
+    if target.exists() and not args.force:
+        target = unique_path(target)
+        print(ui.status_line(TERM, "todo", "Existing blueprint preserved", f"new file: {target.name}"))
+    save_state({"course_number": number, "course_title": title, "term": term, "weeks": weeks,
+                "assignments_per_week": assignments, "discussions_per_week": discussions, "blank_dir": str(out_dir)})
+
     print(phase_heading("The writing", "One stage: the blank blueprint."))
     log_path, log = open_log("blank")
     try:
-        code, recent, _ = run_stage("Write the blank blueprint", [python_for_runs(), str(BPK), "blank", str(target), "--course-number", number or "NEW 101",
-                                    "--course-title", title or "Course Title", "--term", term or "Term", "--weeks", str(weeks)], log)
+        command = [python_for_runs(), str(BPK), "blank", str(target), "--course-number", number or "NEW 101",
+                   "--course-title", title or "Course Title", "--term", term or "Term", "--weeks", str(weeks),
+                   "--assignments-per-week", str(assignments), "--discussions-per-week", str(discussions)]
+        for value in overrides:
+            command.extend(["--week-count", value])
+        if worked_example:
+            command.append("--worked-example")
+        if args.force:
+            command.append("--force")
+        code, recent, _ = run_stage("Write the blank blueprint", command, log)
     finally:
         log.close()
     if code != 0:
         failure_card("Write the blank blueprint", code, recent, log_path)
         return code
     print()
-    print(ui.card(TERM, "The blueprint is ready to fill in", [("File", TERM.bold(str(target))), ("Weeks", str(weeks)), ("", "It reads with no errors as it stands; the build works as soon as there is content.")]))
+    print(ui.card(TERM, "The blueprint is ready to fill in", [("File", TERM.bold(str(target))), ("Weeks", str(weeks)), ("", "The scaffold is a draft. Readiness checks identify fields to complete before packaging.")]))
     next_steps(["Fill in Week 1's six rows: Overview, Learning Objectives, Resources, Assignments, Discussions, Checklist.",
                 "Keep the frame at Heading 1 and start content at Heading 2; see docs/AUTHORING_GUIDE.md.",
-                "When a week is written, run Build a package to see it in Brightspace form."], out_dir)
+                "Use Read a blueprint for readiness findings, or Build with --preview to inspect unfinished content."], out_dir)
     if not TERM.plain and sys.stdin.isatty() and ui.confirm(TERM, "Open the blueprint in Word now?", default=True):
         open_path(target)
     save_state({"blueprint": str(target)})
@@ -769,7 +1029,7 @@ def task_verify(args: argparse.Namespace) -> int:
         guess = str(model_guess[0])
     model = parse_path(args.model) if args.model else ask_path("Course model (.json)", default=remembered.get("model", guess), kind="course model")
     save_state({"build_dir": str(build_dir), "model": str(model)})
-    print(phase_heading("The checks", "Twelve read-back checks, as they complete."))
+    print(phase_heading("The checks", "Read-back checks with explicit pass, failure, and not-run status."))
     log_path, log = open_log("verify")
     try:
         code, recent, elapsed = run_stage("Verify the package", [python_for_runs(), str(BPK), "verify", str(build_dir), "--model", str(model)], log, checklist=True)
@@ -777,9 +1037,12 @@ def task_verify(args: argparse.Namespace) -> int:
         log.close()
     if code != 0:
         failure_card("Verify the package", code, recent, log_path)
+        if peek["preview"] or peek["authoring_state"] == "draft":
+            results_card(build_dir, log_path, elapsed)
+            next_steps(build_next_steps(build_dir), build_dir)
         return code
     results_card(build_dir, log_path, elapsed)
-    next_steps(IMPORT_FACTS, build_dir)
+    next_steps(build_next_steps(build_dir), build_dir)
     return 0
 
 
@@ -895,7 +1158,23 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--course-title")
     parser.add_argument("--term")
     parser.add_argument("--weeks", type=int)
-    return parser.parse_args(argv)
+    parser.add_argument("--assignments-per-week", type=int, help="common assignment count for a new blank, including zero")
+    parser.add_argument("--discussions-per-week", type=int, help="common discussion count for a new blank, including zero")
+    parser.add_argument("--week-count", action="append", default=[], metavar="W:A:D", help="override one week's assignment and discussion counts; repeatable")
+    parser.add_argument("--worked-example", action="store_true", help="include sample points, rubric grids, and panel examples")
+    parser.add_argument("--force", action="store_true", help="explicitly replace an existing blank and retain its backup")
+    parser.add_argument("--dry-run", action="store_true", help="read and report readiness without building (alias for --task dry)")
+    parser.add_argument("--preview", action="store_true", help="build a draft for review, including unresolved authoring placeholders")
+    parser.add_argument("--retain-video-placeholder", action="append", default=[], metavar="TITLE", help="explicitly retain one named video placeholder")
+    parser.add_argument("--video-link-fallback", action="append", default=[], metavar="TITLE", help="use a link for one named video with an unsupported embed provider")
+    parser.add_argument("--calendar-file", help="JSON with explicit week boundaries or a complete calendar")
+    parser.add_argument("--timezone", help="time zone for --calendar-file (otherwise existing zone or America/New_York)")
+    args = parser.parse_args(argv)
+    if args.dry_run:
+        if args.task not in (None, "build", "dry"):
+            parser.error("--dry-run applies to a blueprint read/build task")
+        args.task = "dry"
+    return args
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -910,6 +1189,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.check_for_updates:
             return RESTART_EXIT_CODE if update_notice(force=True, offer_install=not args.yes and sys.stdin.isatty()) else 0
         return run_tui(args)
+    except (ValueError, OSError) as exc:
+        print(TERM.bad(f"  Cannot continue: {exc}"))
+        return 1
     except KeyboardInterrupt:
         TERM.show_cursor()
         print(f"\n  Canceled. Any partial run log is under {LOGS_DIR}.")
