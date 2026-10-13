@@ -1,22 +1,22 @@
 {
   "schema": "brightspace-blueprint-packager.vendor_manifest/1",
   "source_repository": "coursecraft_workbench (github.com/timebeing92/coursecraft-workbench)",
-  "commit": "2c967f914c352c64e77a1bfb3611bddfc0671d8f",
-  "commit_short": "2c967f9",
-  "pinned_on": "2026-10-08",
+  "commit": "1f48e070ee28c50c8def9ed8707bb70bb264517d",
+  "commit_short": "1f48e07",
+  "pinned_on": "2026-10-13",
   "why": "owner's decision of 2026-10-08 (response sheet item 29): pin current upstream with a drift check like the bundle's",
   "layout": "mirrors the Workbench's own layout under this folder so each script's REPO_ROOT (two levels up) finds the schemas it loads at runtime",
   "rule": "never edited here; refreshed from upstream by scripts/check_vendor_drift.py --commit <new>",
   "files": [
     {
       "path": "scripts/blueprint_to_docx.py",
-      "sha256": "8ad1713771f3da3b83b9f23aa11b7d7f4a39265932187574d0aae388446b45c9",
-      "bytes": 45556
+      "sha256": "bd48138221b91a897daacbbdf1bffb5cd1146c5db00bf94d1e1432eb17d9913a",
+      "bytes": 47309
     },
     {
       "path": "scripts/build_blueprint_bundle.py",
-      "sha256": "69081d1fb2d436e7420efd3328415ea594aba9deabd152d711e9857722abf1cd",
-      "bytes": 104651
+      "sha256": "98bbd03906ab4fecb26d596ff329e679838442affbe8f61a4401151514d84e44",
+      "bytes": 107918
     },
     {
       "path": "scripts/build_page.py",
@@ -45,8 +45,8 @@
     },
     {
       "path": "scripts/course_qa_report.py",
-      "sha256": "b5ed8d8db48727ea2356a5e7c9432d65e7e6b21946fde5bb62d53ba1e1f36945",
-      "bytes": 25396
+      "sha256": "cb543a22cb69d966453895d01758eced34c0c002da77e1efcb7c675ab791bea2",
+      "bytes": 25440
     },
     {
       "path": "scripts/creatorplus_package.py",
@@ -90,8 +90,8 @@
     },
     {
       "path": "scripts/reconstruct_course_structure.py",
-      "sha256": "85d0337c9c2279d861b746c3775d57a8b05a37dc4589479493d08029bf4afc78",
-      "bytes": 97055
+      "sha256": "2562f01851823171896244b68619d78789ba9a271e7a26a280e35e1b583d9f31",
+      "bytes": 115669
     },
     {
       "path": "scripts/render_blueprint_docx.py",
