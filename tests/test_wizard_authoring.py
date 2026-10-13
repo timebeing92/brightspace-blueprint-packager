@@ -133,8 +133,8 @@ def test_closed_cycle_preserves_multiple_activities_media_and_joins(cycle):
     # Extracted HTML content and object payloads should be stable through the
     # second generation even though source-file provenance comments differ.
     for suffix in ("__blueprint.json", "__rubrics.json"):
-        first = json.loads(next(bundle.glob("*" + suffix)).read_text())
-        second = json.loads(next(second_bundle.glob("*" + suffix)).read_text())
+        first = json.loads(next(bundle.glob("*" + suffix)).read_text(encoding="utf-8"))
+        second = json.loads(next(second_bundle.glob("*" + suffix)).read_text(encoding="utf-8"))
         if suffix == "__blueprint.json":
             for key in ("front_matter", "before_week_1", "weeks", "unplaced_activities"):
                 assert first[key] == second[key]
@@ -231,8 +231,8 @@ def test_no_rubric_package_converts_using_explicit_inventory_evidence(cycle, tmp
     assert not rebuilt["errors"]
     second = extract(rebuilt["zip"], tmp_path / "second-extraction")
     assert not list(second.glob("*__rubrics.json"))
-    assert json.loads(next(bundle.glob("*__blueprint.json")).read_text())["weeks"] == json.loads(
-        next(second.glob("*__blueprint.json")).read_text())["weeks"]
+    assert json.loads(next(bundle.glob("*__blueprint.json")).read_text(encoding="utf-8"))["weeks"] == json.loads(
+        next(second.glob("*__blueprint.json")).read_text(encoding="utf-8"))["weeks"]
 
 
 def test_absent_rubric_contract_with_existing_payload_is_an_error(cycle, tmp_path):

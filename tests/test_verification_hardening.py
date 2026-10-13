@@ -67,7 +67,7 @@ def test_not_run_is_fatal_but_not_applicable_is_explicit(tmp_path):
     assert report["checks"][0]["passed"] is False
     assert V._finish(tmp_path, [V._check_record("Missing gate", False, "not available", status="not_run")]) == 1
     assert _report(tmp_path)["passed"] is False
-    assert "not_run" in (tmp_path / "verification_report.md").read_text()
+    assert "not_run" in (tmp_path / "verification_report.md").read_text(encoding="utf-8")
 
 
 def test_vendored_pin_is_not_the_containing_repositories_head(tmp_path):
@@ -79,7 +79,7 @@ def test_vendored_pin_is_not_the_containing_repositories_head(tmp_path):
     assert identity["commit"] == identity["pinned_commit"] == pin
     assert identity["source"] == "vendored"
     V._finish(tmp_path, [V._check_record("test", True, "synthetic")], readers=identity)
-    text = (tmp_path / "verification_report.md").read_text()
+    text = (tmp_path / "verification_report.md").read_text(encoding="utf-8")
     assert "vendored Workbench" in text and pin in text
 
 
@@ -127,7 +127,7 @@ def test_internal_link_blueprint_verifies_and_tampered_destination_fails(built):
     model, out = built
     assert V.verify_build(out, model) == 0
     page = out / "package" / "course_pages" / "week-1-overview.html"
-    text = page.read_text()
+    text = page.read_text(encoding="utf-8")
     assert "rCode=" in text
     page.write_text(text.replace("rCode=", "rCode=incorrect-"))
     assert V.verify_build(out, model) == 1
