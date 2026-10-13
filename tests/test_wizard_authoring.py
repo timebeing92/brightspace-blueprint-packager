@@ -150,7 +150,7 @@ def mutate_bundle(cycle, tmp_path, role, change):
     suffix = {"blueprint": "__blueprint.json", "activities": "__course_activities.json",
               "structure": "__course_structure.json", "rubrics": "__rubrics.json"}[role]
     path = next(copied.glob("*" + suffix))
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))  # the bundle is UTF-8; Windows would otherwise read it as cp1252
     change(payload)
     path.write_text(json.dumps(payload), encoding="utf-8")
     return copied
@@ -380,7 +380,7 @@ def test_a_heading_a_panel_owns_is_written_once(cycle, tmp_path):
         })
     import json as _json
     blueprint_path = next(bundle.glob("*__blueprint.json"))
-    payload = _json.loads(blueprint_path.read_text())
+    payload = _json.loads(blueprint_path.read_text(encoding="utf-8"))
     own_in_resources(payload)
     blueprint_path.write_text(_json.dumps(payload), encoding="utf-8")
     output = tmp_path / "owned.docx"
@@ -388,7 +388,7 @@ def test_a_heading_a_panel_owns_is_written_once(cycle, tmp_path):
     assert result["status"] in {"converted", "blocked"}, result["diagnostics"]
     doc = _Document(str(output)) if output.exists() else None
     if doc is None:  # the synthetic page lives outside the overview join; the DOCX still carries it when converted
-        pytest.fail(result["diagnostics"])
+        pytest.fail(str(result["diagnostics"]))
     texts = [p.text for p in doc.paragraphs] + [p.text for t in doc.tables for r in t.rows for c in r.cells for p in c.paragraphs]
     assert texts.count("Owned Heading") == 1 and texts.count("Plain Heading") == 1
     assert texts.count("Reading Panel") == 1

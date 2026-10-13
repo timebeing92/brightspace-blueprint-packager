@@ -52,7 +52,8 @@ def test_windows_paths_preserve_separators(raw):
 def test_posix_dragged_and_quoted_paths(tmp_path):
     path = tmp_path / "some course.docx"
     assert tui.parse_path('"' + str(path) + '"') == path.resolve()
-    assert tui.parse_path(str(path).replace(" ", r"\ ")) == path.resolve()
+    if os.name != "nt":  # a backslash-escaped space is a POSIX shell convention; Windows drags a quoted path
+        assert tui.parse_path(str(path).replace(" ", r"\ ")) == path.resolve()
 
 
 def test_calendar_file_preserves_breaks_and_does_not_invent_due_rules(tmp_path):
@@ -97,8 +98,8 @@ def test_calendar_settings_copy_preserves_source_paths(tmp_path):
     dates.write_text(json.dumps({"1": ["2027-01-01", "2027-01-07"]}))
     args = tui.parse_args(_args("--calendar-file", dates, "--timezone", "UTC"))
     result = tui.prepare_calendar_settings(path, args, tmp_path / "out", {"week_numbers": [1]})
-    assert result != path and json.loads(path.read_text()) == settings
-    copied = json.loads(result.read_text())
+    assert result != path and json.loads(path.read_text(encoding="utf-8")) == settings
+    copied = json.loads(result.read_text(encoding="utf-8"))
     assert copied["carried_quizzes"][0]["source_dir"] == str(source / "quiz_source")
     assert copied["workbench_scripts"] == str(source / "engine" / "scripts")
 
@@ -175,8 +176,8 @@ def test_calendar_file_build_uses_explicit_boundaries_without_prompts(tmp_path, 
                          "--calendar-file", calendar, "--output-dir", out)) == 0
     output = capsys.readouterr().out
     assert "2027-01-06 (Wed) to 2027-01-08 (Fri); 3 days" in output
-    assert json.loads(settings.read_text()) == original
-    object_map = json.loads((out / "build" / "object_map.json").read_text())
+    assert json.loads(settings.read_text(encoding="utf-8")) == original
+    object_map = json.loads((out / "build" / "object_map.json").read_text(encoding="utf-8"))
     assert [row["utc"] for row in object_map["dates"]] == ["2027-01-08T23:59:00.000Z"]
 
 

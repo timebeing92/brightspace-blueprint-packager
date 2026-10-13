@@ -33,7 +33,7 @@ def _read(path):
 
 
 def _report(path):
-    return json.loads((path / "verification_report.json").read_text())
+    return json.loads((path / "verification_report.json").read_text(encoding="utf-8"))
 
 
 @pytest.mark.parametrize("qa", [{}, {"summary": {"breaks": []}}, {"summary": {"break_count": 0}}, None])
@@ -175,7 +175,7 @@ def test_unclassified_top_level_wizard_break_fails_integration(built, monkeypatc
         result = original_run(command, **kwargs)
         if any(str(arg).endswith("build_blueprint_bundle.py") for arg in command):
             path = out / "verification" / "readback__blueprint_bundle" / "readback__course_qa.json"
-            data = json.loads(path.read_text())
+            data = json.loads(path.read_text(encoding="utf-8"))
             data["summary"]["breaks"] = []  # this must not conceal the actual top-level findings
             data["breaks"].append("Synthetic authored content loss")
             path.write_text(json.dumps(data))

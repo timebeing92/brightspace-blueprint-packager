@@ -97,7 +97,7 @@ def test_unfinished_blank_build_requires_explicit_preview(tmp_path):
         Builder(model, SETTINGS, REPO_ROOT).run(tmp_path / "ready", force=False)
     result = Builder(model, {**SETTINGS, "build_mode": "preview"}, REPO_ROOT).run(tmp_path / "preview", force=False)
     assert result["receipt"]["extensions"]["build_mode"] == "preview"
-    report = json.loads((tmp_path / "preview/readiness_report.json").read_text())
+    report = json.loads((tmp_path / "preview/readiness_report.json").read_text(encoding="utf-8"))
     assert report["state"] == "draft"
 
 
@@ -125,7 +125,7 @@ def test_video_package_verifies_as_player_and_intentional_placeholder(tmp_path):
     out = tmp_path / "video-build"
     Builder(model, settings, REPO_ROOT).run(out, force=False)
     assert verify_build(out, model) == 0
-    report = json.loads((out / "verification_report.json").read_text())
+    report = json.loads((out / "verification_report.json").read_text(encoding="utf-8"))
     media = next(c for c in report["checks"] if c["check"].startswith("every video"))
     assert media["passed"] and "2 videos" in media["detail"]
 

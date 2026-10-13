@@ -102,9 +102,9 @@ def test_authoring_reference_samples_never_become_course_content(tmp_path, frame
         output = tmp_path / "build"
         Builder(model, SETTINGS, REPO_ROOT).run(output, force=False)
         assert verify_build(output, model) == 0
-        packaged_text = "\n".join(path.read_text() for path in (output / "package").rglob("*")
+        packaged_text = "\n".join(path.read_text(encoding="utf-8") for path in (output / "package").rglob("*")
                                   if path.is_file() and path.suffix in (".html", ".xml"))
         assert "Copyable assignment example" not in packaged_text
         assert "Reference-only video" not in packaged_text
         assert "Week 99" not in packaged_text
-        assert json.loads((output / "readiness_report.json").read_text())["state"] == "ready"
+        assert json.loads((output / "readiness_report.json").read_text(encoding="utf-8"))["state"] == "ready"
