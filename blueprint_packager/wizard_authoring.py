@@ -50,6 +50,40 @@ def _number(value: Any) -> float | None:
         return None
 
 
+def _label_key(text: str) -> str:
+    return " ".join(str(text or "").split()).rstrip(":").strip().casefold()
+
+
+def panel_owned_heading(block: dict) -> dict | None:
+    """The heading a panel owns: its first child, when that child is a heading label.
+
+    Mirrors ``reconstruct_course_structure.panel_owned_heading`` in the Workbench.
+    """
+    if block.get("kind") not in {"visual", "dropdown"}:
+        return None
+    children = block.get("blocks") or []
+    if not children:
+        return None
+    first = children[0]
+    if first.get("kind") == "label" and int(first.get("level") or 0) > 0 and _text(first).strip():
+        return first
+    return None
+
+
+def panel_owns_label(blocks: list, label: str) -> bool:
+    """True when ``blocks`` opens with a panel whose owned heading reads as ``label``.
+
+    The display dedupe rule the Wizard's writers share: a heading a panel owns is
+    written once, inside the panel, so the segment heading or section label that
+    repeats it is not written again in front of the panel. Mirrors
+    ``reconstruct_course_structure.panel_owns_label``.
+    """
+    if not blocks or not label:
+        return False
+    owned = panel_owned_heading(blocks[0])
+    return owned is not None and _label_key(_text(owned)) == _label_key(label)
+
+
 class _Conversion:
     def __init__(self, sources: dict, source_files: list[dict]) -> None:
         self.sources = sources
@@ -98,18 +132,30 @@ class _Conversion:
             paragraph.paragraph_format.keep_with_next = True
         return paragraph
 
-    def table(self, container, rows: int, cols: int):
-        if hasattr(container, "_tc"):
-            table = container.add_table(rows=rows, cols=cols, width=Inches(6))
-        else:
-            table = container.add_table(rows=rows, cols=cols)
+    def table(self, container, rows: int, cols: int, *, header_rows: int = 1):
+        """A table in the document body or inside a cell.
+
+        ``_Cell.add_table`` takes no width (the earlier ``width=`` keyword
+        raised on every extracted table inside a week cell); column widths are
+        set afterwards. Only the rows the source declares as header rows are
+        shaded and marked to repeat: an extracted table with ``header_rows: 0``
+        gets none, instead of an invented shaded first row.
+        """
+        table = container.add_table(rows=rows, cols=cols)
         table.style = "Table Grid"
-        for cell in table.rows[0].cells:
-            shading = OxmlElement("w:shd")
-            shading.set(qn("w:fill"), "E8F1F4")
-            cell._tc.get_or_add_tcPr().append(shading)
-        header = OxmlElement("w:tblHeader")
-        table.rows[0]._tr.get_or_add_trPr().append(header)
+        if hasattr(container, "_tc") and cols:
+            table.autofit = False
+            width = Inches(6.0 / cols)
+            for row in table.rows:
+                for cell in row.cells:
+                    cell.width = width
+        for index in range(min(max(header_rows, 0), rows)):
+            for cell in table.rows[index].cells:
+                shading = OxmlElement("w:shd")
+                shading.set(qn("w:fill"), "E8F1F4")
+                cell._tc.get_or_add_tcPr().append(shading)
+            header = OxmlElement("w:tblHeader")
+            table.rows[index]._tr.get_or_add_trPr().append(header)
         return table
 
     def row_pair(self, table, label: str):
@@ -171,20 +217,23 @@ class _Conversion:
                 self.ledger(pointer, "generated_navigation", "The page template regenerates Back to top")
                 continue
             if kind in {"dropdown", "visual"}:
-                key = V.D_DROPDOWN if kind == "dropdown" else V.D_VISUAL
                 end = V.D_DROPDOWN_END if kind == "dropdown" else V.D_VISUAL_END
-                meta = block.get("meta", {})
-                attrs = [(key, meta[key]) for key in ("tone", "color") if meta.get(key)]
-                if kind == "visual" and attrs:
-                    # These are explicit extracted semantic hints, not a CSS
-                    # inference. The authoring reader carries bracket attributes.
-                    tag = {"Callout": "callout", "Styled section": "box", "Timeline": "timeline"}.get(text)
-                    if tag is None or any(re.search(r"\s|[\[\]]", str(value)) for _, value in attrs):
+                meta = block.get("meta", {}) or {}
+                attrs = {key: str(meta[key]) for key in ("tone", "color") if meta.get(key)}
+                if kind == "dropdown":
+                    self.para(container, f"{V.D_DROPDOWN}: {text}")
+                else:
+                    # The extracted label is normalised to the bracket vocabulary the
+                    # reader shares with the Wizard: the callout family is [callout],
+                    # Timeline is [timeline], every other label is [box: Label]. The
+                    # tone and colour are explicit extracted hints, not a CSS inference.
+                    if any(re.search(r"\s|[\[\]]", value) for value in attrs.values()):
                         self.note("VISUAL_ATTRIBUTES_UNSUPPORTED", "Visual attributes cannot be represented by the authoring vocabulary", pointer)
                         continue
-                    self.para(container, "[" + tag + " " + " ".join(f"{k}={v}" for k, v in attrs) + "]")
-                else:
-                    self.para(container, f"{key}: {text}")
+                    if re.search(r"[\[\]]", text):
+                        self.note("VISUAL_LABEL_UNREPRESENTABLE", "A panel label cannot contain square brackets", pointer)
+                        continue
+                    self.para(container, V.bracket_opener(text, attrs))
                 self.blocks(container, block.get("blocks", []), pointer + "/blocks")
                 self.para(container, end)
             elif kind == "table":
@@ -192,12 +241,14 @@ class _Conversion:
                 if not rows or not all(len(row) == len(rows[0]) for row in rows):
                     self.note("TABLE_SHAPE", "Empty or irregular extracted table", pointer)
                     continue
-                table = self.table(container, len(rows), len(rows[0]))
+                header_rows = int(block.get("header_rows") or 0)
+                table = self.table(container, len(rows), len(rows[0]), header_rows=header_rows)
                 for ri, row in enumerate(rows):
                     for ci, runs in enumerate(row):
                         para = table.cell(ri, ci).paragraphs[0]
                         for run in runs:
-                            self.link_run(para, run, f"{pointer}/rows/{ri}/{ci}")
+                            # the Wizard records header rows as a count; the reader recognises a bold header row
+                            self.link_run(para, {**run, "bold": True} if ri < header_rows else run, f"{pointer}/rows/{ri}/{ci}")
             elif kind == "embed":
                 runs = block.get("runs", [])
                 if len(runs) != 1 or not runs[0].get("href") or block.get("meta", {}).get("embed_type") != "Video embed":
@@ -361,10 +412,15 @@ class _Conversion:
         if _truth(node.get("is_hidden")):
             self.para(container, f"Visibility: {V.VISIBILITY_HIDDEN}")
         for i, segment in enumerate(page.get("body_segments", [])):
-            if segment.get("heading") and not (i == 0 and segment.get("level") == 1):
+            blocks = segment.get("blocks", [])
+            owned = segment.get("heading_owner") == "panel" or panel_owns_label(blocks, segment.get("heading", ""))
+            if segment.get("heading") and not (i == 0 and segment.get("level") == 1) and not owned:
                 self.para(container, segment["heading"], f"Heading {max(2, min(6, segment.get('level') or 2))}")
                 self.authored_text.add(segment["heading"])
-            self.blocks(container, segment.get("blocks", []), f"structure/html_topics/{href}/body_segments/{i}/blocks")
+            if owned:
+                # the heading sits inside the segment's first panel and is written there, once
+                self.ledger(f"structure/html_topics/{href}/body_segments/{i}", "heading_owned_by_panel", segment.get("heading", ""))
+            self.blocks(container, blocks, f"structure/html_topics/{href}/body_segments/{i}/blocks")
         self.ledger(f"structure/html_topics/{href}", "page", node["title"])
 
     def grade_plan(self) -> None:
@@ -420,8 +476,10 @@ class _Conversion:
                 self.blocks(cell, week.get("learning_objectives", []), f"blueprint/weeks/{title}/learning_objectives")
             elif key == "resources":
                 for index, section in enumerate(week.get("resources", [])):
-                    if section.get("label"):
+                    if section.get("label") and not panel_owns_label(section.get("blocks", []), section["label"]):
                         self.para(cell, section["label"], f"Heading {max(2, min(6, section.get('level') or 2))}")
+                    elif section.get("label"):
+                        self.ledger(f"blueprint/weeks/{title}/resources/{index}", "heading_owned_by_panel", section["label"])
                     self.blocks(cell, section.get("blocks", []), f"blueprint/weeks/{title}/resources/{index}/blocks")
             elif key in {"assignments", "discussions"}:
                 kind = "assignment" if key == "assignments" else "discussion"

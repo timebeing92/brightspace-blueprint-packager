@@ -51,6 +51,14 @@ The supported course shape includes:
   extraction does not retain the original authoring rule.
 - Paragraphs, headings, bullets, numbered items, supported tables, dropdowns,
   visual cues, rich-text runs, external links, and extracted video embeds.
+  Tables keep the header rows the extraction counted (`header_rows`), bold and
+  shaded, and get none when it counted none. A panel's extracted label is
+  normalised to the bracket vocabulary (`[callout tone=gold]`, `[timeline]`,
+  `[box: Accordion]`), so an attributed `Project callout` or `Panel` converts
+  instead of being refused. A heading the extraction left inside its panel
+  (`heading_owner: "panel"` on a structure segment, or a resources section whose
+  first block is a panel carrying the same heading) is written once, inside the
+  panel; the ledger records `heading_owned_by_panel`.
 
 The adapter translates package-local activity/page links back into explicit
 authoring link markers when their resource identity or exact page address

@@ -201,7 +201,10 @@ Each marker occupies its own paragraph. Every opener needs its closer.
 Callouts may use `[callout tone=gold]`, `[callout tone=grey]`, or a colour such
 as `[callout color=#336699]`. Unknown tones are reported and use the template
 default. Panel content may include paragraphs, headings, lists, and supported
-media.
+media. A box may carry a label after a colon, `[box: Accordion]`: that is how
+the Blueprint Wizard writes what the source page called the panel, and the
+Packager reads every box as a styled section whatever the label says. A
+heading that opens a panel belongs to it; write it inside the brackets, once.
 
 ## 6. Links
 

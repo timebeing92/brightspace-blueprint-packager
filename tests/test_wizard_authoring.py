@@ -262,3 +262,167 @@ def test_exclusive_publication_preserves_a_concurrent_file(cycle, tmp_path, monk
     assert target.read_bytes() == b"Another writer's completed artifact"
     assert not (ledger if conflict == "document" else output).exists()
     assert not list(tmp_path.glob(".wizard-*"))
+
+
+# --------------------------------------------------------------------------- #
+# Blueprint Wizard compatibility (2026-10-13): tables, panel labels, heading ownership
+# --------------------------------------------------------------------------- #
+from docx import Document as _Document  # noqa: E402
+from docx.oxml.ns import qn as _qn  # noqa: E402
+
+from blueprint_packager import vocabulary as V  # noqa: E402
+from blueprint_packager import wizard_authoring as adapter  # noqa: E402
+
+
+def _table_block(header_rows):
+    cell = lambda text: [{"text": text, "href": ""}]  # noqa: E731
+    return {"kind": "table", "level": 0, "runs": [], "header_rows": header_rows,
+            "rows": [[cell("Column A"), cell("Column B")], [cell("a1"), cell("b1")], [cell("a2"), cell("b2")]]}
+
+
+def _panel(label, children, meta=None):
+    block = {"kind": "visual", "level": 0, "runs": [{"text": label, "href": ""}], "blocks": children}
+    if meta:
+        block["meta"] = meta
+    return block
+
+
+def _heading(text, level=2):
+    return {"kind": "label", "level": level, "runs": [{"text": text, "href": ""}]}
+
+
+def _para(text):
+    return {"kind": "p", "level": 0, "runs": [{"text": text, "href": ""}]}
+
+
+def _first_table_in_week_cell(path):
+    """The first table nested inside a cell of a week table (the grade plan sits in the body)."""
+    for table in _Document(str(path)).tables:
+        for row in table.rows:
+            for cell in row.cells:
+                if cell.tables:
+                    return cell.tables[0]
+    raise AssertionError("no table inside a week cell")
+
+
+@pytest.mark.parametrize("header_rows", [0, 1])
+def test_extracted_tables_convert_and_keep_only_declared_header_rows(cycle, tmp_path, header_rows):
+    """The candidate crashed on `_Cell.add_table(width=)` and shaded a first row the
+    sandbox tables (header_rows: 0) never declared."""
+    bundle = mutate_bundle(cycle, tmp_path, "blueprint",
+                           lambda x: x["weeks"][0]["overview"].append(_table_block(header_rows)))
+    output = tmp_path / f"table{header_rows}.docx"
+    result = convert_bundle(bundle, output)
+    assert result["status"] == "converted", result["diagnostics"]
+    table = _first_table_in_week_cell(output)
+    first_row = table.rows[0]
+    shaded = [c._tc.tcPr is not None and c._tc.tcPr.find(_qn("w:shd")) is not None for c in first_row.cells]
+    repeated = first_row._tr.trPr is not None and first_row._tr.trPr.find(_qn("w:tblHeader")) is not None
+    bold = [all(r.bold for r in c.paragraphs[0].runs) for c in first_row.cells]
+    assert (all(shaded), repeated, all(bold)) == ((header_rows > 0),) * 3
+    read_back = read_model(output)["weeks"][0]["overview_page"]["blocks"]
+    tables = [b for b in read_back if b["kind"] == "table"]
+    assert tables and [[r["text"] for b in cell for r in b["runs"]] for cell in tables[-1]["rows"][1]] == [["a1"], ["b1"]]
+
+
+@pytest.mark.parametrize(("label", "meta", "opener", "cue", "attrs"), [
+    ("Project callout", {"tone": "gold"}, "[callout tone=gold]", "Callout", {"tone": "gold"}),
+    ("Panel", {"color": "#336699"}, "[box color=#336699: Panel]", "Styled section", {"color": "#336699"}),
+    ("Accordion", {}, "[box: Accordion]", "Styled section", {}),
+    ("Discussion note", {}, "[callout]", "Callout", {}),
+    ("Timeline", {}, "[timeline]", "Timeline", {}),
+    ("Framed section", {}, "[box: Framed section]", "Styled section", {}),
+])
+def test_extracted_panel_labels_normalise_to_the_bracket_vocabulary(cycle, tmp_path, label, meta, opener, cue, attrs):
+    """Attributed labels other than the three exact strings used to be refused."""
+    bundle = mutate_bundle(cycle, tmp_path, "blueprint",
+                           lambda x: x["weeks"][0]["overview"].append(_panel(label, [_para("Inside the panel.")], meta)))
+    output = tmp_path / "labels.docx"
+    result = convert_bundle(bundle, output)
+    assert result["status"] == "converted", result["diagnostics"]
+    assert not [d for d in result["diagnostics"] if d["code"] == "VISUAL_ATTRIBUTES_UNSUPPORTED"]
+    texts = [p.text for p in _Document(str(output)).paragraphs] + [
+        p.text for t in _Document(str(output)).tables for r in t.rows for c in r.cells for p in c.paragraphs]
+    assert opener in texts
+    assert V.parse_bracket_block(opener) == (V.D_VISUAL, cue) and V.parse_bracket_attrs(opener) == attrs
+    blocks = read_model(output)["weeks"][0]["overview_page"]["blocks"]
+    panel = [b for b in blocks if b["kind"] == "visual"][-1]
+    assert (panel["cue"], panel.get("attrs") or {}) == (cue, attrs)
+
+
+def test_bracket_keyword_mirrors_the_wizard():
+    assert [V.bracket_keyword(c) for c in ("Callout", "Project callout", "Note", "Discussion note", "Timeline", "Accordion", "Styled section", "")] == [
+        "callout", "callout", "callout", "callout", "timeline", "box", "box", "box"]
+    assert V.bracket_opener("Accordion", {"tone": "gold"}) == "[box tone=gold: Accordion]"
+    assert V.bracket_opener("Callout", {"tone": "", "color": "#abcdef"}) == "[callout color=#abcdef]"
+
+
+def test_a_heading_a_panel_owns_is_written_once(cycle, tmp_path):
+    """A structure segment marked heading_owner: "panel" and a resources section
+    whose first block is a panel carrying its label each print the heading once."""
+    def own_in_structure(payload):
+        page = next(p for p in payload["html_topics"] if p.get("body_segments"))
+        page["body_segments"].append({
+            "heading": "Owned Heading", "level": 2, "heading_owner": "panel",
+            "blocks": [_panel("Callout", [_heading("Owned Heading"), _para("Owned body.")])],
+            "text": "Owned Heading Owned body.",
+        })
+        page["body_segments"].append({
+            "heading": "Plain Heading", "level": 2,
+            "blocks": [_para("Plain body.")], "text": "Plain Heading Plain body.",
+        })
+        page["body_text"] = page.get("body_text", "") + " Owned Heading Owned body. Plain Heading Plain body."
+    bundle = mutate_bundle(cycle, tmp_path, "structure", own_in_structure)
+    def own_in_resources(payload):
+        payload["weeks"][0]["resources"].append({
+            "label": "Reading Panel", "level": 2, "source_page": "Week 1 Overview",
+            "blocks": [_panel("Resources section", [_heading("Reading Panel"), _para("Read this.")])],
+        })
+    import json as _json
+    blueprint_path = next(bundle.glob("*__blueprint.json"))
+    payload = _json.loads(blueprint_path.read_text())
+    own_in_resources(payload)
+    blueprint_path.write_text(_json.dumps(payload), encoding="utf-8")
+    output = tmp_path / "owned.docx"
+    result = convert_bundle(bundle, output)
+    assert result["status"] in {"converted", "blocked"}, result["diagnostics"]
+    doc = _Document(str(output)) if output.exists() else None
+    if doc is None:  # the synthetic page lives outside the overview join; the DOCX still carries it when converted
+        pytest.fail(result["diagnostics"])
+    texts = [p.text for p in doc.paragraphs] + [p.text for t in doc.tables for r in t.rows for c in r.cells for p in c.paragraphs]
+    assert texts.count("Owned Heading") == 1 and texts.count("Plain Heading") == 1
+    assert texts.count("Reading Panel") == 1
+    assert texts[texts.index("Reading Panel") - 1] == "[box: Resources section]"
+    ledger = [(e["disposition"], e["detail"]) for e in result["ledger"] if e["disposition"] == "heading_owned_by_panel"]
+    assert ("heading_owned_by_panel", "Owned Heading") in ledger and ("heading_owned_by_panel", "Reading Panel") in ledger
+
+
+OWNERSHIP_FIXTURES = [
+    ([_panel("Callout", [_heading("Assigned Reading"), _para("x")]), _para("y")], "Assigned Reading", True),
+    ([_panel("Callout", [_heading("Assigned Reading"), _para("x")])], "assigned reading:", True),
+    ([_panel("Callout", [_heading("Assigned Reading"), _para("x")])], "Other", False),
+    ([_para("y"), _panel("Callout", [_heading("Assigned Reading")])], "Assigned Reading", False),
+    ([_panel("Callout", [_para("lead"), _heading("Assigned Reading")])], "Assigned Reading", False),
+    ([{"kind": "dropdown", "level": 0, "runs": [{"text": "More", "href": ""}], "blocks": [_heading("Term", 3)]}], "Term", True),
+    ([_panel("Callout", [{"kind": "label", "level": 0, "runs": [{"text": "Points:", "href": ""}]}])], "Points", False),
+    ([], "Assigned Reading", False),
+]
+
+
+@pytest.mark.parametrize(("blocks", "label", "expected"), OWNERSHIP_FIXTURES)
+def test_panel_ownership_helper_matches_the_workbench(blocks, label, expected):
+    """Parity with reconstruct_course_structure.panel_owns_label on the same fixtures.
+
+    Runs against whichever Workbench the Packager resolves (vendored pin, or
+    BPK_WORKBENCH_SCRIPTS for the candidate producer); skips when that copy
+    predates the helper."""
+    assert adapter.panel_owns_label(blocks, label) is expected
+    import importlib.util
+    scripts = WB.scripts_dir()
+    spec = importlib.util.spec_from_file_location("rcs_parity", scripts / "reconstruct_course_structure.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.dont_write_bytecode = True
+    spec.loader.exec_module(module)
+    if not hasattr(module, "panel_owns_label"):
+        pytest.skip(f"Workbench at {scripts} predates panel_owns_label (2026-10-13)")
+    assert module.panel_owns_label(blocks, label) is expected

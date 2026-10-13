@@ -61,7 +61,7 @@ class Template:
     provenance: str = ""  # one line written as an HTML comment at the top of every page's source (13c)
     course_label: str = ""  # small line above the page title, e.g. "MBA 620 · Marketing" (owner, 2026-10-08)
     heading_offset: int = 0  # the model's frame offset (0 by convention; 1 for an older frame at Heading 2)
-    fragment_styles: bool = False  # inline styles in editor fields; off by default
+    fragment_styles: bool = False  # inline styles in editor fields; a build turns them on (the default since 2026-10-08)
 
     def internal_href(self, kind: str, title: str, surface: str) -> str | None:
         target = self.link_targets.get((kind.lower(), title))
@@ -121,13 +121,14 @@ class RenderContext:
     content_top: int = 2  # the first content level on this surface
 
     def style(self, key: str) -> str:
-        """Inline style for an editor-field element. Empty by default.
+        """Inline style for an editor-field element.
 
-        Editor fields (assignment and discussion descriptions) are plain semantic HTML
-        so the tenant's own stylesheet sets type, color, and spacing, the same as every
-        hand-written description. A template may still offer inline styles; a build
-        turns them on with `fragment_styles: "template"` (owner's call of 2026-10-07:
-        the BUMK 515 inline styles are not the default)."""
+        Editor fields (assignment and discussion descriptions) carry the template's
+        modest inline style table when the build sets `fragment_styles: "template"`,
+        the default since 2026-10-08 (`build.py`); `fragment_styles: "plain"` leaves
+        them as plain semantic HTML styled by the tenant's own stylesheet. The
+        2026-10-07 call that the BUMK 515 inline styles are not the default stands:
+        the composite template's fragment table is the modest one."""
         if self.surface != "fragment" or not self.template.fragment_styles:
             return ""
         value = self.template.manifest["surfaces"]["fragment"].get("styles", {}).get(key, "")

@@ -429,12 +429,19 @@ Brightspace treats two surfaces differently, so the renderer does too.
 | Surface | Used for | Styling |
 |---|---|---|
 | Page | packaged HTML topics | one `<style>` block per page, from the template |
-| Fragment | assignment instructions, discussion descriptions | none by default: plain semantic HTML, styled by the tenant's own stylesheet like any hand-written description |
+| Fragment | assignment instructions, discussion descriptions | the template's modest inline style table (`fragment_styles: "template"`, the default since 2026-10-08); `fragment_styles: "plain"` gives plain semantic HTML styled by the tenant's own stylesheet |
 
 A template is a folder with a manifest: page CSS, section headings the template
 supplies, a heading map (identity by convention), an optional inline style
 table for fragments, and how each visual cue renders. Build settings pick a
-template by id, and `fragment_styles: "template"` turns the inline table on.
+template by id; `fragment_styles` is `"template"` unless a build says
+`"plain"` (`CAPABILITIES.json`, `build.py`).
+
+Brightspace editor fields strip class attributes, so a callout written in a
+field arrives in any export as inline style, and the Blueprint Wizard reads it
+back conservatively (a tint or a left edge is `[callout]`, a plain border is
+`[box: Framed section]`, decoration is nothing). The page surface keeps its
+classes, so `callout`, `styled-box` and `timeline` read back by name.
 
 Owner's decision after the first sandbox round, 2026-10-07: the BUMK 515
 styling is not the default. In editor fields its inline styles (19px type, a

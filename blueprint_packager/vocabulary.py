@@ -139,12 +139,43 @@ _DIRECTIVE_RE = re.compile(r"^(" + "|".join(re.escape(k) for k in ALL_DIRECTIVES
 # dropdown and "[/dropdown]" closes it; "[callout]" ... "[/callout]" and
 # "[timeline]" ... "[/timeline]" mark visual cues. They read exactly like the
 # longer marker lines, which the wizard writes and which stay accepted.
+#
+# "[box: Label]" is accepted and the label is ignored: the slot carries the
+# extracted component's label (the Blueprint Wizard writes "[box: Accordion]",
+# "[box: Framed section]", "[box: Styled section]" for what the source page
+# called the panel). It is not authored child content and not a template
+# component selector; a box always reads as a styled section. Giving the
+# label meaning would be a separate, explicit change.
 BRACKET_BLOCKS = {
     "dropdown": (D_DROPDOWN, D_DROPDOWN_END, None),
     "callout": (D_VISUAL, D_VISUAL_END, "Callout"),
     "timeline": (D_VISUAL, D_VISUAL_END, "Timeline"),
     "box": (D_VISUAL, D_VISUAL_END, "Styled section"),
 }
+
+
+def bracket_keyword(cue: str) -> str:
+    """The bracket keyword a visual cue label normalises to.
+
+    Mirrors the Blueprint Wizard's ``panel_keyword``: the callout family
+    ("Callout", "Project callout", "Note", "Discussion note") is ``callout``,
+    "Timeline" is ``timeline``, and every other label is ``box``, which keeps
+    the label as its title (``[box: Accordion]``).
+    """
+    lowered = " ".join(str(cue or "").split()).lower()
+    if lowered == "callout" or lowered.endswith("callout") or lowered in {"note", "discussion note"} or lowered.endswith(" note"):
+        return "callout"
+    if lowered == "timeline":
+        return "timeline"
+    return "box"
+
+
+def bracket_opener(cue: str, attrs: dict[str, str] | None = None) -> str:
+    """The bracket line that opens a visual cue: ``[callout tone=gold]``, ``[timeline]``, ``[box color=#336699: Accordion]``."""
+    keyword = bracket_keyword(cue)
+    joined = "".join(f" {key}={value}" for key, value in (attrs or {}).items() if value)
+    title = f": {' '.join(str(cue or '').split())}" if keyword == "box" and str(cue or "").strip() else ""
+    return f"[{keyword}{joined}{title}]"
 _BRACKET_RE = re.compile(r"^\[\s*(/?)\s*([A-Za-z]+)((?:\s+[a-z_]+=[^\s\]:]+)*)\s*(?::\s*(.*?))?\s*\]$", re.S)
 _ATTR_RE = re.compile(r"([a-z_]+)=([^\s\]]+)")
 

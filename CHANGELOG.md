@@ -6,6 +6,28 @@ Based on released v0.2.2. No version bump, tag, publication, or new tenant impor
 is implied by this entry. The implementation log holds current test and render
 evidence; historical tenant receipts retain their original artifact scope.
 
+Blueprint Wizard compatibility (2026-10-13, on top of the candidate; vendored
+Workbench scripts unchanged until the accepted producer is re-pinned):
+
+- `from-wizard` no longer crashes on an extracted table inside a week cell
+  (`_Cell.add_table` takes no width); only the rows the extraction counted as
+  header rows are shaded, repeated and bold, so a table with `header_rows: 0`
+  gets no invented header.
+- Extracted panel labels are normalised to the shared bracket vocabulary
+  (`vocabulary.bracket_keyword` / `bracket_opener`): the callout family is
+  `[callout attrs]`, `Timeline` is `[timeline]`, every other label is
+  `[box attrs: Label]`; attributed `Project callout` and `Panel` labels convert
+  instead of being refused. `[box: Label]` is documented as accepted with the
+  label ignored.
+- A heading the extraction left inside its panel is written once: the adapter
+  honours `heading_owner: "panel"` on structure segments and inspects resources
+  sections (`panel_owns_label`, mirroring the Workbench helper), with a
+  `heading_owned_by_panel` ledger entry.
+- Docs: the design note and renderer comment no longer say editor fields are
+  plain by default (`fragment_styles` has defaulted to `"template"` since
+  2026-10-08); the authoring guide explains the box label and heading
+  ownership.
+
 - Follow-up SME/ID usability revision: ordinary writing prompts, readable author
   notes, a first-page replacement example and handoff sequence, and a separate
   authoring reference with genuinely multiline copyable examples. Existing
