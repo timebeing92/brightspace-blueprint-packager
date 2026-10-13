@@ -183,7 +183,9 @@ def build(out_dir: Path, *, ref: str = "HEAD", tag: str | None = None, allow_dir
     with tempfile.TemporaryDirectory() as temp:
         staged = Path(temp) / top_level
         staged.mkdir()
-        archive = subprocess.run(["git", "-C", str(root), "archive", "--format=tar", commit], capture_output=True, check=True).stdout
+        # the bytes as stored: no line-ending conversion, whatever this machine's git setting is
+        archive = subprocess.run(["git", "-C", str(root), "-c", "core.autocrlf=false", "archive", "--format=tar", commit],
+                                 capture_output=True, check=True).stdout
         subprocess.run(["tar", "-x", "-C", str(staged)], input=archive, check=True)
         manifest = release_manifest(staged, version=version, commit=commit, tag=tag, ref=ref, dirty=dirty,
                                     now=now or dt.datetime.now(dt.timezone.utc), vendored=vendored_pin_at(commit, root=root))

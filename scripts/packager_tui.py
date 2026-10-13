@@ -196,6 +196,11 @@ def module_missing() -> list[str]:
             __import__(module)
         except Exception:
             missing.append(package)
+    try:  # dates need the IANA zone database; Windows has none of its own, so the tzdata package supplies it
+        from zoneinfo import ZoneInfo
+        ZoneInfo("America/New_York")
+    except Exception:
+        missing.append("tzdata")
     return missing
 
 

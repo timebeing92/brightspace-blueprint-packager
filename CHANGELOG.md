@@ -59,6 +59,17 @@ the shapes new since 0.2.2 are supported locally and are not tenant-verified
 - The runner's update card says to build from the blueprint again after
   updating, and its output no longer stops on a glyph the console or pipe
   cannot encode (a Windows pipe in cp1252 prints "?" instead).
+- Found by the matrix on its first run: Windows has no time-zone database of
+  its own, so every build with a term calendar failed there with "No time
+  zone found with key America/New_York". `tzdata` is now a dependency
+  (`requirements.txt`, `pyproject.toml`), the launcher installs it, and the
+  doctor reports it missing when zone data cannot be loaded. Also found: the
+  0.2.2 runner dropped backslashes from a path given on the command line on
+  Windows (treating it as dragged-in text); 0.3.0's path handling already
+  corrected that, and the update test gives the old runner forward slashes.
+- The release builder archives bytes as stored (`core.autocrlf=false`), and a
+  `.gitattributes` keeps every checkout at LF, so the vendored and release
+  manifests' hashes hold on Windows too; verbatim records keep their bytes.
 
 ### Evidence
 

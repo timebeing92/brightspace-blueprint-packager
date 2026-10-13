@@ -64,6 +64,12 @@ point at one you already have: `PYTHON=/path/to/python3 bash blueprint_packager.
 **Windows says scripts are disabled.** Use `Blueprint Packager.bat`, which runs
 PowerShell with `-ExecutionPolicy Bypass` for this file only.
 
+**"Python packages  missing tzdata"** (usually Windows). Dates in a term
+calendar need the IANA time-zone database, which Windows does not ship; the
+`tzdata` package supplies it and is in `requirements.txt`. Install it into
+the environment the runner uses: `.venv\Scripts\python -m pip install tzdata`
+(or rerun the launcher, which installs `requirements.txt`).
+
 **pip fails inside the .venv** (a proxy, an old pip). Run
 `.venv/bin/python -m pip install --upgrade pip` then
 `.venv/bin/python -m pip install -r requirements.txt` and start again. The

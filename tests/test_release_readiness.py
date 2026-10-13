@@ -207,10 +207,13 @@ def test_updating_from_the_released_version_keeps_answers_and_re_reads_the_bluep
     subprocess.run([sys.executable, "-B", "-c",
                     "import sys; sys.path[:0] = [sys.argv[1], sys.argv[2]]; import synth; from pathlib import Path; synth.canonical(Path(sys.argv[3]))",
                     str(old / "tests"), str(old), str(blueprint)], check=True, env=env)
-    first = run_tui(old, "--yes", "--task", "dry", "--blueprint", str(blueprint), "--output-dir", str(tmp_path / "old-run"), home=home, released=True)
+    # the released runner reads a command-line path as if it were dragged in and drops backslashes (fixed in 0.3.0),
+    # so it is given forward slashes, which every platform accepts
+    first = run_tui(old, "--yes", "--task", "dry", "--blueprint", blueprint.as_posix(), "--output-dir", (tmp_path / "old-run").as_posix(),
+                    home=home, released=True)
     assert first.returncode == 0, first.stdout[-2000:] + first.stderr[-2000:]
     remembered = json.loads((old / ".last_run.json").read_text(encoding="utf-8"))
-    assert remembered["blueprint"] == str(blueprint)
+    assert Path(remembered["blueprint"]) == blueprint
     old_model = tmp_path / "old-run" / "model" / "course__course_model.json"
     assert old_model.is_file()
 
