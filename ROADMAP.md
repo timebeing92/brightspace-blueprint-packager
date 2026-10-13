@@ -1,11 +1,14 @@
 # Roadmap
 
-Updated 2026-10-09. This is an unreleased candidate based on v0.2.2. The approved
+Updated 2026-10-13. The candidate below was released as **0.3.0** on
+2026-10-13 together with the Blueprint Wizard compatibility work and the
+release-readiness work (installer revalidation, verified-tag builds, the CI
+matrix, the published-asset smoke test); see `CHANGELOG.md`. The approved
 scope and implementation decisions are recorded in
 [the plan](docs/IMPLEMENTATION_PLAN_2026-10-09.md) and
 [the implementation log](docs/IMPLEMENTATION_LOG_2026-10-09.md).
 
-## Implemented in the current candidate
+## Implemented in 0.3.0
 
 - Blocking source accounting, input-contract checks, accurate missing-evidence
   handling, internal-link verification, and corrected reader provenance.
@@ -22,21 +25,24 @@ scope and implementation decisions are recorded in
 
 ## Next evidence and handoff
 
-1. Review the candidate, updated blank, diagnostics, and implementation evidence.
-2. Prepare a release only after that review; this checkout is not a new
-   published version.
-3. If approved for tenant validation, the operator imports a representative
-   synthetic package into an empty sandbox, checks media and multiple activities,
-   re-exports it, and records a new receipt. The tool itself does not access a
-   live tenant.
-4. Promote borrowed-behaviour fixes upstream when a concrete Workbench issue is
+1. Tenant validation of the shapes new since 0.2.2: the operator imports a
+   representative synthetic package built by 0.3.0 into an empty sandbox,
+   checks media and multiple activities, re-exports it, and records a new
+   receipt in `docs/IMPORT_RECEIPTS.md`. Until then those shapes are supported
+   locally and not tenant-verified. The tool itself does not access a live
+   tenant.
+2. Promote borrowed-behaviour fixes upstream when a concrete Workbench issue is
    established, then review the diff before re-pinning the vendor.
 
 ## Follow-on work requiring its own evidence
 
-- Expand Wizard conversion beyond its documented subset: quiz carry-forward
-  sources, nested modules, dates/settings, files/images, and other unsupported
-  structures need explicit representations and tests.
+- Expand Wizard conversion beyond its documented subset. The retained backlog,
+  with what each family needs before it can be supported, is
+  [`docs/CONVERSION_BACKLOG_2026-10-13.md`](docs/CONVERSION_BACKLOG_2026-10-13.md):
+  dates and term settings, post-first discussions and quiz carry-forward first
+  (the demonstrated sandbox blockers), then front matter, media, nested
+  modules, grade and rubric variants, checklists, release conditions, and
+  rich-text breadth.
 - Add institutional video providers using representative URLs, an embedding
   contract, and tenant playback evidence.
 - Broaden native Windows interaction evidence beyond path parsing tests.

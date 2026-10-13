@@ -186,7 +186,8 @@ def test_release_bundle_manifest_is_complete_and_verifies(tmp_path):
         tops = {name.split("/")[0] for name in names}
         assert tops == {"brightspace-blueprint-packager-v1.2.3"}
         manifest = json.loads(archive.read("brightspace-blueprint-packager-v1.2.3/release_manifest.json"))
-    assert manifest["version"] == "1.2.3" and manifest["tag"] == "v1.2.3" and len(manifest["commit"]) == 40
+    assert manifest["version"] == "1.2.3" and len(manifest["commit"]) == 40
+    assert manifest["tag"] is None and manifest["build"]["tag_verified"] is False  # no v1.2.3 tag at that commit
     assert manifest["vendored_workbench"]["commit_short"] == "abc1234"
     listed = {entry["path"] for entry in manifest["files"]}
     archived = {name.split("/", 1)[1] for name in names if "/" in name} - {"release_manifest.json"}

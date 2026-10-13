@@ -14,3 +14,4 @@ dist/
 INSTALL_RECEIPT.json
 INSTALL_RECEIPT.txt
 .blueprint-packager-current
+smoke-*/

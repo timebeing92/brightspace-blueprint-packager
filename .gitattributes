@@ -1,0 +1,12 @@
+# Line endings are part of the evidence: the vendored manifest and the release manifest
+# record every file's hash, so a checkout must produce the same bytes on every platform.
+* text=auto eol=lf
+*.docx binary
+*.xlsx binary
+*.zip binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+# Verbatim records keep the bytes they arrived with.
+docs/records/** -text

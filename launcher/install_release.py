@@ -10,6 +10,12 @@ point ``.blueprint-packager-current`` at it. The pointer is written atomically,
 so the launchers never see a half-installed version; the previous version is
 left where it was. Remembered answers (``.last_run.json``) are carried over.
 
+Installing a release that is already in place does not trust the old receipt
+alone: every file the manifest lists is checked against the installed folder
+(runtime state such as ``.venv``, remembered answers, the update-check cache
+and logs is left alone). A difference is refused, naming the files, unless
+``--repair`` asks for them to be restored from the verified archive.
+
 Adapted in approach from the Blueprint Wizard runner's launcher/install_release.py
 (brightspace-blueprint-runner, commit 85cef27), without its managed-root
 machinery: this tool has one folder per version and one pointer file.
@@ -17,6 +23,7 @@ machinery: this tool has one folder per version and one pointer file.
     python3 launcher/install_release.py --latest                  # from GitHub Releases
     python3 launcher/install_release.py --archive path/to/release.zip
     python3 launcher/install_release.py --latest --restart        # then start the new version
+    python3 launcher/install_release.py --archive release.zip --repair   # restore changed release files
 """
 from __future__ import annotations
 
@@ -188,8 +195,43 @@ def write_pointer(install_root: Path, folder_name: str) -> None:
     os.replace(temporary, pointer_path(install_root))
 
 
+def check_installed(folder: Path, manifest: dict[str, Any], *, verified: Path | None = None) -> dict[str, Any]:
+    """Compare the release-owned files of an installed folder with the manifest.
+
+    Only the files the manifest lists (and the manifest itself, when `verified`
+    gives the archive's copy) are checked, so the runtime state an install
+    accumulates (.venv, .last_run.json, the update-check cache, logs, the
+    receipt) is neither checked nor touched."""
+    missing, changed = [], []
+    for entry in manifest.get("files", []):
+        target = folder / entry["path"]
+        if not target.is_file():
+            missing.append(entry["path"])
+        elif sha256_file(target) != entry["sha256"]:
+            changed.append(entry["path"])
+    if verified is not None:
+        installed_manifest = folder / MANIFEST_NAME
+        if not installed_manifest.is_file():
+            missing.append(MANIFEST_NAME)
+        elif installed_manifest.read_bytes() != (verified / MANIFEST_NAME).read_bytes():
+            changed.append(MANIFEST_NAME)
+    return {"ok": not missing and not changed, "checked": len(manifest.get("files", [])) + (verified is not None),
+            "missing": missing, "changed": changed}
+
+
+def repair_installed(folder: Path, verified: Path, report: dict[str, Any]) -> list[str]:
+    """Restore the missing or changed release files in `folder` from the verified copy; return their paths."""
+    restored = []
+    for rel in [*report["missing"], *report["changed"]]:
+        target = folder / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(verified / rel, target)
+        restored.append(rel)
+    return restored
+
+
 def install_archive(archive_path: Path, install_root: Path, *, expected_version: str | None = None,
-                    carry_from: Path | None = None) -> dict[str, Any]:
+                    carry_from: Path | None = None, repair: bool = False) -> dict[str, Any]:
     archive_path = archive_path.expanduser().resolve()
     install_root = install_root.expanduser().resolve()
     if not archive_path.is_file():
@@ -212,8 +254,27 @@ def install_archive(archive_path: Path, install_root: Path, *, expected_version:
                 receipt = {}
             if receipt.get("archive_sha256") != archive_digest:
                 raise ReleaseInstallError(f"{destination.name} already exists with a different or missing receipt; move it aside first")
+            report = check_installed(destination, manifest, verified=extracted)
+            if report["ok"]:
+                write_pointer(install_root, top_level)
+                return {"status": "already_installed", "version": manifest["version"], "folder": str(destination),
+                        "archive_sha256": archive_digest, "checked_files": report["checked"]}
+            differing = report["missing"] + report["changed"]
+            if not repair:
+                raise ReleaseInstallError(
+                    f"{destination.name} is installed, but {len(report['missing'])} release file(s) are missing and "
+                    f"{len(report['changed'])} changed (for example {', '.join(differing[:3])}); rerun with --repair to "
+                    "restore them from the verified archive (.venv, remembered answers and logs are kept)")
+            restored = repair_installed(destination, extracted, report)
+            after = check_installed(destination, manifest, verified=extracted)
+            if not after["ok"]:
+                raise ReleaseInstallError(f"repair of {destination.name} left differences: {after['missing'] + after['changed']}")
+            receipt["repaired_at_utc"] = update_check.utc_text(update_check.utc_now())
+            receipt["repaired_files"] = restored
+            (destination / RECEIPT_NAME).write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
             write_pointer(install_root, top_level)
-            return {"status": "already_installed", "version": manifest["version"], "folder": str(destination), "archive_sha256": archive_digest}
+            return {"status": "repaired", "version": manifest["version"], "folder": str(destination),
+                    "archive_sha256": archive_digest, "repaired": restored}
         receipt = {"schema": "coursecraft.packager_install/1", "version": manifest["version"], "commit": manifest.get("commit"),
                    "archive_name": archive_path.name, "archive_sha256": archive_digest,
                    "installed_at_utc": update_check.utc_text(update_check.utc_now()), "vendored_workbench": manifest.get("vendored_workbench")}
@@ -244,15 +305,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--install-root", type=Path, default=REPO_DIR.parent, help="where version folders live (default: beside this install)")
     parser.add_argument("--expected-version", help="refuse a release that is not this version")
     parser.add_argument("--restart", action="store_true", help="start the newly installed version afterwards")
+    parser.add_argument("--repair", action="store_true",
+                        help="when this version is already installed, restore any missing or changed release file from the verified archive")
     args = parser.parse_args(argv)
     try:
         if args.latest:
             with tempfile.TemporaryDirectory() as temp:
                 archive, tag = download_latest(Path(temp))
                 print(f"downloaded {archive.name} ({tag})")
-                result = install_archive(archive, args.install_root, expected_version=args.expected_version or tag, carry_from=REPO_DIR)
+                result = install_archive(archive, args.install_root, expected_version=args.expected_version or tag,
+                                         carry_from=REPO_DIR, repair=args.repair)
         else:
-            result = install_archive(args.archive, args.install_root, expected_version=args.expected_version, carry_from=REPO_DIR)
+            result = install_archive(args.archive, args.install_root, expected_version=args.expected_version,
+                                     carry_from=REPO_DIR, repair=args.repair)
     except ReleaseInstallError as exc:
         print(f"install failed: {exc}", file=sys.stderr)
         return 1

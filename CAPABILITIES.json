@@ -1,7 +1,7 @@
 {
   "schema": "blueprint_packager.capabilities/0.1",
-  "note": "Evidence is scoped to the named artifact and tested shape. Levels follow docs/IMPORT_RECEIPTS.md: L1 local read-back, L2 matches a real export, L3 imports, L4 survives import/re-export. Historical tenant evidence does not certify the current unreleased candidate.",
-  "this_tool_evidence": "Historical L4: MBA 620 sandbox packages in docs/IMPORT_RECEIPTS.md Receipts 10-13 (2026-10-07/08). New candidate authoring and verification changes have local synthetic evidence; no new tenant round has been performed.",
+  "note": "Evidence is scoped to the named artifact and tested shape. Levels follow docs/IMPORT_RECEIPTS.md: L1 local read-back, L2 matches a real export, L3 imports, L4 survives import/re-export. Historical tenant evidence does not certify the shapes new since 0.2.2.",
+  "this_tool_evidence": "Historical L4: MBA 620 sandbox packages in docs/IMPORT_RECEIPTS.md Receipts 10-13 (2026-10-07/08), built by 0.2.x-era shapes. 0.3.0 (2026-10-13): local synthetic evidence on the CI matrix (.github/workflows/ci.yml) and a smoke test of the published asset (docs/evidence/RELEASE_SMOKE_v0.3.0.md); no tenant round has been performed for the shapes new since 0.2.2.",
   "capabilities": [
     {
       "shape": "module with HTML topics",
@@ -268,17 +268,19 @@
   },
   "candidate_status": {
     "base_release": "0.2.2",
-    "status": "unreleased",
+    "status": "released as 0.3.0 on 2026-10-13",
     "implementation_log": "docs/IMPLEMENTATION_LOG_2026-10-09.md",
     "vendor_pin_source": "vendor/coursecraft_workbench/MANIFEST.json",
-    "tenant_validation": "not performed for this candidate"
+    "release_evidence": ".github/workflows/ci.yml (suite at Python 3.11-3.14 on Linux, Windows, macOS; launchers and installer on all three) and docs/evidence/RELEASE_SMOKE_v0.3.0.md",
+    "tenant_validation": "not performed for 0.3.0; the historical L4 receipts apply to the 0.2.x-era shapes they name",
+    "conversion_backlog": "docs/CONVERSION_BACKLOG_2026-10-13.md"
   },
   "candidate_capabilities": [
     {
       "shape": "multiple assignments and discussions per week",
       "evidence": "L1 synthetic closed cycle",
       "evidence_ref": "tests/test_wizard_authoring.py",
-      "limit": "No new tenant import of the candidate."
+      "limit": "Released in 0.3.0 with local evidence only; no tenant import of this shape since 0.2.2."
     },
     {
       "shape": "explicit video brackets and retained placeholders",
@@ -296,7 +298,7 @@
       "shape": "Wizard bundle to authoring DOCX",
       "evidence": "L1 synthetic package-extraction-authoring-repackage cycle",
       "evidence_ref": "tests/test_wizard_authoring.py",
-      "limit": "Supported subset in docs/WIZARD_AUTHORING_CONVERSION.md; unsupported evidence blocks conversion; no source contracts modified."
+      "limit": "Supported subset in docs/WIZARD_AUTHORING_CONVERSION.md; unsupported evidence blocks conversion; no source contracts modified; the retained backlog is docs/CONVERSION_BACKLOG_2026-10-13.md. Local evidence only; no tenant import since 0.2.2."
     },
     {
       "shape": "relationship-aware structural activity rename",

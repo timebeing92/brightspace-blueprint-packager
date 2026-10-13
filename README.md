@@ -19,13 +19,14 @@ Packager blueprint. The Wizard's review DOCX is not directly interchangeable
 with the authoring DOCX. The adapter checks exact identities and refuses
 unsupported evidence; see [supported conversion shapes](docs/WIZARD_AUTHORING_CONVERSION.md).
 
-**Status:** released version **0.2.2**; this checkout contains an **unreleased
-authoring and verification update**. Earlier MBA 620 sandbox rounds provide
-L4 evidence for their named packages and shapes. The new multiple-activity
-authoring, video markers, readiness gates, and Wizard conversion have local
-test evidence; they have not received a new tenant import/re-export round.
-See [Evidence and provenance](#evidence-and-provenance) and the
-[implementation log](docs/IMPLEMENTATION_LOG_2026-10-09.md).
+**Status:** released version **0.3.0** (2026-10-13). Earlier MBA 620 sandbox
+rounds provide L4 evidence for their named packages and shapes. The
+multiple-activity authoring, video markers, readiness gates, Wizard conversion
+and bracket vocabulary new since 0.2.2 have local test evidence on the CI
+matrix and a smoke test of the published asset; they have not received a new
+tenant import/re-export round. See [Evidence and provenance](#evidence-and-provenance),
+the [implementation log](docs/IMPLEMENTATION_LOG_2026-10-09.md) and the
+[conversion backlog](docs/CONVERSION_BACKLOG_2026-10-13.md).
 
 ---
 
@@ -163,8 +164,13 @@ installed version with the latest release once a day and says when a newer
 one exists, with the one command to install it beside this version and
 restart. Releases are pinned to a commit and carry a manifest of every file's
 hash; the installer verifies the hashes before anything is put in place, and
-leaves the previous version where it was. `RELEASING.md` says how a release
-is cut.
+leaves the previous version where it was. After an update, build from the
+blueprint again: the runner re-reads it, and a course model cached by the
+previous version is refused by `build` until the document is re-read.
+Installing a version that is already in place checks its files and names any
+that differ; `--repair` restores them from the verified archive without
+touching `.venv`, remembered answers or logs. `RELEASING.md` says how a
+release is cut and checked.
 
 ## Quick start on the command line
 
@@ -214,9 +220,10 @@ unaccounted source content still stop the build. An intentional video placeholde
 or link fallback can be retained by its exact title using
 `--retain-video-placeholder TITLE` or `--video-link-fallback TITLE`.
 
-**Compatibility:** re-run `read` on existing DOCX files to regenerate cached
-models. Builds now require a source-accounting ledger and current input-contract
-validation. This requirement does not rewrite the source DOCX.
+**Compatibility:** after updating from 0.2.2, re-run `read` on each DOCX
+before building. Builds require the source-accounting ledger and the current
+input contracts, which a model cached by 0.2.2 lacks; `build` refuses such a
+model with "Re-read the DOCX". Re-reading does not rewrite the source DOCX.
 
 ## How it works
 
@@ -432,7 +439,9 @@ If you fork this repository to build your own courses, two things to know.
 | `install_blueprint_packager.sh`, `.ps1` | One-command install of the latest release into a folder, then start. |
 | `scripts/packager_tui.py`, `scripts/ui.py`, `scripts/art.py` | The guided runner, its terminal components, and the splash. |
 | `scripts/update_check.py`, `launcher/install_release.py` | The once-a-day release check, and the verified side-by-side installer it offers. |
-| `scripts/make_release_bundle.py`, `RELEASING.md` | Cut a release ZIP with its manifest; the steps. |
+| `scripts/make_release_bundle.py`, `RELEASING.md` | Cut a release ZIP from a verified tag with its manifest; the steps. |
+| `scripts/smoke_test_release.py` | Smoke-test a published release from the download: hash, manifest, install, launcher, blank, ready course, Wizard cycle, shipped suite. |
+| `.github/workflows/ci.yml` | The pre-release matrix: the suite at Python 3.11 to 3.14 on Linux, Windows and macOS; the release ZIP installed, repaired and started through the launchers on all three. |
 | `bpk.py` | The command line. `python3 bpk.py --help` lists the stages. |
 | `blueprint_packager/` | Pipeline stages plus `authoring` (readiness/media), `contracts` (input validation), `relationships` (reports/renames), and `wizard_authoring` (explicit conversion). `vocabulary` holds structural words; `workbench` resolves the pinned engine. |
 | `blueprint_packager/templates/` | Page templates: `composite_navy` (default), `bumk515_classic`. |
@@ -442,6 +451,7 @@ If you fork this repository to build your own courses, two things to know.
 | `INSTALL_AND_TROUBLESHOOT.md` | When the launcher or the runner does not start. |
 | `docs/AUTHORING_GUIDE.md` | How to write a blueprint. Start here if you will edit one. |
 | `docs/WIZARD_AUTHORING_CONVERSION.md` | Supported extraction-to-authoring conversion shapes and limitations. |
+| `docs/CONVERSION_BACKLOG_2026-10-13.md` | What each unsupported conversion family would need before it could be supported. |
 | `docs/IMPLEMENTATION_PLAN_2026-10-09.md`, `docs/IMPLEMENTATION_LOG_2026-10-09.md` | Approved candidate scope, decisions, deviations, and evidence. |
 | `docs/DESIGN.md` | Why the tool is shaped as it is, and the open directions. |
 | `docs/IMPORT_RECEIPTS.md` | The sandbox receipts behind the evidence level. |
@@ -449,7 +459,7 @@ If you fork this repository to build your own courses, two things to know.
 | `docs/PROMOTION_MANIFEST.md` | Which parts belong to the shared engine and where that stands. |
 | `docs/examples/` | A generated eight-week blank blueprint. |
 | `docs/records/` | Survey reports and work records. |
-| `tests/` | Synthetic fixtures end to end; `.venv/bin/python -m pytest tests -q`. |
+| `tests/` | Synthetic fixtures end to end; `.venv/bin/python -m pytest tests -q`. The update test needs the previous release's tag in the checkout. |
 | `CAPABILITIES.json`, `CHANGELOG.md`, `ROADMAP.md`, `AGENTS.md` | What it builds and how well, what changed, what is next, what it must never do. |
 
 ## Questions and changes

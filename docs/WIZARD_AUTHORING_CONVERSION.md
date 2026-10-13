@@ -102,7 +102,9 @@ other presentation that is not retained by the extracted contracts.
 
 Review all warnings and the retained extraction diagnostics before editing or
 building the returned document. A successful conversion does not certify the
-completeness of the original extraction.
+completeness of the original extraction. What each unsupported family would
+need before it could be converted is recorded in
+[`CONVERSION_BACKLOG_2026-10-13.md`](CONVERSION_BACKLOG_2026-10-13.md).
 
 ## Regression evidence
 

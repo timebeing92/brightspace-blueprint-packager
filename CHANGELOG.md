@@ -1,13 +1,79 @@
 # Changelog
 
-## Unreleased — authoring and verification candidate, 2026-10-09
+## 0.3.0 — 2026-10-13
 
-Based on released v0.2.2. No version bump, tag, publication, or new tenant import
-is implied by this entry. The implementation log holds current test and render
-evidence; historical tenant receipts retain their original artifact scope.
+The authoring and verification candidate of 2026-10-09, the Blueprint Wizard
+compatibility work of 2026-10-13 and the release-readiness work below, released
+together. The vendored Workbench is pinned at `1f48e07`, the accepted
+heading-ownership merge that Bundle v1.4.0 was cut from. Local and synthetic
+evidence only: no tenant import or re-export round has been run for 0.3.0, so
+the shapes new since 0.2.2 are supported locally and are not tenant-verified
+(see "Evidence" below).
 
-Blueprint Wizard compatibility (2026-10-13, on top of the candidate; vendored
-Workbench scripts unchanged until the accepted producer is re-pinned):
+### Updating from 0.2.2
+
+- Install beside the old version as usual (`python3 launcher/install_release.py
+  --latest`, or the runner's offer when it shows the notice). Remembered
+  answers are carried over; the old folder stays and forwards to the new one.
+- Build from the blueprint again. The guided runner always re-reads the
+  document; on the command line, run `bpk.py read` on each DOCX before
+  `build`. A course model cached by 0.2.2 has no source-accounting ledger, and
+  `build` refuses it with "Re-read the DOCX". Re-reading never changes the
+  source file.
+- Tested as it happens: `tests/test_release_readiness.py` archives the v0.2.2
+  tag with the builder, installs it, runs it once so it remembers answers,
+  installs this version beside it, runs this version from the carried answers,
+  and shows the old cached model refused and the re-read model building.
+
+### Release readiness
+
+- Installer: installing a version that is already in place checks every file
+  the manifest lists against the installed folder instead of trusting the old
+  receipt alone. A missing or changed release file is refused by name;
+  `--repair` restores it from the verified archive. `.venv`, remembered
+  answers, the update-check cache, logs and the receipt are never touched
+  (`launcher/install_release.py`).
+- Release builder: `--ref` names the commit to archive and `--tag` the release
+  tag, which must exist, point at that commit and be named `v<version>` for
+  that commit's tree. The version and the vendor pin in the manifest are read
+  from the archived commit, never from the working tree. A tagged build
+  refuses a dirty worktree; `--allow-dirty` only ever builds an unreleased ZIP
+  of the committed tree. The manifest records `tag` (null when unreleased) and
+  a `build` block with the ref, whether the tag was verified and whether the
+  worktree was dirty (`scripts/make_release_bundle.py`).
+- CI (`.github/workflows/ci.yml`): the suite on Linux at Python 3.11, 3.12,
+  3.13 and 3.14, on Windows at 3.11 and 3.14, and on macOS at 3.11; and on all
+  three platforms the release ZIP of the commit built, installed, reinstalled,
+  tampered with and repaired, then started through the real launchers
+  (`blueprint_packager.sh`, `blueprint_packager.ps1`, `Blueprint Packager.bat`)
+  with the venv created, the packages installed and the doctor run. The 3.11
+  floor declared in `pyproject.toml` is now exercised; before this release the
+  suite had only been run on 3.14.
+- Published-asset smoke test (`scripts/smoke_test_release.py`): downloads the
+  release's ZIP and sidecar, requires exactly one ZIP asset, checks the hash
+  and the manifest against the tag, installs with the installer and reinstalls
+  with the shipped one, starts the launcher, writes and reads a blank, reads,
+  builds and verifies a ready synthetic course, runs the Wizard conversion
+  cycle from the installed copy, runs the shipped suite there, and writes a
+  report. The 0.3.0 run is recorded under `docs/evidence/`.
+- The runner's update card says to build from the blueprint again after
+  updating, and its output no longer stops on a glyph the console or pipe
+  cannot encode (a Windows pipe in cp1252 prints "?" instead).
+
+### Evidence
+
+Local synthetic tests on the CI matrix above and the smoke test of the
+published asset. The historical L4 tenant evidence (Import receipts 10 to 13)
+applies to the 0.2.x-era packages and shapes it names. The shapes new since
+0.2.2 (multiple activities per week, video markers, readiness gates, Wizard
+conversion, the bracket vocabulary) have not been through a tenant import and
+re-export; a new receipt is needed before claiming more. The retained
+conversion backlog is `docs/CONVERSION_BACKLOG_2026-10-13.md`.
+
+### Blueprint Wizard compatibility (2026-10-13)
+
+Applied on top of the candidate; the vendored Workbench was then re-pinned at
+the accepted producer, `1f48e07`.
 
 - `from-wizard` no longer crashes on an extracted table inside a week cell
   (`_Cell.add_table` takes no width); only the rows the extraction counted as
@@ -27,6 +93,8 @@ Workbench scripts unchanged until the accepted producer is re-pinned):
   plain by default (`fragment_styles` has defaulted to `"template"` since
   2026-10-08); the authoring guide explains the box label and heading
   ownership.
+
+### Authoring and verification candidate (2026-10-09)
 
 - Follow-up SME/ID usability revision: ordinary writing prompts, readable author
   notes, a first-page replacement example and handoff sequence, and a separate

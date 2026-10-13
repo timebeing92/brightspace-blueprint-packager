@@ -1,0 +1,113 @@
+# The pre-release matrix: the suite at the Python floor and the newest release on
+# Linux, Windows and macOS, then the release ZIP of this very commit built, installed,
+# reinstalled, tampered with, repaired, and started through the real launchers.
+# A release is cut only from a commit this workflow has passed (RELEASING.md).
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  BPK_NO_UPDATE_CHECK: "1"
+  BPK_REQUIRE_RELEASE_TAGS: "1"   # the update-from-the-released-version test may not silently skip here
+
+jobs:
+  tests:
+    name: tests (${{ matrix.os }}, Python ${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.11", "3.12", "3.13", "3.14"]
+        include:
+          - { os: windows-latest, python: "3.11" }
+          - { os: windows-latest, python: "3.14" }
+          - { os: macos-latest, python: "3.11" }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0   # the update test archives the previous release's tag
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pytest -q -ra -p no:cacheprovider
+
+  release-zip-and-launchers:
+    name: release ZIP, installer and launcher (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Build the release ZIP of this commit and check its sidecar
+        shell: bash
+        run: |
+          python scripts/make_release_bundle.py --ref "$GITHUB_SHA" --out-dir dist
+          python - <<'PY'
+          import hashlib, pathlib
+          [archive] = list(pathlib.Path("dist").glob("*.zip"))
+          sidecar = archive.with_suffix(".zip.sha256").read_text().split()
+          assert sidecar == [hashlib.sha256(archive.read_bytes()).hexdigest(), archive.name], sidecar
+          print("sidecar ok:", archive.name)
+          PY
+      - name: Install into an empty root, reinstall, refuse a changed file, repair
+        shell: bash
+        run: |
+          archive=$(ls dist/*.zip)
+          python launcher/install_release.py --archive "$archive" --install-root installs > install.json
+          folder=$(python -c "import json; print(json.load(open('install.json'))['folder'])")
+          echo "folder=$folder" >> "$GITHUB_ENV"
+          python launcher/install_release.py --archive "$archive" --install-root installs | grep '"already_installed"'
+          python -c "import pathlib, sys; p = pathlib.Path(sys.argv[1], 'bpk.py'); p.write_text(p.read_text() + '# edited\n')" "$folder"
+          if python launcher/install_release.py --archive "$archive" --install-root installs; then
+            echo "a changed release file was not refused"; exit 1
+          fi
+          python launcher/install_release.py --archive "$archive" --install-root installs --repair | grep '"repaired"'
+          python launcher/install_release.py --archive "$archive" --install-root installs | grep '"already_installed"'
+      - name: Launcher on POSIX (creates the venv, installs the packages, runs the doctor)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          bash -n blueprint_packager.sh install_blueprint_packager.sh "Blueprint Packager.command"
+          bash "$folder/blueprint_packager.sh" --yes --doctor
+          "$folder/.venv/bin/python" "$folder/bpk.py" --version
+      - name: Launcher on Windows (parses the scripts, creates the venv, runs the doctor, double-click entry)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          foreach ($script in "blueprint_packager.ps1", "install_blueprint_packager.ps1") {
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$null, [ref]$errors) | Out-Null
+            if ($errors.Count) { $errors | Out-String | Write-Error; exit 1 }
+          }
+          $folder = $env:folder
+          & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $folder "blueprint_packager.ps1") --yes --doctor
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmd /s /c "`"$folder\Blueprint Packager.bat`" --doctor --plain < NUL"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & (Join-Path $folder ".venv\Scripts\python.exe") (Join-Path $folder "bpk.py") --version
+          exit $LASTEXITCODE

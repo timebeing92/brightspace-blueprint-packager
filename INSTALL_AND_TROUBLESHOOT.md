@@ -32,6 +32,24 @@ When a newer version has been installed beside this one by the updater, the
 launcher says so and starts that one instead. `--here` or `BPK_NO_FORWARD=1`
 keeps the folder you clicked.
 
+## Updating
+
+The runner says once a day when a newer release exists and offers to install
+it beside this one and restart (`python3 launcher/install_release.py --latest`
+does the same). The new folder gets its own `.venv` on first start; remembered
+answers are carried over; nothing is deleted.
+
+After an update, build from the blueprint again. The runner always re-reads
+the document. On the command line, run `bpk.py read` on each DOCX before
+`build`: a course model cached by an older version is refused with "Re-read
+the DOCX", and re-reading never changes the source file.
+
+Installing a version that is already in place does not just trust the old
+receipt: every release file is checked against the manifest. If one is
+missing or changed the install is refused and names it; add `--repair` to
+restore those files from the verified archive. `.venv`, `.last_run.json`,
+`.update_check.json`, `logs/` and the receipt are never touched.
+
 ## When it does not start
 
 **"Python 3.11 or later was not found."** Install Python from
@@ -57,6 +75,12 @@ works, but a build's receipt will not match a release. Reinstall the release
 ZIP, or if you develop on the repository, run
 `python3 scripts/check_vendor_drift.py /path/to/coursecraft_workbench` to see
 the difference. Never edit those files in place.
+
+**"… is installed, but N release file(s) are missing and M changed … rerun
+with --repair."** A file the release owns differs from the manifest (edited,
+deleted, or half-copied). Run the same install command with `--repair`; it
+restores only those files from the verified archive and leaves your `.venv`,
+remembered answers and logs alone. The receipt records what was repaired.
 
 **"Update check skipped: no GitHub access."** The once-a-day release check
 needs `gh auth login` or a `GITHUB_TOKEN`. It is only a notice; nothing else

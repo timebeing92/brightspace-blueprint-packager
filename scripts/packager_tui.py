@@ -291,6 +291,7 @@ def update_notice(*, force: bool, offer_install: bool) -> bool:
     rows.append(("Releases", TERM.supporting(status.release_url)))
     rows.append(("Update", TERM.supporting(update_check.update_command())))
     rows.append(("", "Nothing has been replaced; this version keeps working."))
+    rows.append(("", "After updating, build from the blueprint again: the new version re-reads it and does not reuse a course model an older version cached."))
     print()
     print(ui.card(TERM, "A newer Blueprint Packager is available", rows))
     update_check.mark_notified(CACHE_PATH, latest_version=status.latest_version)
@@ -1180,7 +1181,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     global TERM
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(line_buffering=True)
+        # line-buffered so stage output streams; "replace" so a console or pipe that cannot encode a
+        # glyph (a Windows pipe in cp1252, say) prints "?" instead of stopping the run
+        sys.stdout.reconfigure(line_buffering=True, errors="replace")
     args = parse_args(argv if argv is not None else sys.argv[1:])
     TERM = ui.Term(plain=args.plain)
     try:
