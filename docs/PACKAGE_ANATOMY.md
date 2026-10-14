@@ -142,7 +142,9 @@ with dangling links, silent duplicates, or nothing at all.
   or link in the course. The engine's page gate checks every one.
 - **A quiz is two files.** The library holds the questions; the quiz holds
   settings and a list of question references or random-pool rules. They are
-  read together or not at all.
+  read together or not at all. Question text, options and feedback may carry
+  HTML or XHTML, and MathML for notation with a fallback image beside it;
+  the library is where that rich content and its image references live.
 - **A rubric is attached, not embedded.** It lives in `rubrics_d2l.xml` and
   the activity's payload names it. A rubric imported on its own (Rubric Loom's
   Weave package) is attached by hand afterwards.
@@ -181,7 +183,7 @@ same ground from the package's side.
 | checklists | reads | **builds**, including a checklist derived from a week's activities; item due dates | | | consumes |
 | grade items and categories | reads | **builds**; the points table must agree with the activities | | | consumes |
 | rubrics | reads | **builds** analytic rubrics from the Rubric Appendix and attaches them | **Unravel** reads; **Weave** builds a rubric-only package | | consumes |
-| question library + quizzes | reads instructions and settings into the blueprint | **carries** a quiz forward unchanged from a source export; **refuses** to author one | | **Unbind** reads; **Compose** authors; **Rebind** builds one quiz package | consumes |
+| question library + quizzes | reads instructions and settings into the blueprint | **carries** a quiz forward unchanged from a source export; **refuses** to author one | | **Unbind** reads, keeping HTML, XHTML, MathML and fallback images; **Compose** authors; **Rebind** builds one quiz package and refuses rich content it cannot represent | consumes |
 | surveys, self assessments | outside the blueprint | refuses | | | |
 | syllabus | discovers a linked syllabus | the blueprint's front matter names it | | | |
 | announcements, calendar | outside the blueprint | dates come from build settings, not a calendar payload | | | |

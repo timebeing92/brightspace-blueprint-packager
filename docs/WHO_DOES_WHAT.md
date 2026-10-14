@@ -125,6 +125,15 @@ or all quizzes and gives each a strict readiness result. **Rebind** takes one
 authoring-ready quiz and gives a locally validated Brightspace quiz package.
 Never signs in; never imports.
 
+Question content keeps its declared form through the lane: plain text, HTML
+or XHTML, and MathML for notation with the fallback image Brightspace keeps
+beside it. Rich content the lane cannot represent, a missing or ambiguous
+asset, or a colliding target identity refuses the build rather than losing
+anything. Inline previews of the images inside questions (molecular diagrams
+were the case that forced it) exist as a Workbench candidate awaiting
+upstream adoption; rich-math reviewer adapters and typed-equation conversion
+run today as course-local adapters and are roadmap work for the lane.
+
 Ships as the [Quiz Bundle](https://github.com/timebeing92/brightspace-quiz-bundle)
 with its local Quiz Workshop terminal; the Hall exposes Unbind only.
 
@@ -215,7 +224,8 @@ And who does the refused things:
 | extract, revise and re-import rubrics on their own | Rubric Loom: Unravel, Weave | released (Bundle, Runner, Hall bench) |
 | Creator+ practices and interactives | Interactives Forge | planned; private pre-release scaffold with five evidence-backed modes |
 | page design beyond the two templates: inline-safe elements, full-page templates, asset and link checks | Pagewrights' Guild | planned; private pre-release design kit |
-| images and other files inside pages | image assets already travel with quizzes through Quiz Binder (Unbind keeps a quiz's image references and the files themselves), and the Guild's design kit carries asset and link checks for pages; bringing an asset-bearing authoring package into the Packager is backlog family E in `CONVERSION_BACKLOG_2026-10-13.md` | handled elsewhere; integration planned |
+| images and other files inside pages | image assets already travel with quizzes through Quiz Binder (Unbind keeps a quiz's image references and the files themselves, and a Workbench candidate shows them inline in the Reading Room), and the Guild's design kit carries asset and link checks for pages; bringing an asset-bearing authoring package into the Packager is backlog family E in `CONVERSION_BACKLOG_2026-10-13.md` | handled elsewhere; integration planned |
+| mathematical notation: MathML, typed equations | Quiz Binder keeps MathML and its fallback images through Unbind and Rebind; rich-math review adapters and typed-equation conversion are course-local today (the organic chemistry intake) and roadmap work upstream; the blueprint vocabulary has no equation form today, so notation in pages is outside the Packager | kept by the quiz lane; editing planned |
 | release conditions, intelligent agents, groups, surveys, LTI links, announcements, calendar events | set up in Brightspace after import | by design: course operations, not course content |
 | a hosted Packager bench | the Hall | under consideration; not started |
 | a queryable view across courses | Catalog | in development; reads the Wizard's JSON |
