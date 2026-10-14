@@ -16,7 +16,9 @@ back to check the supported content and relationships before operator review.
 In short: write the blueprint in Word, run the packager, import the ZIP.
 Nothing here talks to Brightspace; you import the package yourself, and your
 documents never leave your machine. Start with
-[Guided install and run](#guided-install-and-run).
+[Guided install and run](#guided-install-and-run). For what a Brightspace
+package is made of and how the Wizard and the Packager work with it, in
+diagrams, see [The big picture](docs/BIG_PICTURE.md).
 
 ---
 
@@ -488,6 +490,7 @@ other paid services are available by agreement; see `COMMERCIAL.md`.
 | `scripts/check_vendor_drift.py` | Compares the vendored files with a Workbench checkout; re-pins on request. |
 | `scripts/render_readme_art.py` | Draws the picture at the top of this page from a text grid; the splash uses the same grid. |
 | `INSTALL_AND_TROUBLESHOOT.md` | When the launcher or the runner does not start. |
+| `docs/BIG_PICTURE.md`, `docs/PACKAGE_ANATOMY.md`, `docs/WHO_DOES_WHAT.md` | In diagrams: the loop and where the engine lives; every file kind in a Brightspace package and the joins between objects; each tool's intake, output and hand-offs, and what the Packager leaves to the released and planned tools. |
 | `docs/AUTHORING_GUIDE.md` | How to write a blueprint. Start here if you will edit one. |
 | `docs/WIZARD_AUTHORING_CONVERSION.md` | Supported extraction-to-authoring conversion shapes and limitations. |
 | `docs/CONVERSION_BACKLOG_2026-10-13.md` | What each unsupported conversion family would need before it could be supported. |
