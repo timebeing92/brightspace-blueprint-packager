@@ -1,0 +1,541 @@
+{
+  "schema": "blueprint_packager.release_smoke/1",
+  "started_at_utc": "2026-10-14T02:07:41Z",
+  "host": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "python": "3.14.5"
+  },
+  "work_dir": "a temporary folder",
+  "release": {
+    "tag": "v0.3.1",
+    "published_at": "2026-10-14T02:07:05Z",
+    "assets": [
+      "brightspace-blueprint-packager-v0.3.1.zip",
+      "brightspace-blueprint-packager-v0.3.1.zip.sha256"
+    ]
+  },
+  "asset": {
+    "name": "brightspace-blueprint-packager-v0.3.1.zip",
+    "bytes": 806248,
+    "sha256": "566d9823d447c41e239d01547e32ab83904eeeb0621e0051de8f71822b7260b0"
+  },
+  "install": {
+    "folder": "brightspace-blueprint-packager-v0.3.1",
+    "version": "0.3.1"
+  },
+  "manifest": {
+    "version": "0.3.1",
+    "tag": "v0.3.1",
+    "commit": "4f95ff41cd542d967606c2713daffb07870de4d8",
+    "file_count": 172,
+    "vendored_workbench": {
+      "commit": "1f48e070ee28c50c8def9ed8707bb70bb264517d",
+      "commit_short": "1f48e07",
+      "files": 33,
+      "source": "coursecraft_workbench (github.com/timebeing92/coursecraft-workbench)"
+    },
+    "build": {
+      "ref": "v0.3.1",
+      "tag_verified": true,
+      "dirty_worktree": false
+    }
+  },
+  "venv_python": "3.14.5",
+  "ready_course": {
+    "read": [
+      "model: 1 weeks, 1 course pages, 2 rubrics, 14 joins; 0 errors, 0 warnings, 1 notes"
+    ],
+    "package": "package.zip",
+    "package_sha256": "99786d6cfe582d6b84f25a48c68f669f1889d68f9845de116f4f7f5c2be290e9",
+    "verify": [
+      "  [passed] Blueprint Wizard QA finds no unclassified breaks: 0 findings; 0 expected generated page-chrome exclusions; 0 unclassified breaks; 0 broken relative references"
+    ]
+  },
+  "wizard_cycle": {
+    "bundle": "smoke__blueprint_bundle",
+    "conversion": "converted",
+    "verify": [
+      "  [passed] Blueprint Wizard QA finds no unclassified breaks: 0 findings; 0 expected generated page-chrome exclusions; 0 unclassified breaks; 0 broken relative references"
+    ]
+  },
+  "suite": {
+    "summary": "211 passed, 1 skipped in 38.31s"
+  },
+  "passed": true,
+  "steps": [
+    {
+      "step": "release view",
+      "ok": true,
+      "command": [
+        "gh",
+        "release",
+        "view",
+        "v0.3.1",
+        "--repo",
+        "timebeing92/brightspace-blueprint-packager",
+        "--json",
+        "tagName,assets,publishedAt,targetCommitish"
+      ],
+      "returncode": 0,
+      "seconds": 0.6,
+      "stdout_tail": "{\"assets\":[{\"apiUrl\":\"https://api.github.com/repos/timebeing92/brightspace-blueprint-packager/releases/assets/638911140\",\"contentType\":\"application/zip\",\"createdAt\":\"2026-10-14T02:07:04Z\",\"digest\":\"sha256:566d9823d447c41e239d01547e32ab83904eeeb0621e0051de8f71822b7260b0\",\"downloadCount\":0,\"id\":\"RA_kwDOVBZuRM4mFQKk\",\"label\":\"\",\"name\":\"brightspace-blueprint-packager-v0.3.1.zip\",\"size\":806248,\"state\":\"uploaded\",\"updatedAt\":\"2026-10-14T02:07:05Z\",\"url\":\"https://github.com/timebeing92/brightspace-blueprint-packager/releases/download/v0.3.1/brightspace-blueprint-packager-v0.3.1.zip\"},{\"apiUrl\":\"https://api.github.com/repos/timebeing92/brightspace-blueprint-packager/releases/assets/638911139\",\"contentType\":\"application/octet-stream\",\"createdAt\":\"2026-10-14T02:07:04Z\",\"digest\":\"sha256:fe4362f1ffda46cd3840176828d0d5fabe508bba62d9c0adba0f02aaef53e4d2\",\"downloadCount\":0,\"id\":\"RA_kwDOVBZuRM4mFQKj\",\"label\":\"\",\"name\":\"brightspace-blueprint-packager-v0.3.1.zip.sha256\",\"size\":108,\"state\":\"uploaded\",\"updatedAt\":\"2026-10-14T02:07:04Z\",\"url\":\"https://github.com/timebeing92/brightspace-blueprint-packager/releases/download/v0.3.1/brightspace-blueprint-packager-v0.3.1.zip.sha256\"}],\"publishedAt\":\"2026-10-14T02:07:05Z\",\"tagName\":\"v0.3.1\",\"targetCommitish\":\"main\"}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "exactly one ZIP asset and its sidecar",
+      "ok": true,
+      "detail": {
+        "assets": [
+          "brightspace-blueprint-packager-v0.3.1.zip",
+          "brightspace-blueprint-packager-v0.3.1.zip.sha256"
+        ]
+      }
+    },
+    {
+      "step": "download brightspace-blueprint-packager-v0.3.1.zip",
+      "ok": true,
+      "command": [
+        "gh",
+        "release",
+        "download",
+        "v0.3.1",
+        "--repo",
+        "timebeing92/brightspace-blueprint-packager",
+        "--pattern",
+        "brightspace-blueprint-packager-v0.3.1.zip",
+        "--dir",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/download",
+        "--clobber"
+      ],
+      "returncode": 0,
+      "seconds": 1.1,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "download brightspace-blueprint-packager-v0.3.1.zip.sha256",
+      "ok": true,
+      "command": [
+        "gh",
+        "release",
+        "download",
+        "v0.3.1",
+        "--repo",
+        "timebeing92/brightspace-blueprint-packager",
+        "--pattern",
+        "brightspace-blueprint-packager-v0.3.1.zip.sha256",
+        "--dir",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/download",
+        "--clobber"
+      ],
+      "returncode": 0,
+      "seconds": 0.9,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "sidecar matches the ZIP",
+      "ok": true,
+      "detail": {
+        "sidecar": [
+          "566d9823d447c41e239d01547e32ab83904eeeb0621e0051de8f71822b7260b0",
+          "brightspace-blueprint-packager-v0.3.1.zip"
+        ],
+        "sha256": "566d9823d447c41e239d01547e32ab83904eeeb0621e0051de8f71822b7260b0"
+      }
+    },
+    {
+      "step": "installer verified and installed",
+      "ok": true,
+      "detail": {
+        "status": "installed",
+        "version": "0.3.1",
+        "folder": "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1",
+        "archive_sha256": "566d9823d447c41e239d01547e32ab83904eeeb0621e0051de8f71822b7260b0"
+      }
+    },
+    {
+      "step": "shipped installer sees it installed",
+      "ok": true,
+      "command": [
+        "python",
+        "-B",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/launcher/install_release.py",
+        "--archive",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/download/brightspace-blueprint-packager-v0.3.1.zip",
+        "--install-root",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs"
+      ],
+      "returncode": 0,
+      "seconds": 0.2,
+      "stdout_tail": "{\n  \"status\": \"already_installed\",\n  \"version\": \"0.3.1\",\n  \"folder\": \"/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1\",\n  \"archive_sha256\": \"566d9823d447c41e239d01547e32ab83904eeeb0621e0051de8f71822b7260b0\",\n  \"checked_files\": 173\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "shipped installer reports already_installed",
+      "ok": true,
+      "detail": "tus\": \"already_installed\",\n  \"version\": \"0.3.1\",\n  \"folder\": \"/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1\",\n  \"archive_sha256\": \"566d9823d447c41e239d01547e32ab83904eeeb0621e0051de8f71822b7260b0\",\n  \"checked_files\": 173\n}\n"
+    },
+    {
+      "step": "manifest names the verified tag for this version",
+      "ok": true,
+      "detail": {
+        "tag": "v0.3.1",
+        "version": "0.3.1",
+        "build": {
+          "ref": "v0.3.1",
+          "tag_verified": true,
+          "dirty_worktree": false
+        }
+      }
+    },
+    {
+      "step": "manifest commit is the tag's commit",
+      "ok": true,
+      "detail": {
+        "manifest": "4f95ff41cd542d967606c2713daffb07870de4d8",
+        "tag": "4f95ff41cd542d967606c2713daffb07870de4d8"
+      }
+    },
+    {
+      "step": "vendored Workbench pin recorded",
+      "ok": true,
+      "detail": {
+        "commit": "1f48e070ee28c50c8def9ed8707bb70bb264517d",
+        "commit_short": "1f48e07",
+        "files": 33,
+        "source": "coursecraft_workbench (github.com/timebeing92/coursecraft-workbench)"
+      }
+    },
+    {
+      "step": "launcher --yes --doctor",
+      "ok": true,
+      "command": [
+        "bash",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/blueprint_packager.sh",
+        "--yes",
+        "--doctor"
+      ],
+      "returncode": 0,
+      "seconds": 4.8,
+      "stdout_tail": "First run: the packager keeps its Python packages in a private folder, /private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv.\n\nBlueprint Packager doctor\n------------------------------------------------------------------------\n  [ ok ] Python 3.11 or later  3.14.5\n  [ ok ] Python packages  ok\n  [ ok ] Vendored engine  33 files at Workbench 1f48e07\n  [ ok ] Version  v0.3.1\n",
+      "stderr_tail": "WARNING: Cache entry deserialization failed, entry ignored\nWARNING: Cache entry deserialization failed, entry ignored\nWARNING: Cache entry deserialization failed, entry ignored\n"
+    },
+    {
+      "step": "doctor reports the engine and the version",
+      "ok": true,
+      "detail": "First run: the packager keeps its Python packages in a private folder, /private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv.\n\nBlueprint Packager doctor\n------------------------------------------------------------------------\n  [ ok ] Python 3.11 or later  3.14.5\n  [ ok ] Python packages  ok\n  [ ok ] Vendored engine  33 files at Workbench 1f48e07\n  [ ok ] Version  v0.3.1\n"
+    },
+    {
+      "step": "launcher created the venv",
+      "ok": true,
+      "detail": "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python"
+    },
+    {
+      "step": "bpk.py --version",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/bpk.py",
+        "--version"
+      ],
+      "returncode": 0,
+      "seconds": 0.1,
+      "stdout_tail": "blueprint-packager 0.3.1\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "bpk.py reports the version",
+      "ok": true,
+      "detail": "blueprint-packager 0.3.1"
+    },
+    {
+      "step": "venv python version",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-c",
+        "import sys; print(sys.version.split()[0])"
+      ],
+      "returncode": 0,
+      "seconds": 0.1,
+      "stdout_tail": "3.14.5\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "blank",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/bpk.py",
+        "blank",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/blank/SMK_101__blueprint.docx",
+        "--course-number",
+        "SMK 101",
+        "--course-title",
+        "Smoke test course",
+        "--term",
+        "Fall 2026",
+        "--weeks",
+        "2"
+      ],
+      "returncode": 0,
+      "seconds": 0.2,
+      "stdout_tail": "blank blueprint: /var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/blank/SMK_101__blueprint.docx (2 weeks)\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "read the blank",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/bpk.py",
+        "read",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/blank/SMK_101__blueprint.docx",
+        "--output-dir",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/blank/read"
+      ],
+      "returncode": 0,
+      "seconds": 0.1,
+      "stdout_tail": "model: 2 weeks, 2 course pages, 0 rubrics, 16 joins; 0 errors, 4 warnings, 0 notes\nauthoring: draft; 31 unresolved authoring items\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "blank read writes a model and a readiness report",
+      "ok": true,
+      "detail": {
+        "readiness": "draft",
+        "summary": [
+          "model: 2 weeks, 2 course pages, 0 rubrics, 16 joins; 0 errors, 4 warnings, 0 notes",
+          "authoring: draft; 31 unresolved authoring items"
+        ]
+      }
+    },
+    {
+      "step": "synthetic ready course",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "-c",
+        "import sys; sys.path[:0] = [sys.argv[1], sys.argv[2]]; import synth; from pathlib import Path; synth.canonical(Path(sys.argv[3]))",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/tests",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/ready/SMK_101__course.docx"
+      ],
+      "returncode": 0,
+      "seconds": 0.1,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "read the ready course",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/bpk.py",
+        "read",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/ready/SMK_101__course.docx",
+        "--output-dir",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/ready/read"
+      ],
+      "returncode": 0,
+      "seconds": 0.1,
+      "stdout_tail": "model: 1 weeks, 1 course pages, 2 rubrics, 14 joins; 0 errors, 0 warnings, 1 notes\nauthoring: ready; 0 unresolved authoring items\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "build the ready course",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/bpk.py",
+        "build",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/ready/read/SMK_101__course__course_model.json",
+        "--settings",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/ready/build_settings.json",
+        "--output-dir",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/ready/build"
+      ],
+      "returncode": 0,
+      "seconds": 0.2,
+      "stdout_tail": "package: /private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/ready/build/package\nzip: /private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/ready/build/package.zip (14444 bytes)\nobjects: 12; codes: 10; build notes: 0\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "build wrote a package and its receipt",
+      "ok": true,
+      "detail": [
+        "course_pages_refresh.zip",
+        "package.zip"
+      ]
+    },
+    {
+      "step": "run identity names the release commit",
+      "ok": true,
+      "detail": {
+        "identity_state": "release",
+        "commit": "4f95ff41cd542d967606c2713daffb07870de4d8"
+      }
+    },
+    {
+      "step": "verify the ready course",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/bpk.py",
+        "verify",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/ready/build",
+        "--model",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/ready/read/SMK_101__course__course_model.json"
+      ],
+      "returncode": 0,
+      "seconds": 1.3,
+      "stdout_tail": "nknown dispositions\n  [passed] Workbench conformance gate: Errors: 0 Warnings: 0 RESULT: CONFORMANT\n  [passed] Blueprint Wizard pipeline reads the package: exit 0\n  [passed] every join in the package resolves: 8 join edges traced, 0 unresolved, 1 activities with no module link by design, 0 extractor diagnostics\n  [passed] module tree read back equals the planned tree: 3 modules and 6 topics planned; 3 modules and 6 topics read back\n  [passed] every activity reads back with its grade item, points, and rubric: 3 activities compared; 0 problems []\n  [passed] gradebook equals the grading plan: 2 grade items totalling 100 (points table totals 100); 0 without a linked activity\n  [passed] every rubric reads back with its levels, weights, and cell text: 2 rubrics, 8 cells compared; 0 problems []\n  [passed] every authored paragraph is present in the package as read back: 19 paragraphs compared; 0 not found []\n  [not_applicable] every internal link has the expected label and destination: 0 links compared; 0 problems []\n  [not_applicable] every video has its expected player title and destination or explicit placeholder: 0 videos compared; 0 problems []\n  [passed] every checklist reads back with its items: 1 checklists; problems []\n  [passed] Page Kit page gate finds no errors in the pages: 2 pages; 0 errors; 0 warnings\n  [passed] Blueprint Wizard QA finds no unclassified breaks: 0 findings; 0 expected generated page-chrome exclusions; 0 unclassified breaks; 0 broken relative references\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "vendored Wizard extracts the package",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/vendor/coursecraft_workbench/scripts/build_blueprint_bundle.py",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/ready/build/package.zip",
+        "--label",
+        "smoke",
+        "--output-dir",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard",
+        "--no-docx",
+        "--no-syllabus-fetch",
+        "--quiet"
+      ],
+      "returncode": 0,
+      "seconds": 1.0,
+      "stdout_tail": "bundle: /var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/smoke__blueprint_bundle\nblueprint (markdown): /var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/smoke__blueprint_bundle/smoke__blueprint.md\nblueprint (legacy markdown alias): /var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/smoke__blueprint_bundle/smoke__cps_blueprint.md\nblueprint (json):     /var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/smoke__blueprint_bundle/smoke__blueprint.json\nrubrics (json):       /var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/smoke__blueprint_bundle/smoke__rubrics.json\nrubrics (workbook):   /var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/smoke__blueprint_bundle/smoke__rubrics.xlsx\nrun identity:         /var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/smoke__blueprint_bundle/smoke__run_identity.json\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "from-wizard",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/bpk.py",
+        "from-wizard",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/smoke__blueprint_bundle",
+        "--output",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/smoke__authoring.docx"
+      ],
+      "returncode": 0,
+      "seconds": 0.2,
+      "stdout_tail": "er: Course Learning Outcomes not found in extracted non-hidden course-level HTML topic titles and headings; no manifest-linked syllabus item was discovered; rendered as Needs review.\",\n      \"Heading levels: 1 h1 heading inside page content is written as Heading 2 in the Word blueprint, because the page heading line is the page's h1. Every other heading level is one to one.\"\n    ],\n    \"activities\": [],\n    \"structure\": [\n      \"Page chrome: 1 element(s) with a skip-link or course-label class left out of the blueprint\",\n      \"hidden module 'Staff Notes': included as hidden/faculty-facing section with 1 descendant item(s)\",\n      \"hidden content 'Help Desk': included as hidden/faculty-facing manifest link\",\n      \"Page chrome: 1 element(s) with a skip-link or course-label class left out of the blueprint\"\n    ],\n    \"rubrics\": []\n  },\n  \"limitations\": [\n    \"Local authoring conversion only; no tenant import or playback is implied.\",\n    \"Dates, release conditions, quizzes, nested modules, and unsupported authored blocks stop conversion.\",\n    \"Decorative dividers and exact generated Back to top links are recorded as layout/navigation.\",\n    \"Extraction may not recover unpublished front matter, source formatting, or settings absent from its contracts.\"\n  ],\n  \"output_sha256\": \"1474f913c22f685d340245e4c053d15f2e9bd7ed7e3be2ecd99008c4dfaf5bb7\",\n  \"ledger_path\": \"/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/smoke__authoring.conversion.json\"\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "conversion status",
+      "ok": true,
+      "detail": "converted"
+    },
+    {
+      "step": "read the converted blueprint",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/bpk.py",
+        "read",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/smoke__authoring.docx",
+        "--output-dir",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/read"
+      ],
+      "returncode": 0,
+      "seconds": 0.1,
+      "stdout_tail": "model: 1 weeks, 1 course pages, 2 rubrics, 14 joins; 0 errors, 0 warnings, 1 notes\nauthoring: ready; 0 unresolved authoring items\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "build the converted blueprint",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/bpk.py",
+        "build",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/read/smoke__authoring__course_model.json",
+        "--settings",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/ready/build_settings.json",
+        "--output-dir",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/build"
+      ],
+      "returncode": 0,
+      "seconds": 0.2,
+      "stdout_tail": "package: /private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/build/package\nzip: /private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/build/package.zip (14441 bytes)\nobjects: 12; codes: 10; build notes: 0\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "verify the converted blueprint",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/bpk.py",
+        "verify",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/build",
+        "--model",
+        "/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/wizard/read/smoke__authoring__course_model.json"
+      ],
+      "returncode": 0,
+      "seconds": 1.3,
+      "stdout_tail": "nknown dispositions\n  [passed] Workbench conformance gate: Errors: 0 Warnings: 0 RESULT: CONFORMANT\n  [passed] Blueprint Wizard pipeline reads the package: exit 0\n  [passed] every join in the package resolves: 8 join edges traced, 0 unresolved, 1 activities with no module link by design, 0 extractor diagnostics\n  [passed] module tree read back equals the planned tree: 3 modules and 6 topics planned; 3 modules and 6 topics read back\n  [passed] every activity reads back with its grade item, points, and rubric: 3 activities compared; 0 problems []\n  [passed] gradebook equals the grading plan: 2 grade items totalling 100 (points table totals 100); 0 without a linked activity\n  [passed] every rubric reads back with its levels, weights, and cell text: 2 rubrics, 8 cells compared; 0 problems []\n  [passed] every authored paragraph is present in the package as read back: 19 paragraphs compared; 0 not found []\n  [not_applicable] every internal link has the expected label and destination: 0 links compared; 0 problems []\n  [not_applicable] every video has its expected player title and destination or explicit placeholder: 0 videos compared; 0 problems []\n  [passed] every checklist reads back with its items: 1 checklists; problems []\n  [passed] Page Kit page gate finds no errors in the pages: 2 pages; 0 errors; 0 warnings\n  [passed] Blueprint Wizard QA finds no unclassified breaks: 0 findings; 0 expected generated page-chrome exclusions; 0 unclassified breaks; 0 broken relative references\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "install the dev requirements",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-m",
+        "pip",
+        "install",
+        "--quiet",
+        "-r",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/requirements-dev.txt"
+      ],
+      "returncode": 0,
+      "seconds": 0.9,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "shipped suite",
+      "ok": true,
+      "command": [
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/.venv/bin/python",
+        "-B",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "/private/var/folders/fj/p20zr10s7pndmp8lh93knzbx01dcpb/T/bpk-smoke-3z1h9_u3/installs/brightspace-blueprint-packager-v0.3.1/tests"
+      ],
+      "returncode": 0,
+      "seconds": 38.7,
+      "stdout_tail": "........................................................................ [ 33%]\n.......................................................s................ [ 67%]\n....................................................................     [100%]\n211 passed, 1 skipped in 38.31s\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "suite summary",
+      "ok": true,
+      "detail": "211 passed, 1 skipped in 38.31s"
+    }
+  ],
+  "finished_at_utc": "2026-10-14T02:08:33Z"
+}

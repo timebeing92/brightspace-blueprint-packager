@@ -30,6 +30,16 @@ stays at `1f48e07`.
   that repository's commit and is `unknown`. The smoke test checks that a
   built package's run identity names the release commit.
 
+### After publication
+
+- Published 2026-10-14T02:07:05Z as
+  [v0.3.1](https://github.com/timebeing92/brightspace-blueprint-packager/releases/tag/v0.3.1):
+  `brightspace-blueprint-packager-v0.3.1.zip`, 806,248 bytes, SHA-256
+  `566d9823d447c41e239d01547e32ab83904eeeb0621e0051de8f71822b7260b0`, built from the verified tag at `4f95ff4`. The smoke test of the
+  published asset passed from the download
+  (`docs/evidence/RELEASE_SMOKE_v0.3.1.md`), including the check that a built
+  package's run identity names the release commit; shipped suite 211 passed, 1 skipped.
+
 ## 0.3.0 — 2026-10-13
 
 The authoring and verification candidate of 2026-10-09, the Blueprint Wizard
