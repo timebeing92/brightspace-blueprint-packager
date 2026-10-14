@@ -1,26 +1,29 @@
 # Blueprint implementation log
 
-Current status: implementation and follow-up SME/ID authoring revision complete;
-**184 tests pass**. This is an uncommitted, unreleased candidate based on v0.2.2.
-The latest document revision has local validation; the earlier Google evidence
-retains its original artifact scope. See the latest entry below.
+A log of the 2026-10-09 implementation, in the order it happened: what was
+done, what was found, what changed as a result. The candidate it records was
+built on v0.2.2 and shipped in 0.3.0 on 2026-10-13 (see `CHANGELOG.md`). At
+the close of this log the suite stood at **184 tests passing**; the last
+document revision had local validation, and the earlier Google evidence keeps
+its original artifact scope.
 
 ## 2026-10-09 — Start and baseline
 
-- Operator approved the implementation plan and requested a repository log;
-  delegation is explicitly authorized.
+- Implementation started from `IMPLEMENTATION_PLAN_2026-10-09.md`; this log
+  was opened to record it.
 - Starting checkout clean at `ecee5cd` (v0.2.2). No pre-existing edits to preserve.
-- Review baseline: 54 tests passed using existing pytest from another local
-  environment; the Packager virtual environment lacks pytest. The AGENTS test
-  path still refers to the former nested checkout. These will be corrected.
-- Review vendor check: all 33 files match pin `2c967f9` and the local Workbench.
-- Prior review evidence is retained at `/tmp/bpk-review-20261009`; it includes
-  synthetic failure probes and the live UNE Google pageless round trip.
-- Parallel bounded work assigned for verification, blank authoring, and the Wizard
-  conversion. Primary agent owns shared integration and this log.
-- No implementation evidence yet; no new tenant/import or release claim.
+- Review baseline: 54 tests passed, run with pytest from another local
+  environment because the Packager virtual environment lacked it. The AGENTS
+  test path still referred to the former nested checkout. Both were corrected
+  in the first batch.
+- Vendor check: all 33 files matched pin `2c967f9` and the local Workbench.
+- Prior review evidence (synthetic failure probes and the live Google pageless
+  round trip) was kept in a local working folder outside the repository.
+- Work proceeded in three bounded streams, verification, blank authoring and
+  the Wizard conversion, with the shared integration recorded here.
+- No implementation evidence at this point; no tenant, import or release claim.
 
-## Decisions in progress
+## Decisions taken at the start
 
 - Use explicit text markers for authoring guidance and pending entry areas so
   their roles survive Google Docs conversion. Preserve all other authored text.
@@ -48,16 +51,17 @@ retains its original artifact scope. See the latest entry below.
 - Internal checklist link targets are preserved. Video brackets parse into the
   existing media model; player URLs and visible placeholders are distinct.
 - Integrated focused run: **82 passed in 18.41s** (pipeline, authoring boundaries,
-  verification hardening). Additional template, adapter, runner and media checks
-  remain in progress. This is local evidence only.
+  verification hardening). Template, adapter, runner and media checks followed
+  (below). Local evidence only.
 - Template decisions: minimal scaffold by default, optional sample rubrics/panels;
   no silent overwrites; configurable per-week activity counts. Arial replaces
   unavailable Lato for reliable Word/Google/renderer font fallback; colours stay.
-- New portability finding: inherited Word List Bullet numbering was not seen by
+- Portability finding: inherited Word List Bullet numbering was not seen by
   ingestion. Explicit native numbering in generated areas and inherited-style
-  ingestion are being checked.
-- Relationship reports and a preview-first, explicitly authorized rename command
-  are being integrated. Narrative text remains outside structural rename scope.
+  ingestion were then checked and are supported (next entry).
+- Relationship reports and a preview-first rename command that requires a
+  recorded authorization were integrated next. Narrative text stays outside
+  the structural rename scope.
 
 ## 2026-10-09 — Authoring integration and course corrections
 
@@ -92,11 +96,13 @@ retains its original artifact scope. See the latest entry below.
 - Media verification now checks iframe title/destination/count and explicit video
   placeholders independently of body text. Vimeo privacy query values are kept;
   YouTube share-link start times are converted to documented player seconds.
-- Full integration run: 140 passed, 1 failed on the above metadata false positive.
-  Subsequent affected tests: 40 passed in 8.56s. Runner agent's final batch: 28
-  passed in 9.57s. Final full suite follows independent acceptance review.
-- Vendor recheck: 33 files, no drift from pin or current local Workbench. No vendor
-  files changed. Live Google candidate QA and documentation refresh are underway.
+- Full integration run: 140 passed, 1 failed on the metadata false positive
+  above. After the rename, the affected tests: 40 passed in 8.56s; the runner
+  stream's final batch: 28 passed in 9.57s. The full suite was run again after
+  the independent acceptance review (below).
+- Vendor recheck: 33 files, no drift from the pin or the local Workbench. No
+  vendor file changed. Live Google QA of the candidate and the documentation
+  refresh followed.
 
 ## 2026-10-09 — Independent acceptance audit
 
@@ -114,9 +120,9 @@ retains its original artifact scope. See the latest entry below.
 - Readiness walks content blocks even when a manually edited model omits `src`;
   missing provenance cannot conceal a pending entry. Null grading plans and
   missing/empty overview objects are rejected by the input contract.
-- Focused audit/rename/pipeline validation: **51 passed in 12.43s**. Additional
-  audit regressions and final full-suite validation are in progress.
-- UNE live evidence so far: blank and populated drafts imported as native Docs,
+- Focused audit/rename/pipeline validation: **51 passed in 12.43s**. Further
+  audit regressions and the final full-suite run are recorded below.
+- Live Google evidence at this point: blank and populated drafts imported as native Docs,
   PAGELESS confirmed, exported as DOCX; intended native edits preserve headings,
   two native LO bullets, bold/italic/link runs, an added second Week 1 discussion,
   and completed/pending video markers. Normalized semantic comparisons match
@@ -124,18 +130,19 @@ retains its original artifact scope. See the latest entry below.
 
 ## 2026-10-09 — Google exports through the package pipeline
 
-- All three actual UNE Google exports build and verify locally with zero failed
+- All three Google exports built and verified locally with zero failed
   checks: minimal blank (13 passed, 3 inapplicable), populated draft (14 passed,
   1 inapplicable), and natively edited draft (14 passed, 1 inapplicable). Each
-  remains `draft`; successful structural verification does not mark it ready.
-  Details and SHA-256 values: `/tmp/bpk-implementation-20261009/google/package-results.json`.
-- Ran the edited Google DOCX through the real guided runner in noninteractive
-  preview mode using isolated remembered-state storage. Read -> build -> verify
-  succeeds, the results card says draft preview, and next steps ask the author
-  to resolve readiness findings. Run transcript:
-  `/tmp/bpk-implementation-20261009/google/populated-edited-runner.log`.
+  remained `draft`; a clean structural verification does not mark a document ready.
+  Details and SHA-256 values:
+  [Google package results](evidence/GOOGLE_PACKAGE_RESULTS_2026-10-09.json).
+- The edited Google DOCX was run through the real guided runner in
+  noninteractive preview mode with isolated remembered-state storage. Read,
+  build and verify succeeded, the results card said draft preview, and the
+  next steps asked for the readiness findings to be resolved. The transcript
+  stayed with the local working evidence.
 - Full suite at this checkpoint: **150 passed in 34.05s**. No vendor drift across
-  all 33 pinned files. A final run follows the last acceptance regressions.
+  all 33 pinned files. The final run followed the last acceptance regressions.
 - Compatibility check against the released v0.2.2 blank found two exact legacy
   guidance sentences that need scoped recognition. Recognized them only in
   their proper authoring regions; the same sentence inside a page remains
@@ -144,14 +151,14 @@ retains its original artifact scope. See the latest entry below.
 
 ## 2026-10-09 — Final integrated authoring evidence
 
-- A separate completed synthetic course was imported to UNE Google Docs, set to
-  pageless, exported, and passed through the actual guided runner in ready mode:
+- A separate completed synthetic course was imported to Google Docs, set to
+  pageless, exported, and passed through the real guided runner in ready mode:
   **14 checks passed, 1 inapplicable, 0 failed**, with no readiness findings.
   It contains 10 activities, nine grade items / 65 points, two rubrics, three
   checklists, five HTML pages, and two completed video blocks. Native Google
   edits and all four exported states match the intended course semantics.
-- Retained account, document links, hashes, native-edit operations, export-layout
-  findings and evidence limits are in
+- Hashes, native-edit operations, export-layout findings and the limits of the
+  evidence are in
   [Google authoring QA](evidence/GOOGLE_AUTHORING_QA_2026-10-09.md).
   A compact durable copy of semantic and package results is in
   [Google package results](evidence/GOOGLE_PACKAGE_RESULTS_2026-10-09.json).
@@ -165,7 +172,7 @@ retains its original artifact scope. See the latest entry below.
   extraction inventory shows no rubric payload and activities have no rubric
   associations. Missing expected rubric data still blocks. The real rubric-free
   package -> Wizard -> authoring -> package -> Wizard cycle passes.
-- Wizard DOCX/report publication is exclusive unless force was requested;
+- Wizard DOCX/report publication is exclusive unless forced;
   deterministic concurrent-output tests preserve the other writer's artifacts.
   Final focused adapter suite: **16 passed in 5.21s**. All four adapter DOCX pages
   were rendered and inspected after final heading/pagination adjustments.
@@ -197,8 +204,9 @@ retains its original artifact scope. See the latest entry below.
   round, no native Windows run, and no Google canvas/screen-reader inspection.
   Wizard conversion refuses its documented unsupported shapes. Older model JSON
   must be re-read from DOCX. Google export may change print pagination.
-- No commit, push, release, upstream mutation, or tenant action was performed.
-  The approved implementation is complete and ready for operator review.
+- At this point nothing had been committed, pushed or released, no upstream
+  file had changed, and no tenant action had been taken. The implementation
+  was complete and went to review.
 - Final checked-in blank read: 8 weeks, 2 course pages, 0 rubrics, 58 joins,
   0 errors; draft with 125 pending fields. Its 16 existing
   `GRADED_WITHOUT_RUBRIC` warnings correspond to the minimal scaffold's 16
@@ -207,11 +215,11 @@ retains its original artifact scope. See the latest entry below.
 
 ## 2026-10-09 — Follow-up authoring UX and SME/ID review
 
-- Operator identified bracketed writing prompts, compressed copyable examples,
-  and insufficient opening directions. Requested a broader SME/ID review and
-  explicit permission to defer optional design tokens and object connections for
-  manual completion in Brightspace. Findings and remaining design decisions are
-  recorded in [the design review](DESIGN_REVIEW_2026-10-09.md).
+- Review of the generated blank found bracketed writing prompts, compressed
+  copyable examples, and insufficient opening directions. A broader SME/ID
+  review followed, and optional design tokens and object connections may now be
+  deferred for manual completion in Brightspace. Findings and the remaining
+  design decisions are recorded in [the design review](DESIGN_REVIEW_2026-10-09.md).
 - Replaced generated bracketed writing prompts with ordinary prompt sentences.
   Added whole-sentence replacement instructions and an example; readable
   `Author note:` guidance; purpose/task/success-criteria cues; and explicit
@@ -222,8 +230,8 @@ retains its original artifact scope. See the latest entry below.
   contents are explicitly accounted for and excluded from learner output.
   A copy-and-edit workflow test moves the real examples into a weekly cell,
   adds a second assignment and panel, then builds and verifies the preview.
-- Added the operator's optional/manual-completion note to the opening and
-  reference section. The authoring guide explains how to remove grading/rubric
+- Added the optional/manual-completion note to the opening and the reference
+  section. The authoring guide explains how to remove grading/rubric
   declarations and reciprocal references, retain ungraded activities/unattached
   rubrics, and record deferred work in Extraction Notes. Declared connections
   still require exact valid targets.
@@ -253,15 +261,15 @@ retains its original artifact scope. See the latest entry below.
   normal build and verification. **13 checks passed, 2 not applicable, 0 failed**;
   three activities remained ungraded and two rubrics remained unattached with
   explicit warnings. No manual Brightspace setup or tenant import was performed.
-- Saved a separate [UX review DOCX](examples/blank_blueprint__8_weeks__ux_review.docx)
-  because the earlier example appeared open in Word. The earlier document and
-  its lock file were left untouched during this revision. Final source read:
+- Saved the revision as a separate
+  [UX review DOCX](examples/blank_blueprint__8_weeks__ux_review.docx); the
+  earlier example was left untouched. Final source read:
   8 weeks, 8 assignments, 8 discussions, 58 joins, complete source accounting,
   0 errors. The blank intentionally remains a draft. Artifact hash and probe
   summary: [local UX evidence](evidence/AUTHORING_UX_RESULTS_2026-10-09.json).
 - Evidence limits: no fresh Google round trip for this prompt/reference revision,
   no new-user usability study, no native screen-reader check, and no new tenant
-  import or playback evidence. No commit, push or release.
+  import or playback evidence. Not yet committed or released at this point.
 - Final post-adjustment gate:
   `PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests -q`
   — **184 passed in 41.65s**. `git diff --check` is clean; capability and evidence
