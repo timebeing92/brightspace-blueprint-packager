@@ -59,13 +59,13 @@ def test_posix_dragged_and_quoted_paths(tmp_path):
 def test_calendar_file_preserves_breaks_and_does_not_invent_due_rules(tmp_path):
     path = tmp_path / "weeks.json"
     weeks = {"1": ["2027-01-06", "2027-01-10"], "2": ["2027-01-18", "2027-01-22"]}
-    path.write_text(json.dumps(weeks))
+    path.write_text(json.dumps(weeks), encoding="utf-8")
     calendar = tui.calendar_from_file(path, timezone="UTC")
     assert calendar["weeks"] == weeks and calendar["timezone"] == "UTC"
     assert "rules" not in calendar
     original = {"timezone": "America/New_York", "weeks": {}, "rules": {"assignment": {"day": "last_day"}}}
     assert tui.calendar_from_file(path, original)["rules"] == original["rules"]
-    path.write_text(json.dumps({"timezone": "UTC", "weeks": weeks, "rules": {"assignment": {"day": "last_day"}}}))
+    path.write_text(json.dumps({"timezone": "UTC", "weeks": weeks, "rules": {"assignment": {"day": "last_day"}}}), encoding="utf-8")
     assert tui.calendar_from_file(path)["rules"]["assignment"]["day"] == "last_day"
 
 
@@ -93,9 +93,9 @@ def test_calendar_settings_copy_preserves_source_paths(tmp_path):
     path = source / "settings.json"
     settings = {"package": {"title": "Synthetic"}, "workbench_scripts": "engine/scripts",
                 "carried_quizzes": [{"title": "Synthetic Quiz", "source_dir": "quiz_source", "payload": "quiz.xml"}]}
-    path.write_text(json.dumps(settings))
+    path.write_text(json.dumps(settings), encoding="utf-8")
     dates = tmp_path / "dates.json"
-    dates.write_text(json.dumps({"1": ["2027-01-01", "2027-01-07"]}))
+    dates.write_text(json.dumps({"1": ["2027-01-01", "2027-01-07"]}), encoding="utf-8")
     args = tui.parse_args(_args("--calendar-file", dates, "--timezone", "UTC"))
     result = tui.prepare_calendar_settings(path, args, tmp_path / "out", {"week_numbers": [1]})
     assert result != path and json.loads(path.read_text(encoding="utf-8")) == settings
@@ -105,9 +105,9 @@ def test_calendar_settings_copy_preserves_source_paths(tmp_path):
 
 
 def test_status_summary_does_not_count_skips_as_passes(tmp_path):
-    (tmp_path / "component_package_receipt.json").write_text(json.dumps({"zip": {}, "extensions": {"build_mode": "preview", "authoring_state": "draft"}}))
+    (tmp_path / "component_package_receipt.json").write_text(json.dumps({"zip": {}, "extensions": {"build_mode": "preview", "authoring_state": "draft"}}), encoding="utf-8")
     summary = {"passed": 3, "failed": 1, "not_run": 2, "not_applicable": 4}
-    (tmp_path / "verification_report.json").write_text(json.dumps({"passed": False, "summary": summary}))
+    (tmp_path / "verification_report.json").write_text(json.dumps({"passed": False, "summary": summary}), encoding="utf-8")
     peek = tui.peek_build(tmp_path)
     assert peek["verified"] == "3 passed; 1 failed; 2 not run; 4 not applicable"
     assert not peek["verification_passed"] and peek["preview"]
@@ -166,10 +166,10 @@ def test_calendar_file_build_uses_explicit_boundaries_without_prompts(tmp_path, 
     source = synth.canonical(tmp_path / "course.docx")
     settings = tmp_path / "settings.json"
     original = tui.make_settings({"package_title": "Synthetic calendar"})
-    settings.write_text(json.dumps(original))
+    settings.write_text(json.dumps(original), encoding="utf-8")
     calendar = tmp_path / "calendar.json"
     calendar.write_text(json.dumps({"timezone": "UTC", "weeks": {"1": ["2027-01-06", "2027-01-08"]},
-                                    "rules": {"assignment": {"day": "last_day"}}}))
+                                    "rules": {"assignment": {"day": "last_day"}}}), encoding="utf-8")
     monkeypatch.setattr(tui.ui, "prompt_text", lambda *a, **kw: pytest.fail("--yes must not prompt"))
     out = tmp_path / "out"
     assert tui.main(_args("--task", "build", "--blueprint", source, "--settings", settings,

@@ -74,7 +74,7 @@ def test_vendored_pin_is_not_the_containing_repositories_head(tmp_path):
     scripts = tmp_path / "vendor" / "synthetic_workbench" / "scripts"
     scripts.mkdir(parents=True)
     pin = "abcdef0123456789abcdef0123456789abcdef01"
-    (scripts.parent / "MANIFEST.json").write_text(json.dumps({"commit": pin}))
+    (scripts.parent / "MANIFEST.json").write_text(json.dumps({"commit": pin}), encoding="utf-8")
     identity = V._reader_identity(scripts)
     assert identity["commit"] == identity["pinned_commit"] == pin
     assert identity["source"] == "vendored"
@@ -129,7 +129,7 @@ def test_internal_link_blueprint_verifies_and_tampered_destination_fails(built):
     page = out / "package" / "course_pages" / "week-1-overview.html"
     text = page.read_text(encoding="utf-8")
     assert "rCode=" in text
-    page.write_text(text.replace("rCode=", "rCode=incorrect-"))
+    page.write_text(text.replace("rCode=", "rCode=incorrect-"), encoding="utf-8")
     assert V.verify_build(out, model) == 1
     check = next(c for c in _report(out)["checks"] if "internal link" in c["check"])
     assert check["status"] == "failed"
@@ -178,7 +178,7 @@ def test_unclassified_top_level_wizard_break_fails_integration(built, monkeypatc
             data = json.loads(path.read_text(encoding="utf-8"))
             data["summary"]["breaks"] = []  # this must not conceal the actual top-level findings
             data["breaks"].append("Synthetic authored content loss")
-            path.write_text(json.dumps(data))
+            path.write_text(json.dumps(data), encoding="utf-8")
         return result
 
     monkeypatch.setattr(V.subprocess, "run", run)
