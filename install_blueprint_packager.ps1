@@ -2,8 +2,8 @@
 #
 #   powershell -NoProfile -ExecutionPolicy Bypass -File install_blueprint_packager.ps1 [folder]
 #
-# The repository is private, so this needs GitHub access: the gh command
-# signed in (gh auth login), or git with saved credentials for github.com.
+# The repository is public. With the gh command signed in (gh auth login)
+# this fetches the latest release; without it, git clones main.
 # Fetches the latest release (or main when no release exists yet) into
 # <folder>\brightspace-blueprint-packager-v<version>\, writes the pointer the
 # launchers use, and starts the runner. Re-running installs a newer release
@@ -48,12 +48,12 @@ if ($Tag -and (Have-Gh)) {
         Write-Host "== $Name is present; pulling main"
         & git -C (Join-Path $Root $Name) pull --ff-only
     } else {
-        Write-Host "== no release found or no gh; cloning main (needs github.com access for a private repository)"
+        Write-Host "== no release found or no gh; cloning main (no gh signed in to fetch the release)"
         if (Have-Gh) { & gh repo clone $Repo (Join-Path $Root $Name) }
         else {
             & git clone "https://github.com/$Repo.git" (Join-Path $Root $Name)
             if ($LASTEXITCODE -ne 0) {
-                Write-Host "The clone was refused. The repository is private: sign in with 'gh auth login' and rerun, or ask the author for access." -ForegroundColor Yellow
+                Write-Host "The clone was refused: check the network, or sign in with 'gh auth login' and rerun." -ForegroundColor Yellow
                 exit 1
             }
         }

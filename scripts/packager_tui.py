@@ -272,7 +272,7 @@ def update_notice(*, force: bool, offer_install: bool) -> bool:
         if force:
             print(ui.card(TERM, "Update check needs GitHub access", [
                 ("Installed", f"v{VERSION}"),
-                ("", "The repository is private. Sign in with `gh auth login`, or set GITHUB_TOKEN, then try again."),
+                ("", "Sign in with `gh auth login`, or set GITHUB_TOKEN, then try again; the check does not yet read the public release without one."),
             ]))
         else:
             print(TERM.dim("  Update check skipped: no GitHub access (gh auth login, or GITHUB_TOKEN)."))

@@ -19,7 +19,8 @@ Packager blueprint. The Wizard's review DOCX is not directly interchangeable
 with the authoring DOCX. The adapter checks exact identities and refuses
 unsupported evidence; see [supported conversion shapes](docs/WIZARD_AUTHORING_CONVERSION.md).
 
-**Status:** released version **0.3.0** (2026-10-13). Earlier MBA 620 sandbox
+**Status:** released version **0.3.0** (2026-10-13); the repository is public
+since 2026-10-13. Earlier MBA 620 sandbox
 rounds provide L4 evidence for their named packages and shapes. The
 multiple-activity authoring, video markers, readiness gates, Wizard conversion
 and bracket vocabulary new since 0.2.2 have local test evidence on the CI
@@ -99,9 +100,10 @@ window. There is nothing else to install by hand: on first run it asks before
 creating a private `.venv` inside its folder and installing its packages
 there. Your blueprint and your package never leave your machine.
 
-**Download and start.** The repository is private, so a one-command install
-needs GitHub access: the `gh` command signed in (`gh auth login`), or git with
-saved credentials for github.com.
+**Download and start.** The repository is public. The one-command installer
+fetches the latest release through the `gh` command when it is signed in
+(`gh auth login`); without `gh` it clones `main` with git. The release ZIP on
+GitHub Releases downloads without an account.
 
 | Platform | Install | Start later |
 |---|---|---|

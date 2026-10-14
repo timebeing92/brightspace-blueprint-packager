@@ -3,7 +3,8 @@
 
 Adapted from the Blueprint Wizard runner's scripts/update_check.py
 (brightspace-blueprint-runner, commit 85cef27). The difference that matters:
-this repository is private, so the GitHub API needs credentials. The check
+this check still goes through credentials (the repository has been public
+since 2026-10-13; reading the release without them is a planned change). It
 uses, in order, the ``gh`` command when it is signed in, then a
 ``GITHUB_TOKEN`` (or ``GH_TOKEN``) environment variable, and otherwise reports
 ``no_access`` so the caller can print one quiet line and move on.
@@ -172,7 +173,7 @@ def gh_available(*, timeout: float = REQUEST_TIMEOUT_SECONDS) -> bool:
 
 
 def access_mode() -> str:
-    """How this machine can reach the private repository: 'gh', 'token', or 'none'."""
+    """How this machine can reach the repository's releases: 'gh', 'token', or 'none'."""
     if gh_available():
         return "gh"
     if github_token():
@@ -183,7 +184,7 @@ def access_mode() -> str:
 def fetch_latest_release(etag: str = "", *, timeout: float = REQUEST_TIMEOUT_SECONDS) -> tuple[dict[str, Any] | None, str, bool]:
     """Return ``(payload, etag, not_modified)`` from GitHub, through gh or a token.
 
-    Raises PermissionError when there is no way to reach the private repository."""
+    Raises PermissionError when neither gh nor a token is available."""
     mode = access_mode()
     if mode == "gh":
         gh = shutil.which("gh") or "gh"

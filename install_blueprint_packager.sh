@@ -4,8 +4,8 @@
 #   bash install_blueprint_packager.sh            # into ./blueprint-packager/
 #   bash install_blueprint_packager.sh ~/tools    # into a folder of your choice
 #
-# The repository is private, so this needs GitHub access: the `gh` command
-# signed in (`gh auth login`), or git with saved credentials for github.com.
+# The repository is public. With the `gh` command signed in (`gh auth login`)
+# this fetches the latest release; without it, git clones `main`.
 # It fetches the latest release (or main when no release exists yet) into
 # <folder>/brightspace-blueprint-packager-v<version>/, writes the pointer the
 # launchers use, and starts the runner. Re-running installs a newer release
@@ -50,10 +50,10 @@ else
     echo "== $NAME is present; pulling main"
     git -C "$ROOT/$NAME" pull --ff-only
   else
-    echo "== no release found or no gh; cloning main (needs github.com access for a private repository)"
+    echo "== no release found or no gh; cloning main (no gh signed in to fetch the release)"
     if have_gh; then gh repo clone "$REPO" "$ROOT/$NAME"
     else git clone "https://github.com/$REPO.git" "$ROOT/$NAME" || {
-      echo "The clone was refused. The repository is private: sign in with 'gh auth login' and rerun, or ask the author for access." >&2
+      echo "The clone was refused: check the network, or sign in with 'gh auth login' and rerun." >&2
       exit 1; }
     fi
   fi

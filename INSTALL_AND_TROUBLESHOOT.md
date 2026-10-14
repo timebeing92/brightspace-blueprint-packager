@@ -8,14 +8,17 @@ itself is described in the README under "Guided install and run".
 
 | Way | When | What you get |
 |---|---|---|
-| `bash install_blueprint_packager.sh` (macOS, Linux) or the `.ps1` (Windows) | you have GitHub access to the repository: `gh auth login`, or git with saved credentials | the latest release in `./blueprint-packager/<version folder>/`, a pointer file beside it, and the runner started |
+| `bash install_blueprint_packager.sh` (macOS, Linux) or the `.ps1` (Windows) | `gh` signed in (`gh auth login`) for the latest release; without `gh`, git clones `main` | the latest release in `./blueprint-packager/<version folder>/`, a pointer file beside it, and the runner started |
 | A release ZIP from GitHub Releases, unzipped anywhere | you were given the ZIP | one folder, `brightspace-blueprint-packager-v<version>/`, with the launchers at its top |
 | `git clone` of the repository | you develop on it or want `main` | the working tree; `bash blueprint_packager.sh` starts the runner from it |
 
-The repository is private. Without access the installer explains what to do;
-a release ZIP handed to you works without any access at all. Everything the
-packager needs is inside the folder, including the engine files it builds
-with (see the README, "The vendored engine").
+The repository is public (since 2026-10-13). A release ZIP from GitHub
+Releases works without any account at all; everything the packager needs is
+inside the folder, including the engine files it builds with (see the README,
+"The vendored engine"). The runner's update check and
+`launcher/install_release.py --latest` still go through `gh` or a
+`GITHUB_TOKEN` and say so when neither is there; reading the public release
+without one is a planned change.
 
 ## What the launcher does on first run
 

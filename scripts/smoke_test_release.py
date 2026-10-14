@@ -36,6 +36,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -67,7 +68,8 @@ class Smoke:
         started = time.monotonic()
         process = subprocess.run(command, cwd=str(cwd) if cwd else None, capture_output=True, text=True,
                                  env=self.env, check=False, timeout=timeout)
-        self.steps.append({"step": name, "ok": process.returncode in ok_codes, "command": command,
+        recorded = ["python" if part == sys.executable else part for part in command]  # the driver, not its path
+        self.steps.append({"step": name, "ok": process.returncode in ok_codes, "command": recorded,
                            "returncode": process.returncode, "seconds": round(time.monotonic() - started, 1),
                            "stdout_tail": process.stdout[-1500:], "stderr_tail": process.stderr[-1500:]})
         if process.returncode not in ok_codes:
@@ -112,20 +114,22 @@ def main(argv: list[str] | None = None) -> int:
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--tag", help="the published release to test, through gh")
     source.add_argument("--archive", type=Path, help="a release ZIP on disk (its .sha256 sidecar beside it, if any)")
-    parser.add_argument("--work-dir", type=Path, help="an empty folder for the download, the install and the runs (default: a temporary one)")
+    parser.add_argument("--work-dir", type=Path, help="an empty folder for the download, the install and the runs (default: a temporary one outside this checkout)")
     parser.add_argument("--report", type=Path, help="where to write the JSON report (a .md twin is written beside it)")
     parser.add_argument("--skip-suite", action="store_true", help="do not run the shipped test suite in the installed copy")
     parser.add_argument("--keep", action="store_true", help="keep the work folder afterwards")
     args = parser.parse_args(argv)
 
-    work = args.work_dir or Path(f"smoke-{dt.datetime.now(dt.timezone.utc):%Y%m%dT%H%M%SZ}").resolve()
+    # a temporary folder outside this checkout: inside it, the shipped suite would see this repository's tags
+    work = args.work_dir.resolve() if args.work_dir else Path(tempfile.mkdtemp(prefix="bpk-smoke-"))
     if work.exists() and any(work.iterdir()):
         raise SystemExit(f"the work folder must be empty: {work}")
     work.mkdir(parents=True, exist_ok=True)
     smoke = Smoke(work)
     started = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     report: dict[str, Any] = {"schema": "blueprint_packager.release_smoke/1", "started_at_utc": started.isoformat().replace("+00:00", "Z"),
-                              "host": {"platform": platform.platform(), "python": sys.version.split()[0]}, "work_dir": str(work)}
+                              "host": {"platform": platform.platform(), "python": sys.version.split()[0]},
+                              "work_dir": str(work) if args.work_dir else "a temporary folder"}
     try:
         # 1-2. the asset and its sidecar
         if args.tag:
@@ -148,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
         result = install_release.install_archive(archive, installs, expected_version=args.tag)
         smoke.check("installer verified and installed", result["status"] == "installed", result)
         folder = Path(result["folder"])
-        report["install"] = {"folder": str(folder), "version": result["version"]}
+        report["install"] = {"folder": folder.name, "version": result["version"]}
         again = smoke.run("shipped installer sees it installed",
                           [sys.executable, "-B", str(folder / "launcher" / "install_release.py"), "--archive", str(archive), "--install-root", str(installs)])
         smoke.check("shipped installer reports already_installed", '"already_installed"' in again.stdout, again.stdout[-300:])

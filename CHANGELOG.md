@@ -81,6 +81,30 @@ conversion, the bracket vocabulary) have not been through a tenant import and
 re-export; a new receipt is needed before claiming more. The retained
 conversion backlog is `docs/CONVERSION_BACKLOG_2026-10-13.md`.
 
+### After publication
+
+- Published 2026-10-14T01:21Z (the evening of 2026-10-13 locally) as
+  [v0.3.0](https://github.com/timebeing92/brightspace-blueprint-packager/releases/tag/v0.3.0):
+  `brightspace-blueprint-packager-v0.3.0.zip`, 780,217 bytes, SHA-256
+  `c1f94ac611f202ddaa8dadae8f81948ac4da59188a7565371c06110a19d8161b`, built
+  from the verified tag at `824fc1f`. The smoke test of the published asset
+  passed from the download (`docs/evidence/RELEASE_SMOKE_v0.3.0.md`): hash,
+  manifest, install, reinstall, launcher and doctor, blank, ready course built
+  and verified, Wizard cycle, shipped suite 205 passed and 1 skipped.
+- The repository is public since 2026-10-13. Release assets download without
+  an account, and the installers say so. The runner's update check and
+  `launcher/install_release.py --latest` still go through `gh` or a
+  `GITHUB_TOKEN` and report "no GitHub access" without one; reading the
+  public release anonymously is the next change. The evidence note of the
+  Google authoring round no longer links the owner's QA documents.
+- Found by the smoke test's own second run: its default work folder sat
+  inside this checkout, where the shipped update test saw this repository's
+  tags through the install folder and ran against a `git archive` of the
+  wrong tree. The default is now a temporary folder outside any checkout, the
+  report records no local path, and the update test skips unless the
+  repository it finds is its own, so a release unpacked inside another
+  repository (a course build, for example) no longer runs it.
+
 ### Blueprint Wizard compatibility (2026-10-13)
 
 Applied on top of the candidate; the vendored Workbench was then re-pinned at

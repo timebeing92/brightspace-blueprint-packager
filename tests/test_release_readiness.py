@@ -150,17 +150,23 @@ def test_reinstall_checks_the_installed_files_and_repairs_only_when_asked(tmp_pa
 
 # --------------------------------------------------------------------------- the update from the released version
 def previous_release_available() -> bool:
+    """The previous release's tag is in this checkout's own repository.
+
+    A copy of the tool inside another repository (an unpacked release in a course build,
+    a smoke install under a checkout) would otherwise find that repository's tags."""
     try:
+        toplevel = git(REPO, "rev-parse", "--show-toplevel")
         git(REPO, "rev-parse", "--verify", "--quiet", f"{PREVIOUS_RELEASE}^{{commit}}")
     except subprocess.CalledProcessError:
         return False
-    return True
+    return Path(toplevel).resolve() == REPO.resolve()
 
 
 def require_previous_release() -> None:
     if previous_release_available():
         return
-    reason = f"tag {PREVIOUS_RELEASE} is not in this checkout (a shallow clone or an unpacked release); fetch tags to run the update test"
+    reason = (f"tag {PREVIOUS_RELEASE} is not in this checkout's own repository (a shallow clone, an unpacked release, "
+              "or a copy inside another repository); fetch tags to run the update test")
     if os.environ.get("BPK_REQUIRE_RELEASE_TAGS") == "1":
         pytest.fail(reason + " (BPK_REQUIRE_RELEASE_TAGS=1 forbids skipping)")
     pytest.skip(reason)

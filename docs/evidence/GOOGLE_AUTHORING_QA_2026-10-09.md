@@ -2,7 +2,7 @@
 
 ## Scope and method
 
-Live testing used the authorized **UNE** connection (`ehanson8@une.edu`) and the
+Live testing used the authorized **UNE** connection (the owner's UNE account) and the
 existing ChatGPT folder in the user's UNE My Drive. Three clearly labelled
 synthetic native Google Docs were created. The older review document was
 preserved. No sharing permissions were changed and no Brightspace tenant was
@@ -25,9 +25,11 @@ renderer and inspected separately.
 
 | Copy | Native document | Final state |
 | --- | --- | --- |
-| Eight-week minimal blank | [SYNTHETIC QA — Blueprint blank — pageless round trip](https://docs.google.com/document/d/1Zm8D0bVvWm1UvAqIxCPbExWNOT3wsVgeupA65sBzK7o/edit) | Pageless; unresolved authoring fields retained |
-| Three-week populated stress case | [SYNTHETIC QA — Multiple activities and native editing](https://docs.google.com/document/d/1jwRHKMx5Zi8CwIK7FSX7paGdWdmAuDEDUKK7DV_IqZM/edit) | Pageless; native content/style edits retained; draft |
-| Completed synthetic course | [SYNTHETIC QA — Completed blueprint — ready round trip](https://docs.google.com/document/d/1zFEwvwhA7_QT7St553rxpLqCoH65jRMuqt9rEkjZQyY/edit) | Pageless; readiness `ready`, no findings |
+| Eight-week minimal blank | SYNTHETIC QA — Blueprint blank — pageless round trip | Pageless; unresolved authoring fields retained |
+| Three-week populated stress case | SYNTHETIC QA — Multiple activities and native editing | Pageless; native content/style edits retained; draft |
+| Completed synthetic course | SYNTHETIC QA — Completed blueprint — ready round trip | Pageless; readiness `ready`, no findings |
+
+The copies stay in the owner's Drive, unshared; their links are not recorded here.
 
 All test artifacts below are under
 `/tmp/bpk-implementation-20261009/google/` on the test machine. These scratch
