@@ -2,10 +2,9 @@
 
 ## Scope and method
 
-Live testing used the authorized **UNE** connection (the owner's UNE account) and the
-existing ChatGPT folder in the user's UNE My Drive. Three clearly labelled
-synthetic native Google Docs were created. The older review document was
-preserved. No sharing permissions were changed and no Brightspace tenant was
+Live testing ran in Google Drive and Google Docs through the Drive connector,
+in a working folder. Three clearly labelled synthetic native Google Docs were
+created there. The older review document was preserved. No sharing permissions were changed and no Brightspace tenant was
 accessed.
 
 Each DOCX was imported with the Drive connector's `native_google_docs` conversion.
@@ -29,7 +28,7 @@ renderer and inspected separately.
 | Three-week populated stress case | SYNTHETIC QA — Multiple activities and native editing | Pageless; native content/style edits retained; draft |
 | Completed synthetic course | SYNTHETIC QA — Completed blueprint — ready round trip | Pageless; readiness `ready`, no findings |
 
-The copies stay in the owner's Drive, unshared; their links are not recorded here.
+The copies are retained in Google Drive, unshared; their links are not recorded here.
 
 All test artifacts below are under
 `/tmp/bpk-implementation-20261009/google/` on the test machine. These scratch
