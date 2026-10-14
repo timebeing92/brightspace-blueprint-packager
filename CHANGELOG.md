@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.3.1 — not yet released
+
+The first public-repository release: a license, release access without an
+account, and a producer identity that cannot borrow another repository's
+commit. No change to what the tool reads or builds; the vendored Workbench
+stays at `1f48e07`.
+
+- License: GNU Affero General Public License v3.0 or later (`LICENSE`), with
+  commercial terms available by agreement (`COMMERCIAL.md`), the pairing the
+  sibling public bundles use; `LICENSE_POSTURE.md` records the selection. The
+  vendored Workbench files are distributed here under the same terms by their
+  author. v0.3.0's ZIP predates the license files; this release's carries them.
+- Anonymous release access: the runner's update check and
+  `launcher/install_release.py --latest` read the public release and download
+  its asset without credentials; a signed-in `gh` or a `GITHUB_TOKEN` is used
+  when present and only raises the rate limit (`scripts/update_check.py`,
+  `launcher/install_release.py`). A rate-limited answer (HTTP 403 or 429) is
+  reported as unavailable with the one line that explains it. The one-command
+  installers fetch the latest release anonymously with curl or PowerShell when
+  `gh` is not signed in, check the download against its published SHA-256,
+  and clone `main` only when no release can be reached;
+  `BPK_INSTALL_NO_START=1` installs without starting the runner.
+- Producer identity: `blueprint_packager/identity.py` reads the commit, tag
+  and verified-tag flag from `release_manifest.json` when running from an
+  installed release (`identity_state: release`); from a checkout it asks git
+  only when the repository it finds is this tool's own (`git`); a copy inside
+  another repository (a release unpacked in a course build) no longer reports
+  that repository's commit and is `unknown`. The smoke test checks that a
+  built package's run identity names the release commit.
+
 ## 0.3.0 — 2026-10-13
 
 The authoring and verification candidate of 2026-10-09, the Blueprint Wizard

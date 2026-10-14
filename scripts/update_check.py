@@ -3,11 +3,11 @@
 
 Adapted from the Blueprint Wizard runner's scripts/update_check.py
 (brightspace-blueprint-runner, commit 85cef27). The difference that matters:
-this check still goes through credentials (the repository has been public
-since 2026-10-13; reading the release without them is a planned change). It
-uses, in order, the ``gh`` command when it is signed in, then a
-``GITHUB_TOKEN`` (or ``GH_TOKEN``) environment variable, and otherwise reports
-``no_access`` so the caller can print one quiet line and move on.
+the repository is public (since 2026-10-13), so the check needs no
+credentials. It uses, in order, the ``gh`` command when it is signed in, then a
+``GITHUB_TOKEN`` (or ``GH_TOKEN``) environment variable, and otherwise asks the
+GitHub API anonymously (sixty requests an hour per address; the daily cache and
+the ETag keep this check far below that).
 
 Automatic checks are cached for one day, never take more than two seconds, and
 never change the installed tool. Network and cache failures come back as
@@ -173,18 +173,26 @@ def gh_available(*, timeout: float = REQUEST_TIMEOUT_SECONDS) -> bool:
 
 
 def access_mode() -> str:
-    """How this machine can reach the repository's releases: 'gh', 'token', or 'none'."""
+    """How this machine reaches the repository's releases: 'gh', 'token', or 'anonymous'.
+
+    The repository is public, so anonymous access always works; gh or a token only
+    raise the rate limit."""
     if gh_available():
         return "gh"
     if github_token():
         return "token"
-    return "none"
+    return "anonymous"
+
+
+def api_headers(*, token: str = "") -> dict[str, str]:
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "Blueprint-Packager-Update-Check"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
 
 
 def fetch_latest_release(etag: str = "", *, timeout: float = REQUEST_TIMEOUT_SECONDS) -> tuple[dict[str, Any] | None, str, bool]:
-    """Return ``(payload, etag, not_modified)`` from GitHub, through gh or a token.
-
-    Raises PermissionError when neither gh nor a token is available."""
+    """Return ``(payload, etag, not_modified)`` from GitHub: through gh, a token, or anonymously."""
     mode = access_mode()
     if mode == "gh":
         gh = shutil.which("gh") or "gh"
@@ -199,23 +207,23 @@ def fetch_latest_release(etag: str = "", *, timeout: float = REQUEST_TIMEOUT_SEC
         if not isinstance(payload, dict):
             raise ValueError("GitHub returned an unexpected response.")
         return payload, "", False
-    if mode == "token":
-        headers = {"Accept": "application/vnd.github+json", "User-Agent": "Blueprint-Packager-Update-Check",
-                   "Authorization": f"Bearer {github_token()}"}
-        if etag:
-            headers["If-None-Match"] = etag
-        request = urllib.request.Request(API_URL, headers=headers)
-        try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-                if not isinstance(payload, dict):
-                    raise ValueError("GitHub returned an unexpected response.")
-                return payload, str(response.headers.get("ETag") or ""), False
-        except urllib.error.HTTPError as exc:
-            if exc.code == 304:
-                return None, etag, True
-            raise
-    raise PermissionError("no GitHub access: sign in with `gh auth login` or set GITHUB_TOKEN")
+    headers = api_headers(token=github_token() if mode == "token" else "")
+    if etag:
+        headers["If-None-Match"] = etag
+    request = urllib.request.Request(API_URL, headers=headers)
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("GitHub returned an unexpected response.")
+            return payload, str(response.headers.get("ETag") or ""), False
+    except urllib.error.HTTPError as exc:
+        if exc.code == 304:
+            return None, etag, True
+        if exc.code in (403, 429):
+            raise ValueError("GitHub is rate-limiting anonymous requests from this address; try later, "
+                             "or sign in with `gh auth login` or set GITHUB_TOKEN") from exc
+        raise
 
 
 Fetcher = Callable[[str], tuple[dict[str, Any] | None, str, bool]]

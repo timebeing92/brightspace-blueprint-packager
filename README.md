@@ -19,8 +19,9 @@ Packager blueprint. The Wizard's review DOCX is not directly interchangeable
 with the authoring DOCX. The adapter checks exact identities and refuses
 unsupported evidence; see [supported conversion shapes](docs/WIZARD_AUTHORING_CONVERSION.md).
 
-**Status:** released version **0.3.0** (2026-10-13); the repository is public
-since 2026-10-13. Earlier MBA 620 sandbox
+**Status:** released version **0.3.0** (2026-10-13), with 0.3.1 (license,
+anonymous release access, producer identity) on `main`; the repository is
+public since 2026-10-13 under AGPL-3.0-or-later. Earlier MBA 620 sandbox
 rounds provide L4 evidence for their named packages and shapes. The
 multiple-activity authoring, video markers, readiness gates, Wizard conversion
 and bracket vocabulary new since 0.2.2 have local test evidence on the CI
@@ -100,10 +101,10 @@ window. There is nothing else to install by hand: on first run it asks before
 creating a private `.venv` inside its folder and installing its packages
 there. Your blueprint and your package never leave your machine.
 
-**Download and start.** The repository is public. The one-command installer
-fetches the latest release through the `gh` command when it is signed in
-(`gh auth login`); without `gh` it clones `main` with git. The release ZIP on
-GitHub Releases downloads without an account.
+**Download and start.** The repository is public and nothing here needs an
+account: the one-command installer fetches the latest release (through `gh`
+when it is signed in, otherwise anonymously, checking the published SHA-256),
+and the runner's update check reads the release the same way.
 
 | Platform | Install | Start later |
 |---|---|---|
@@ -383,7 +384,8 @@ first.
 The packager does not write Brightspace XML from scratch. It builds with, and
 verifies against, scripts and schema files from **CourseCraft Workbench**, a
 separate, private engineering repository kept by this tool's author. Those
-files are *vendored*: copied into this repository so that it runs on its own.
+files are *vendored*: copied into this repository so that it runs on its own,
+and distributed here under this repository's license by the same author.
 
 | Where | What |
 |---|---|
@@ -433,6 +435,14 @@ If you fork this repository to build your own courses, two things to know.
   your course's own repository for course maps, settings, and packages.
   Commit messages say what changed and why; no AI attribution lines.
 
+## License
+
+This repository is licensed under the GNU Affero General Public License,
+version 3 or later (`AGPL-3.0-or-later`). See `LICENSE`. Commercial licenses,
+hosted deployments, implementation support, institutional integrations and
+other paid services are available by agreement; see `COMMERCIAL.md`.
+`LICENSE_POSTURE.md` records when and why the pairing was selected.
+
 ## Repository map
 
 | Path | What |
@@ -462,6 +472,7 @@ If you fork this repository to build your own courses, two things to know.
 | `docs/examples/` | A generated eight-week blank blueprint. |
 | `docs/records/` | Survey reports and work records. |
 | `tests/` | Synthetic fixtures end to end; `.venv/bin/python -m pytest tests -q`. The update test needs the previous release's tag in the checkout. |
+| `LICENSE`, `COMMERCIAL.md`, `LICENSE_POSTURE.md` | AGPL-3.0-or-later, the commercial terms note, and the record of the selection. |
 | `CAPABILITIES.json`, `CHANGELOG.md`, `ROADMAP.md`, `AGENTS.md` | What it builds and how well, what changed, what is next, what it must never do. |
 
 ## Questions and changes

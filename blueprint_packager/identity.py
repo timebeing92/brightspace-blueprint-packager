@@ -99,16 +99,43 @@ def diagnostic(index: int, code: str, severity: str, message: str, location: str
 
 
 def producer(repo_root: Path, version: str) -> dict[str, Any]:
+    """Who built this: the release manifest when running from an installed release, this
+    repository's git state when running from a checkout of it, otherwise unknown.
+
+    A copy inside another repository (a release unpacked in a course build, an install
+    under some checkout) must not report that repository's commit as its own."""
+    extensions = {"host_repository": repo_root.name,
+                  "status": "standalone producer repository since 2026-10-08; Workbench libraries vendored"}
+    manifest_path = repo_root / "release_manifest.json"
+    if manifest_path.is_file():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            manifest = None
+        if isinstance(manifest, dict) and manifest.get("commit"):
+            build = manifest.get("build") if isinstance(manifest.get("build"), dict) else {}
+            return {
+                "component": TOOL, "identity_state": "release", "version": version,
+                "repository": None, "ref": manifest.get("tag") or None, "commit": str(manifest["commit"]),
+                "dirty": bool(build.get("dirty_worktree")),
+                "extensions": {**extensions, "identity_source": "release_manifest.json",
+                               "release_version": str(manifest.get("version") or ""),
+                               "tag_verified": bool(build.get("tag_verified"))},
+            }
+
     def git(*args: str) -> str:
         result = subprocess.run(["git", "-C", str(repo_root), *args], text=True, capture_output=True, check=False)
         return result.stdout.strip() if result.returncode == 0 else ""
 
-    commit = git("rev-parse", "HEAD")
+    toplevel = git("rev-parse", "--show-toplevel")
+    own_repository = bool(toplevel) and Path(toplevel).resolve() == repo_root.resolve()
+    commit = git("rev-parse", "HEAD") if own_repository else ""
     return {
         "component": TOOL, "identity_state": "git" if commit else "unknown", "version": version,
-        "repository": None, "ref": git("branch", "--show-current") or None, "commit": commit or None,
+        "repository": None, "ref": (git("branch", "--show-current") or None) if commit else None, "commit": commit or None,
         "dirty": bool(git("status", "--porcelain")) if commit else None,
-        "extensions": {"host_repository": repo_root.name, "status": "standalone producer repository since 2026-10-08; Workbench libraries vendored"},
+        "extensions": {**extensions,
+                       "identity_source": "git" if commit else ("a repository that is not this tool's" if toplevel else "none")},
     }
 
 

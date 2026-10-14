@@ -270,12 +270,12 @@ def update_notice(*, force: bool, offer_install: bool) -> bool:
     status = update_check.check_latest_release(current_version=VERSION, cache_path=CACHE_PATH, force=force)
     if status.state == "no_access":
         if force:
-            print(ui.card(TERM, "Update check needs GitHub access", [
+            print(ui.card(TERM, "Update check refused by GitHub", [
                 ("Installed", f"v{VERSION}"),
-                ("", "Sign in with `gh auth login`, or set GITHUB_TOKEN, then try again; the check does not yet read the public release without one."),
+                ("", status.error or "Sign in with `gh auth login`, or set GITHUB_TOKEN, then try again."),
             ]))
         else:
-            print(TERM.dim("  Update check skipped: no GitHub access (gh auth login, or GITHUB_TOKEN)."))
+            print(TERM.dim("  Update check skipped: GitHub refused the request."))
         return False
     if status.state == "unavailable":
         if force:

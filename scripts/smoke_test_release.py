@@ -17,6 +17,7 @@ checkout. The steps, each recorded with its command and outcome:
 5. the launcher starts, creates the venv, installs the packages and passes the doctor;
 6. a blank blueprint is written and read back;
 7. a ready synthetic course (the shipped tests' fixture) is read, built and verified;
+   (its run identity names the release commit from the manifest, not a git state);
 8. the built package goes through the vendored Blueprint Wizard, back through
    `from-wizard`, and is read, built and verified again;
 9. the shipped suite passes in the installed copy (``--skip-suite`` leaves it out).
@@ -213,6 +214,11 @@ def main(argv: list[str] | None = None) -> int:
         smoke.check("build wrote a package and its receipt", len(packages) >= 1 and (ready_dir / "build" / "component_package_receipt.json").is_file(),
                     [p.name for p in packages])
         package = next(p for p in packages if "pages_refresh" not in p.name)
+        identities = list((ready_dir / "build").glob("*__run_identity.json"))
+        producer = json.loads(identities[0].read_text(encoding="utf-8")).get("producer", {}) if identities else {}
+        smoke.check("run identity names the release commit", producer.get("identity_state") == "release"
+                    and producer.get("commit") == manifest.get("commit"),
+                    {"identity_state": producer.get("identity_state"), "commit": producer.get("commit")})
         verify = smoke.run("verify the ready course", [*bpk, "verify", str(ready_dir / "build"), "--model", str(model)])
         report["ready_course"] = {"read": read_ready.stdout.strip().splitlines()[:1], "package": package.name, "package_sha256": sha256_file(package),
                                   "verify": verify.stdout.strip().splitlines()[-1:]}

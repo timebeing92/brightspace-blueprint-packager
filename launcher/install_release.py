@@ -36,6 +36,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import urllib.error
 import urllib.request
 import uuid
 import zipfile
@@ -92,14 +93,20 @@ def download_latest(destination: Path, *, status: update_check.UpdateStatus | No
         if result.returncode != 0 or not target.is_file():
             raise ReleaseInstallError((result.stderr or result.stdout).strip() or "gh release download failed")
         return target, status.latest_tag
+    # a token or nothing: the repository is public, so the asset URL answers without credentials
+    headers = {"Accept": "application/octet-stream", "User-Agent": "Blueprint-Packager-Installer"}
     if mode == "token":
-        request = urllib.request.Request(status.asset_url, headers={
-            "Accept": "application/octet-stream", "User-Agent": "Blueprint-Packager-Installer",
-            "Authorization": f"Bearer {update_check.github_token()}"})
+        headers["Authorization"] = f"Bearer {update_check.github_token()}"
+    request = urllib.request.Request(status.asset_url, headers=headers)
+    try:
         with urllib.request.urlopen(request, timeout=60) as response, target.open("wb") as out:
             shutil.copyfileobj(response, out)
-        return target, status.latest_tag
-    raise ReleaseInstallError("no GitHub access: sign in with `gh auth login` or set GITHUB_TOKEN")
+    except urllib.error.HTTPError as exc:
+        if exc.code in (403, 429):
+            raise ReleaseInstallError("GitHub is rate-limiting anonymous downloads from this address; try later, "
+                                      "or sign in with `gh auth login` or set GITHUB_TOKEN") from exc
+        raise ReleaseInstallError(f"the release asset could not be downloaded: HTTP {exc.code}") from exc
+    return target, status.latest_tag
 
 
 # --------------------------------------------------------------------------- verification
