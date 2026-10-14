@@ -272,7 +272,7 @@
     "repository": "public on GitHub since 2026-10-13 (timebeing92/brightspace-blueprint-packager), AGPL-3.0-or-later with commercial terms (COMMERCIAL.md); release assets download without an account, and from 0.3.1 the update check and launcher/install_release.py --latest read the release anonymously",
     "implementation_log": "docs/IMPLEMENTATION_LOG_2026-10-09.md",
     "vendor_pin_source": "vendor/coursecraft_workbench/MANIFEST.json",
-    "release_evidence": ".github/workflows/ci.yml (suite at Python 3.11-3.14 on Linux, Windows, macOS; launchers and installer on all three) and docs/evidence/RELEASE_SMOKE_v0.3.0.md",
+    "release_evidence": ".github/workflows/ci.yml (suite at Python 3.11-3.14 on Linux, Windows, macOS; launchers and installer on all three) and docs/evidence/RELEASE_SMOKE_v0.3.0.md; 0.3.1 (2026-10-13): docs/evidence/RELEASE_SMOKE_v0.3.1.md",
     "tenant_validation": "not performed for 0.3.0; the historical L4 receipts apply to the 0.2.x-era shapes they name",
     "conversion_backlog": "docs/CONVERSION_BACKLOG_2026-10-13.md"
   },

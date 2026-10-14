@@ -19,9 +19,10 @@ Packager blueprint. The Wizard's review DOCX is not directly interchangeable
 with the authoring DOCX. The adapter checks exact identities and refuses
 unsupported evidence; see [supported conversion shapes](docs/WIZARD_AUTHORING_CONVERSION.md).
 
-**Status:** released version **0.3.0** (2026-10-13), with 0.3.1 (license,
-anonymous release access, producer identity) on `main`; the repository is
-public since 2026-10-13 under AGPL-3.0-or-later. Earlier MBA 620 sandbox
+**Status:** released version **0.3.1** (2026-10-13: license, anonymous
+release access, producer identity; 0.3.0 the same day carried the authoring
+candidate and the release readiness work); the repository is public since
+2026-10-13 under AGPL-3.0-or-later. Earlier MBA 620 sandbox
 rounds provide L4 evidence for their named packages and shapes. The
 multiple-activity authoring, video markers, readiness gates, Wizard conversion
 and bracket vocabulary new since 0.2.2 have local test evidence on the CI

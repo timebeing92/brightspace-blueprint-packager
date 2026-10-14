@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.1 — not yet released
+## 0.3.1 — 2026-10-13
 
 The first public-repository release: a license, release access without an
 account, and a producer identity that cannot borrow another repository's
