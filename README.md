@@ -13,23 +13,10 @@ due dates, and the links between them. It works in inspectable stages, writes
 a receipt at every one, accounts for source content, and reads its own package
 back to check the supported content and relationships before operator review.
 
-**Blueprint Wizard** supplies the extraction half of a supported round trip.
-Use `bpk.py from-wizard` to convert its immutable JSON bundle into an editable
-Packager blueprint. The Wizard's review DOCX is not directly interchangeable
-with the authoring DOCX. The adapter checks exact identities and refuses
-unsupported evidence; see [supported conversion shapes](docs/WIZARD_AUTHORING_CONVERSION.md).
-
-**Status:** released version **0.3.1** (2026-10-13: license, anonymous
-release access, producer identity; 0.3.0 the same day carried the authoring
-candidate and the release readiness work); the repository is public since
-2026-10-13 under AGPL-3.0-or-later. Earlier MBA 620 sandbox
-rounds provide L4 evidence for their named packages and shapes. The
-multiple-activity authoring, video markers, readiness gates, Wizard conversion
-and bracket vocabulary new since 0.2.2 have local test evidence on the CI
-matrix and a smoke test of the published asset; they have not received a new
-tenant import/re-export round. See [Evidence and provenance](#evidence-and-provenance),
-the [implementation log](docs/IMPLEMENTATION_LOG_2026-10-09.md) and the
-[conversion backlog](docs/CONVERSION_BACKLOG_2026-10-13.md).
+In short: write the blueprint in Word, run the packager, import the ZIP.
+Nothing here talks to Brightspace; you import the package yourself, and your
+documents never leave your machine. Start with
+[Guided install and run](#guided-install-and-run).
 
 ---
 
@@ -45,11 +32,13 @@ the [implementation log](docs/IMPLEMENTATION_LOG_2026-10-09.md) and the
 8. [Importing, and updating a course later](#importing-and-updating-a-course-later)
 9. [Writing a blueprint](#writing-a-blueprint)
 10. [Page styling](#page-styling)
-11. [Evidence and provenance](#evidence-and-provenance)
-12. [The vendored engine](#the-vendored-engine)
-13. [Forking, syncing, and contributing](#forking-syncing-and-contributing)
-14. [Repository map](#repository-map)
-15. [Questions and changes](#questions-and-changes)
+11. [Status, evidence and provenance](#status-evidence-and-provenance)
+12. [Releases, updates and repair](#releases-updates-and-repair)
+13. [The vendored engine](#the-vendored-engine)
+14. [Forking, syncing, and contributing](#forking-syncing-and-contributing)
+15. [License](#license)
+16. [Repository map](#repository-map)
+17. [Questions and changes](#questions-and-changes)
 
 ---
 
@@ -163,18 +152,12 @@ other inputs as flags for scripted use, `--doctor` (check the setup only),
 `--check-for-updates`, `--no-update-check` or `BPK_NO_UPDATE_CHECK=1`. See
 `INSTALL_AND_TROUBLESHOOT.md` when something does not start.
 
-**Updates.** On start, when GitHub is reachable, the runner compares the
-installed version with the latest release once a day and says when a newer
-one exists, with the one command to install it beside this version and
-restart. Releases are pinned to a commit and carry a manifest of every file's
-hash; the installer verifies the hashes before anything is put in place, and
-leaves the previous version where it was. After an update, build from the
-blueprint again: the runner re-reads it, and a course model cached by the
-previous version is refused by `build` until the document is re-read.
-Installing a version that is already in place checks its files and names any
-that differ; `--repair` restores them from the verified archive without
-touching `.venv`, remembered answers or logs. `RELEASING.md` says how a
-release is cut and checked.
+**Updates.** Once a day, when GitHub is reachable, the runner compares the
+installed version with the latest release and says when a newer one exists,
+with the one command that installs it beside this version and restarts.
+Nothing is deleted. After an update, build from the blueprint again; the
+runner re-reads it. Details, including repair of a damaged install, are in
+[Releases, updates and repair](#releases-updates-and-repair).
 
 ## Quick start on the command line
 
@@ -212,10 +195,12 @@ example with panels and sample rubrics. Set `--assignments-per-week` and
 weekly overrides, including zero. Existing blank destinations are protected;
 an explicit `blank --force` backs up the existing document before replacing it.
 
-Review the [updated eight-week blank](docs/examples/blank_blueprint__8_weeks__ux_review.docx)
-and [SME/ID design review](docs/DESIGN_REVIEW_2026-10-09.md). Optional design tokens
-and connection shortcuts can be deferred for manual completion in Brightspace;
-the [authoring guide](docs/AUTHORING_GUIDE.md#optional-features-and-manual-completion-in-brightspace)
+A generated [eight-week blank](docs/examples/blank_blueprint__8_weeks__ux_review.docx)
+shows the layout, and the [design review](docs/DESIGN_REVIEW_2026-10-09.md)
+records how designers and subject-matter experts read it. Optional design
+tokens and connection shortcuts can be left for manual completion in
+Brightspace; the
+[authoring guide](docs/AUTHORING_GUIDE.md#optional-features-and-manual-completion-in-brightspace)
 explains how to remove unused declarations and record the remaining work.
 
 To inspect unfinished output, add `--preview` to `build`. A preview permits
@@ -224,10 +209,6 @@ unaccounted source content still stop the build. An intentional video placeholde
 or link fallback can be retained by its exact title using
 `--retain-video-placeholder TITLE` or `--video-link-fallback TITLE`.
 
-**Compatibility:** after updating from 0.2.2, re-run `read` on each DOCX
-before building. Builds require the source-accounting ledger and the current
-input contracts, which a model cached by 0.2.2 lacks; `build` refuses such a
-model with "Re-read the DOCX". Re-reading does not rewrite the source DOCX.
 
 ## How it works
 
@@ -247,6 +228,15 @@ can be found where it happened.
 | Re-sync | `bpk.py rebase-map` | When the source document changes, carries a course map from the old export to the new one and reports what moved, was added, or was removed. |
 
 A blueprint written in the layout from the start skips Normalize.
+
+**Coming from a Brightspace export.** The Blueprint Wizard, a separate tool,
+extracts an existing Brightspace course into an immutable JSON bundle.
+`bpk.py from-wizard` converts a supported bundle into an editable Packager
+blueprint with source hashes and a ledger of what it did; the Wizard's own
+review DOCX is not interchangeable with the authoring DOCX. The adapter
+checks exact identities and refuses to convert evidence it does not support;
+see the [supported conversion shapes](docs/WIZARD_AUTHORING_CONVERSION.md)
+and the [conversion backlog](docs/CONVERSION_BACKLOG_2026-10-13.md).
 
 ## What a build produces
 
@@ -328,11 +318,11 @@ The ones that matter most:
 
 Real bullets, real numbering, bold and italic all come through as typed.
 
-The live UNE Google Docs checks covered native upload, pageless mode, editing,
-Word export, and the guided runner on draft and ready synthetic courses. See
-the [Google authoring QA record](docs/evidence/GOOGLE_AUTHORING_QA_2026-10-09.md)
-for exact comparisons, retained test documents, and the limits of API-based
-editing evidence.
+A blueprint can be written in Google Docs and exported as Word. A live check
+in October 2026 covered native upload, pageless mode, editing, Word export,
+and the guided runner on draft and ready synthetic courses; the
+[Google authoring QA record](docs/evidence/GOOGLE_AUTHORING_QA_2026-10-09.md)
+has the comparisons and the limits of that evidence.
 
 ## Page styling
 
@@ -345,7 +335,17 @@ course's page style. Assignment and discussion descriptions take a modest
 style set derived from the same template, or none, by setting
 `fragment_styles` to `plain`. Details: [`docs/TEMPLATE_COMPOSITE_NAVY.md`](docs/TEMPLATE_COMPOSITE_NAVY.md).
 
-## Evidence and provenance
+## Status, evidence and provenance
+
+**Status.** Version 0.3.1, released 2026-10-13; `CHANGELOG.md` lists every
+release. The repository is public under AGPL-3.0-or-later. The MBA 620
+sandbox rounds of October 2026 give the named whole-course packages L4
+evidence. The authoring features new since 0.2.2 (several activities in a
+week, video markers, readiness gates, the Wizard conversion, the bracket
+vocabulary) have local test evidence on the CI matrix and a smoke test of
+each published release, and no new tenant import round yet; see the
+[implementation log](docs/IMPLEMENTATION_LOG_2026-10-09.md) and the
+[conversion backlog](docs/CONVERSION_BACKLOG_2026-10-13.md).
 
 **Evidence levels.** Every shape the tool can build is listed in
 `CAPABILITIES.json` with how well it is proven, on a ladder from L1 (the tool
@@ -379,6 +379,32 @@ text.
 tool was designed from, including the notes on how Brightspace behaves on
 import. They are kept so decisions can be checked later, not for reading
 first.
+
+## Releases, updates and repair
+
+Releases are cut from a verified tag and pinned to a commit. The ZIP carries a
+manifest of every file's hash, the commit, the tag and the engine pin. The
+installer verifies every hash before anything is put in place and leaves the
+previous version where it was; the old folder's launcher forwards to the
+current one. Installing a version that is already in place checks its files
+and names any that differ; `--repair` restores them from the verified archive
+without touching `.venv`, remembered answers or logs.
+
+Nothing needs an account. The runner's update check and
+`launcher/install_release.py --latest` read the public release anonymously;
+a signed-in `gh` or a `GITHUB_TOKEN` only raises GitHub's rate limit.
+
+After an update, build from the blueprint again. A course model cached by
+0.2.2 lacks the source-accounting ledger and the current input contracts, and
+`build` refuses it with "Re-read the DOCX"; re-reading never changes the
+source document.
+
+Before a release, CI runs the suite at Python 3.11 through 3.14 on Linux,
+Windows and macOS, and installs, repairs and starts the release ZIP through
+the real launchers on all three. After publication,
+`scripts/smoke_test_release.py` tests the published asset from the download,
+and its report is committed under `docs/evidence/`. `RELEASING.md` has the
+steps.
 
 ## The vendored engine
 
