@@ -175,7 +175,7 @@ same ground from the package's side.
 | --- | --- | --- | --- | --- | --- |
 | manifest, content tree, modules | reads | **builds** (modules, order, hidden modules and topics) | | | consumes the blueprint JSON |
 | pages (HTML) | reads into blocks and segments; QA on page chrome and breaks | **builds** from a template; page-to-page relative links; one page in two modules | | | |
-| course files (images, PDFs, media) | reads references | **refuses** images (`IMAGE_UNSUPPORTED`, never silently dropped); video by player URL or visible placeholder | | | |
+| course files (images, PDFs, media) | reads references | **refuses** images (`IMAGE_UNSUPPORTED`, never silently dropped); video by player URL or visible placeholder; an asset-bearing authoring package is planned (backlog family E) | | Unbind keeps a quiz's image references and files | |
 | assignment folders (`dropbox`) | reads | **builds**, joined to grade item and rubric; dates from the term calendar | | | consumes |
 | discussions | reads | **builds** forums and graded topics; more than one forum per package | | | consumes |
 | checklists | reads | **builds**, including a checklist derived from a week's activities; item due dates | | | consumes |
